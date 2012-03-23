@@ -1,0 +1,51 @@
+name "uw_particle_localization"
+
+using_library "uw_localization"
+using_library "machine_learning"
+using_library "aggregator"
+
+import_types_from "base"
+import_types_from "aggregator"
+import_types_from "uw_localization/types/particle.hpp"
+
+task_context "Task" do
+   # ----------------------------------------------------------------------
+   # output samples 
+   # ----------------------------------------------------------------------
+   output_port("particles", "/std/vector<uw_localization/Particle>").
+        doc("current particle set used in this filter")
+
+   output_port("pose_sample", "/base/samples/RigidBodyState").
+        doc("pose estimation merged with other state informations")
+
+   output_port("streamaligner_status", "/aggregator/StreamAlignerStatus").
+        doc("provides debug information on the state of stream aligner")
+
+
+   # ----------------------------------------------------------------------
+   # input samples 
+   # ----------------------------------------------------------------------
+   input_port("distance_samples", "/base/samples/LaserScan").
+        doc("relative distance sample to an obstacle in the environment").
+        needs_reliable_connection
+
+   input_port("orientation_sample", "/base/samples/RigidBodyState").
+        doc("current orientation of the vehicle").
+        needs_reliable_connection
+
+   input_port("motion_sample", "/base/samples/RigidBodyState").
+        doc("current motion sample retrieved from our motion model").
+        needs_reliable_connection
+end
+
+
+# Declares a deployment, i.e. an actual executable that contains various tasks.
+deployment "uw_particle_localization_test" do
+    # This is a test deployment that should not be installed
+    do_not_install
+
+    # Declares it as periodic, with a period of 100ms
+    task("uw_particle_localization", "Task").
+        periodic(0.1)
+end
+
