@@ -1,6 +1,7 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.cpp */
 
 #include "Task.hpp"
+#include <aggregator/StreamAligner.hpp>
 
 using namespace uw_particle_localization;
 
@@ -19,35 +20,99 @@ Task::~Task()
 }
 
 
-
-/// The following lines are template definitions for the various state machine
-// hooks defined by Orocos::RTT. See Task.hpp for more detailed
-// documentation about them.
-
 // bool Task::configureHook()
 // {
 //     if (! TaskBase::configureHook())
 //         return false;
 //     return true;
 // }
-// bool Task::startHook()
-// {
-//     if (! TaskBase::startHook())
-//         return false;
-//     return true;
-// }
-// void Task::updateHook()
-// {
-//     TaskBase::updateHook();
-// }
+
+
+bool Task::startHook()
+{
+     if (! TaskBase::startHook())
+         return false;
+
+     aggr = new aggregator::StreamAligner;
+     aggr->setTimeout(base::Time::fromSeconds(_max_sample_delay.value()));
+
+     const double size_factor = 2.0;
+
+     laser_sid = aggr->registerStream<base::samples::LaserScan>(
+             boost::bind(&Task::callbackLaser, this, _1, _2),
+             size_factor * _max_sample_delay.value() / _laser_period.value(),
+             base::Time::fromSeconds(_laser_period.value()));
+
+     orientation_sid = aggr->registerStream<base::samples::RigidBodyState>(
+             boost::bind(&Task::callbackOrientation, this, _1, _2),
+             size_factor * _max_sample_delay.value() / _orientation_period.value(),
+             base::Time::fromSeconds(_orientation_period.value()));
+
+     speed_sid = aggr->registerStream<base::samples::RigidBodyState>(
+             boost::bind(&Task::callbackSpeed, this, _1, _2),
+             size_factor * _max_sample_delay.value() / _speed_period.value(),
+             base::Time::fromSeconds(_speed_period.value()));
+
+     return true;
+}
+
+
+void Task::updateHook()
+{
+     TaskBase::updateHook();
+
+     base::samples::RigidBodyState orientation;
+     base::samples::RigidBodyState speed;
+     base::samples::LaserScan laser;
+
+     while(_orientation_samples.read(orientation, false) == RTT::NewData) {
+         aggr->push(orientation_sid, orientation.time, orientation);                 
+     }
+
+     while(_speed_samples.read(speed, false) == RTT::NewData) {
+         aggr->push(speed_sid, speed.time, speed);
+     }
+
+     while(_laser_samples.read(laser, false) == RTT::NewData) {
+         aggr->push(laser_sid, laser.time, laser);
+     }
+
+     _streamaligner_status.write(aggr->getStatus());
+}
+
+
+void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
+{
+}
+
+
+
+void Task::callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs)
+{
+}
+
+
+
+void Task::callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs)
+{
+}
+
+
+
+void Task::stopHook()
+{
+     TaskBase::stopHook();
+
+     delete aggr;
+}
+
+
 // void Task::errorHook()
 // {
 //     TaskBase::errorHook();
 // }
-// void Task::stopHook()
-// {
-//     TaskBase::stopHook();
-// }
+
+
 // void Task::cleanupHook()
 // {
 //     TaskBase::cleanupHook();
