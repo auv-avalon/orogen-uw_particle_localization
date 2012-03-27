@@ -26,7 +26,7 @@ struct PoseParticle {
 };
 
 
-class ParticleLocalization : public ParticleFilter<PoseParticle, StochasticMap>,
+class ParticleLocalization : public ParticleFilter<PoseParticle>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, StochasticMap>
 {
@@ -38,16 +38,20 @@ public:
   virtual double perception(PoseParticle& state, const base::samples::LaserScan& scan, const StochasticMap& map);
   
   virtual base::Vector3d position(const PoseParticle& state) const;
-  virtual double yaw(const PoseParticle& state) const;
-  virtual double get_weight(const PoseParticle& state) const;
-  virtual void set_weight(PoseParticle& state, double value);
+  virtual base::Orientation orientation(const PoseParticle& state) const;
+  virtual double getWeight(const PoseParticle& state) const;
+  virtual void setWeight(PoseParticle& state, double value);
   
-  virtual base::samples::RigidBodyState estimate() const;
+  virtual base::samples::RigidBodyState& estimate();
+
+  void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
+  void setCurrentSpeed(const base::samples::RigidBodyState& speed);
 
 private:
   FilterConfig filter_config;
-  base::Orientation vehicle_orientation;
+  base::samples::RigidBodyState vehicle_pose;
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
+  double z_sample;
 };
 
 

@@ -34,7 +34,7 @@ double ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Rigid
     if( !X.timestamp.isNull() ) {
         double dt = (U.time - X.timestamp).toSeconds();
 
-        Xt.position = X.position + vehicle_orientation * (v_avg * dt);
+        Xt.position = X.position + vehicle_pose.orientation * (v_avg * dt);
     }
 
     Xt.velocity = v_noisy;
@@ -55,31 +55,53 @@ base::Vector3d ParticleLocalization::position(const PoseParticle& state) const
 }
 
 
-double ParticleLocalization::yaw(const PoseParticle& state) const
+base::Orientation ParticleLocalization::orientation(const PoseParticle& state) const
 {
-    return base::getYaw(vehicle_orientation);
+    return vehicle_pose.orientation;
 }
 
 
-double ParticleLocalization::get_weight(const PoseParticle& state) const
+double ParticleLocalization::getWeight(const PoseParticle& state) const
 {
     return state.confidence;
 }
 
 
 
-void ParticleLocalization::set_weight(PoseParticle& state, double value)
+void ParticleLocalization::setWeight(PoseParticle& state, double value)
 {
     state.confidence = value;
 }
 
 
-  
-base::samples::RigidBodyState ParticleLocalization::estimate() const
+void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {
-    base::samples::RigidBodyState state;
-
-    return state;
+    vehicle_pose.orientation = orientation.orientation;
+    vehicle_pose.cov_orientation = orientation.cov_orientation;
+    vehicle_pose.angular_velocity = orientation.angular_velocity;
+    vehicle_pose.cov_angular_velocity = orientation.cov_angular_velocity;
+    z_sample = orientation.position.z();
 }
 
+
+void ParticleLocalization::setCurrentSpeed(const base::samples::RigidBodyState& speed)
+{
+    vehicle_pose.velocity = speed.velocity;
+    vehicle_pose.cov_velocity = speed.cov_velocity;
+}
+
+base::samples::RigidBodyState& ParticleLocalization::estimate()
+{
+    // use position estimate retrieved from particle filter
+    vehicle_pose.position = mean_position;
+    vehicle_pose.cov_position = cov_position;
+
+    // use z samples from depth reader
+    vehicle_pose.position.z() = z_sample;
+
+    return vehicle_pose;
+}
+
+
+  
 }
