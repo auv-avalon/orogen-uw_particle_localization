@@ -34,8 +34,12 @@ public:
   ParticleLocalization(const FilterConfig& config);
   ~ParticleLocalization();
 
+  virtual void initialize(std::vector<PoseParticle>& set, int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov);
+
   virtual double dynamic(PoseParticle& state, const base::samples::RigidBodyState& speed);
   virtual double perception(PoseParticle& state, const base::samples::LaserScan& scan, const StochasticMap& map);
+
+  virtual void preprocessing(const base::samples::RigidBodyState& speed);
   
   virtual base::Vector3d position(const PoseParticle& state) const;
   virtual base::Orientation orientation(const PoseParticle& state) const;
@@ -45,7 +49,6 @@ public:
   virtual base::samples::RigidBodyState& estimate();
 
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
-  void setCurrentSpeed(const base::samples::RigidBodyState& speed);
 
 private:
   FilterConfig filter_config;

@@ -17,6 +17,14 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
 ParticleLocalization::~ParticleLocalization()
 {}
 
+
+void ParticleLocalization::initialize(std::vector<PoseParticle>& set, int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov)
+{
+
+}
+
+
+
 double ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U)
 {
     MultiNormalRandom<3> SpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), U.cov_velocity);
@@ -73,6 +81,13 @@ void ParticleLocalization::setWeight(PoseParticle& state, double value)
     state.confidence = value;
 }
 
+void ParticleLocalization::preprocessing(const base::samples::RigidBodyState& speed)
+{
+    vehicle_pose.time = speed.time;
+    vehicle_pose.velocity = speed.velocity;
+    vehicle_pose.cov_velocity = speed.cov_velocity;
+}
+
 
 void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {
@@ -81,13 +96,6 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
     vehicle_pose.angular_velocity = orientation.angular_velocity;
     vehicle_pose.cov_angular_velocity = orientation.cov_angular_velocity;
     z_sample = orientation.position.z();
-}
-
-
-void ParticleLocalization::setCurrentSpeed(const base::samples::RigidBodyState& speed)
-{
-    vehicle_pose.velocity = speed.velocity;
-    vehicle_pose.cov_velocity = speed.cov_velocity;
 }
 
 base::samples::RigidBodyState& ParticleLocalization::estimate()
