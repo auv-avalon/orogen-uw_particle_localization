@@ -11,8 +11,10 @@
 #include <base/eigen.h>
 #include <base/samples/rigid_body_state.h>
 #include <base/samples/laser_scan.h>
+#include <machine_learning/RandomNumbers.hpp>
 #include <uw_localization/filters/particle_filter.hpp>
 #include <uw_localization/maps/stochastic_map.hpp>
+#include "LocalizationConfig.hpp"
 
 namespace uw_localization {
 
@@ -29,6 +31,9 @@ class ParticleLocalization : public ParticleFilter<PoseParticle, StochasticMap>,
   public Perception<PoseParticle, base::samples::LaserScan, StochasticMap>
 {
 public:
+  ParticleLocalization(const FilterConfig& config);
+  ~ParticleLocalization();
+
   virtual double dynamic(PoseParticle& state, const base::samples::RigidBodyState& speed);
   virtual double perception(PoseParticle& state, const base::samples::LaserScan& scan, const StochasticMap& map);
   
@@ -40,7 +45,9 @@ public:
   virtual base::samples::RigidBodyState estimate() const;
 
 private:
+  FilterConfig filter_config;
   base::Orientation vehicle_orientation;
+  machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
 };
 
 

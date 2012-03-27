@@ -1,6 +1,7 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.cpp */
 
 #include "Task.hpp"
+#include "ParticleLocalization.hpp"
 #include <aggregator/StreamAligner.hpp>
 
 using namespace uw_particle_localization;
@@ -53,6 +54,8 @@ bool Task::startHook()
              size_factor * _max_sample_delay.value() / _speed_period.value(),
              base::Time::fromSeconds(_speed_period.value()));
 
+
+
      return true;
 }
 
@@ -104,6 +107,7 @@ void Task::stopHook()
      TaskBase::stopHook();
 
      delete aggr;
+     delete localizer;
 }
 
 

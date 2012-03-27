@@ -9,6 +9,10 @@ namespace aggregator {
     class StreamAligner;
 }
 
+namespace uw_localization {
+    class ParticleLocalization;
+}
+
 namespace uw_particle_localization {
 
     class Task : public TaskBase
@@ -24,6 +28,8 @@ namespace uw_particle_localization {
         void callbackLaser(base::Time ts, const base::samples::LaserScan& scan);
         void callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs);
         void callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs);
+
+        uw_localization::ParticleLocalization* localizer;
 
 
     public:

@@ -39,7 +39,32 @@ task_context "Task" do
         needs_reliable_connection
 
    # ----------------------------------------------------------------------
-   # input samples 
+   # properties
+   # ----------------------------------------------------------------------
+
+   property("particle_number", "int").
+        doc("number of used particles")
+
+   property("particle_intersperal_ratio", "double", 0.0).
+        doc("ratio for generating new particles after each measurement")
+
+   property("init_position", "/std/vector<double>").
+        doc("initial centre position for all particles")
+
+   property("init_covariance", "/std/vector<double>").
+        doc("spatial covariance from initial centre position for initialization")
+
+   property("sonar_maximum_distance", "double", 20.0).
+        doc("set maximum distance for filtering sonar samples")
+
+   property("sonar_covariance", "/std/vector<double>").
+        doc("sets sonar covariance for defining measurement uncertainty")
+
+   property("static_motion_covariance", "/std/vector<double>").
+        doc("sets a static covariance for speed samples")
+
+   # ----------------------------------------------------------------------
+   # aggregator properties 
    # ----------------------------------------------------------------------
 
    property("max_sample_delay", "double", 1.0).

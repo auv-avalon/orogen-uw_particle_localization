@@ -1,16 +1,34 @@
 #include "ParticleLocalization.hpp"
-#include <machine_learning/RandomNumbers.hpp>
+#include <base/pose.h>
 
 using namespace machine_learning;
 
 namespace uw_localization {
 
+ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
+    : filter_config(config), 
+    StaticSpeedNoise(Random::multi_gaussian<3>())
+{
+    if(config.has_static_motion_covariance()) {
+        StaticSpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.get_static_motion_covariance()); 
+    }
+}
+
+ParticleLocalization::~ParticleLocalization()
+{}
+
 double ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U)
 {
-    MultiNormalRandom<3> Noise = Random::multi_gaussian(U.velocity, U.cov_velocity);
+    MultiNormalRandom<3> SpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), U.cov_velocity);
     PoseParticle Xt;
+
+    base::Vector3d v_noisy;
+
+    if(filter_config.has_static_motion_covariance())
+        v_noisy = U.velocity + StaticSpeedNoise();
+    else
+        v_noisy = U.velocity + SpeedNoise();
     
-    base::Vector3d v_noisy = Noise();
     base::Vector3d v_avg = (X.velocity + v_noisy) / 2.0;
 
     if( !X.timestamp.isNull() ) {
@@ -39,7 +57,7 @@ base::Vector3d ParticleLocalization::position(const PoseParticle& state) const
 
 double ParticleLocalization::yaw(const PoseParticle& state) const
 {
-    return 0;
+    return base::getYaw(vehicle_orientation);
 }
 
 
