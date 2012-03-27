@@ -45,7 +45,7 @@ task_context "Task" do
    property("particle_number", "int").
         doc("number of used particles")
 
-   property("particle_intersperal_ratio", "double", 0.0).
+   property("particle_interspersal_ratio", "double", 0.0).
         doc("ratio for generating new particles after each measurement")
 
    property("init_position", "/std/vector<double>").

@@ -1,12 +1,33 @@
 #ifndef UW_PARTICLE_LOCALIZATION_CONFIG_HPP
 #define UW_PARTICLE_LOCALIZATION_CONFIG_HPP
 
+#include <vector>
+#include <boost/assert.hpp>
+
 namespace uw_localization {
+
+
+template <typename M>
+M convertProperty(const std::vector<double>& v) {
+    M result;
+
+    BOOST_ASSERT(result.rows() * result.cols() == (int) v.size());
+
+    unsigned s = 0;
+
+    for(unsigned i = 0; i < result.rows(); i++) {
+        for(unsigned j = 0; j < result.cols(); j++) {
+            result(i, j) = v[s++];
+        }
+    }
+
+    return result;
+}
 
 struct FilterConfig {
     FilterConfig() : 
         particle_number(50),
-        particle_intersperal_ratio(0.0),
+        particle_interspersal_ratio(0.0),
         init_position(0.0, 0.0, 0.0), 
         init_covariance(Eigen::Matrix3d::Zero()),
         sonar_maximum_distance(20.0),
@@ -16,7 +37,7 @@ struct FilterConfig {
 
     // General properties
     int particle_number;
-    double particle_intersperal_ratio;
+    double particle_interspersal_ratio;
 
     // Initialization
     Eigen::Vector3d init_position;
