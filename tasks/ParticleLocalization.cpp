@@ -12,15 +12,34 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
     if(config.has_static_motion_covariance()) {
         StaticSpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.get_static_motion_covariance()); 
     }
+
+    initialize(config.particle_number, config.init_position, config.init_covariance, 0.0, 0.0);
 }
 
 ParticleLocalization::~ParticleLocalization()
 {}
 
 
-void ParticleLocalization::initialize(std::vector<PoseParticle>& set, int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov)
+void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov)
 {
+    MultiNormalRandom<3> initializer = Random::multi_gaussian(pos, cov);
 
+    for(unsigned i = 0; i < numbers; i++) {
+        PoseParticle pp;
+        Particle p;
+        pp.position = initializer();
+        pp.velocity = base::Vector3d(0.0, 0.0, 0.0);
+        pp.confidence = 1.0 / numbers;
+
+        p.position = pp.position;
+        p.yaw = 0.0;
+        p.norm_weight = 1.0 / numbers;
+        
+        states.push_back(pp);
+        particle_set.particles.push_back(p);
+        particle_set.max_particle_index = 0;
+        particle_set.confidence = 0.0;
+    }
 }
 
 

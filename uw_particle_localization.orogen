@@ -7,6 +7,7 @@ using_library "aggregator"
 import_types_from "base"
 import_types_from "aggregator"
 import_types_from "uw_localization/types/particle.hpp"
+import_types_from "uw_localization/types/map.hpp"
 
 task_context "Task" do
    # ----------------------------------------------------------------------
@@ -15,6 +16,9 @@ task_context "Task" do
    
    output_port("particles", "/uw_localization/ParticleSet").
         doc("current particle set used in this filter")
+
+   output_port("landmarks", "/uw_localization/LandmarkMap").
+        doc("current using map")
 
    output_port("pose_samples", "/base/samples/RigidBodyState").
         doc("pose estimation merged with other state informations")
@@ -67,7 +71,7 @@ task_context "Task" do
    # aggregator properties 
    # ----------------------------------------------------------------------
 
-   property("max_sample_delay", "double", 1.0).
+   property("max_sample_delay", "double", 2.0).
         doc("Time in s the particle filter will wait for expected samples")
 
    property("laser_period", "double", 0.1)

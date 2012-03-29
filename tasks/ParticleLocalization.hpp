@@ -34,7 +34,7 @@ public:
   ParticleLocalization(const FilterConfig& config);
   ~ParticleLocalization();
 
-  virtual void initialize(std::vector<PoseParticle>& set, int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov);
+  virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov);
 
   virtual double dynamic(PoseParticle& state, const base::samples::RigidBodyState& speed);
   virtual double perception(PoseParticle& state, const base::samples::LaserScan& scan, const StochasticMap& map);

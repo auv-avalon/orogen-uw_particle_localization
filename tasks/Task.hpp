@@ -11,6 +11,7 @@ namespace aggregator {
 
 namespace uw_localization {
     class ParticleLocalization;
+    class StochasticMap;
 }
 
 namespace uw_particle_localization {
@@ -30,6 +31,7 @@ namespace uw_particle_localization {
         void callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs);
 
         uw_localization::ParticleLocalization* localizer;
+        uw_localization::StochasticMap* map;
 
 
     public:
