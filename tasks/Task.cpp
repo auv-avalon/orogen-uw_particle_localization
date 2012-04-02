@@ -80,7 +80,10 @@ bool Task::startHook()
      group->addChild(new LandmarkNode(a, a_v));
      group->addChild(new LandmarkNode(b, a_v));
 
-     map = new StochasticMap(10.0, 10.0, 10.0, group);
+     Eigen::Vector3d limits(10.0, 10.0, 10.0);
+     Eigen::Translation3d t(0.0, 0.0, 0.0);
+
+     map = new StochasticMap(limits, t, group);
 
      return true;
 }
