@@ -71,7 +71,7 @@ double ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Rigid
     return 0;
 }
 
-double ParticleLocalization::perception(PoseParticle& state, const base::samples::LaserScan& scan, const StochasticMap& map)
+double ParticleLocalization::perception(PoseParticle& state, const base::samples::LaserScan& scan, const NodeMap& map)
 {
     return 0;
 }

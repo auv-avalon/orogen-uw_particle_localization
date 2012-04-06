@@ -12,28 +12,31 @@ viz = view3d.createPlugin("uw_localization_particle", "ParticleVisualization")
 landmark = view3d.createPlugin("uw_localization_landmark", "LandmarkVisualization")
 view3d.show
 
-Orocos.run "sonar_feature_estimator", :wait => 999 do
-    sim = TaskContext.get 'avalon_simulation'
-    sonar = TaskContext.get 'sonar'
-    state = TaskContext.get 'state_estimator'
+Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
+#    sim = TaskContext.get 'avalon_simulation'
+#    sonar = TaskContext.get 'sonar'
+#    state = TaskContext.get 'state_estimator'
     pos = TaskContext.get 'uw_particle_localization'
     feature = Orocos::TaskContext.get 'sonar_feature_estimator'
 
-    sonar.sonar_beam.connect_to feature.sonar_input
-    state.pose_samples.connect_to pos.orientation_samples
-    state.pose_samples.connect_to pos.speed_samples
+#    sonar.sonar_beam.connect_to feature.sonar_input
+#    state.pose_samples.connect_to pos.orientation_samples
+#    state.pose_samples.connect_to pos.speed_samples
 
-    feature.derivative_history_length = 1
+#    feature.derivative_history_length = 1
 
     pos.init_position = [0.0, 0.0, 0.0]
     pos.init_covariance = [4.0, 0.0, 0.0,
                            0.0, 4.0, 0.0,
                            0.0, 0.0, 4.0]
+
     pos.particle_number = 100
+
     pos.sonar_covariance = [1.0, 0.0, 0.0,
                             0.0, 1.0, 0.0,
                             0.0, 0.0, 1.0]
 
+    pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 
     pos.configure
     feature.configure
@@ -50,7 +53,7 @@ Orocos.run "sonar_feature_estimator", :wait => 999 do
 
 
     pos.start
-    feature.start
+##    feature.start
 
     Vizkit.exec
 end

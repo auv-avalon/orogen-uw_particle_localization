@@ -13,7 +13,7 @@
 #include <base/samples/laser_scan.h>
 #include <machine_learning/RandomNumbers.hpp>
 #include <uw_localization/filters/particle_filter.hpp>
-#include <uw_localization/maps/stochastic_map.hpp>
+#include <uw_localization/maps/node_map.hpp>
 #include "LocalizationConfig.hpp"
 
 namespace uw_localization {
@@ -28,7 +28,7 @@ struct PoseParticle {
 
 class ParticleLocalization : public ParticleFilter<PoseParticle>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
-  public Perception<PoseParticle, base::samples::LaserScan, StochasticMap>
+  public Perception<PoseParticle, base::samples::LaserScan, NodeMap>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -37,7 +37,7 @@ public:
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov);
 
   virtual double dynamic(PoseParticle& state, const base::samples::RigidBodyState& speed);
-  virtual double perception(PoseParticle& state, const base::samples::LaserScan& scan, const StochasticMap& map);
+  virtual double perception(PoseParticle& state, const base::samples::LaserScan& scan, const NodeMap& map);
 
   virtual void preprocessing(const base::samples::RigidBodyState& speed);
   

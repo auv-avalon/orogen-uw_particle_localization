@@ -17,7 +17,7 @@ task_context "Task" do
    output_port("particles", "/uw_localization/ParticleSet").
         doc("current particle set used in this filter")
 
-   output_port("landmarks", "/uw_localization/LandmarkMap").
+   output_port("landmarks", "/uw_localization/MixedMap").
         doc("current using map")
 
    output_port("pose_samples", "/base/samples/RigidBodyState").
@@ -57,6 +57,9 @@ task_context "Task" do
 
    property("init_covariance", "/std/vector<double>").
         doc("spatial covariance from initial centre position for initialization")
+
+   property("yaml_map", "/std/string").
+	doc("start map for localization algorithm")
 
    property("sonar_maximum_distance", "double", 20.0).
         doc("set maximum distance for filtering sonar samples")

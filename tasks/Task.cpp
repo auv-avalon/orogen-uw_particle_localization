@@ -68,22 +68,7 @@ bool Task::startHook()
      }
 
      localizer = new ParticleLocalization(config);
-
-     Eigen::Vector3d a(0.0, 0.0, -1.0);
-     Eigen::Vector3d b(5.0, 0.0, -1.0);
-
-     Eigen::Matrix3d a_v(3,3);
-
-     a_v << 0.1, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 1.0;
-
-     Node* group = new Node("root");
-     group->addChild(new LandmarkNode(a, a_v));
-     group->addChild(new LandmarkNode(b, a_v));
-
-     Eigen::Vector3d limits(10.0, 10.0, 10.0);
-     Eigen::Translation3d t(0.0, 0.0, 0.0);
-
-     map = new StochasticMap(limits, t, group);
+     map = new NodeMap(_yaml_map.value());
 
      return true;
 }
@@ -92,7 +77,7 @@ bool Task::startHook()
 void Task::updateHook()
 {
      TaskBase::updateHook();
-
+   
      base::samples::RigidBodyState orientation;
      base::samples::RigidBodyState speed;
      base::samples::LaserScan laser;
@@ -111,9 +96,9 @@ void Task::updateHook()
 
      _streamaligner_status.write(aggr->getStatus());
 
-     LandmarkMap marks = map->getMap();
+     MixedMap localization_map = map->getMap();
 
-     _landmarks.write(marks);
+     _landmarks.write(localization_map);
      _particles.write(localizer->getParticleSet());
 }
 
