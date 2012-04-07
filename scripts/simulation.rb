@@ -9,7 +9,7 @@ ep = view3d.createPlugin("RigidBodyStateVisualization")
 traj = view3d.createPlugin("TrajectoryVisualization")
 laserviz = view3d.createPlugin 'uw_localization_laserscan', 'LaserScanVisualization'
 viz = view3d.createPlugin("uw_localization_particle", "ParticleVisualization")
-landmark = view3d.createPlugin("uw_localization_landmark", "LandmarkVisualization")
+landmark = view3d.createPlugin("uw_localization_mixedmap", "MixedMapVisualization")
 view3d.show
 
 Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
@@ -26,15 +26,13 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 
 #    feature.derivative_history_length = 1
 
     pos.init_position = [0.0, 0.0, 0.0]
-    pos.init_covariance = [4.0, 0.0, 0.0,
-                           0.0, 4.0, 0.0,
-                           0.0, 0.0, 4.0]
+    pos.init_covariance = [17.0, 0.0, 0.0,
+                           0.0, 5.0, 0.0,
+                           0.0, 0.0, 1.0]
 
     pos.particle_number = 100
 
-    pos.sonar_covariance = [1.0, 0.0, 0.0,
-                            0.0, 1.0, 0.0,
-                            0.0, 0.0, 1.0]
+    pos.sonar_covariance = 1.0
 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 
@@ -46,7 +44,7 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 
         sample
     end
 
-    Vizkit.connect_port_to 'uw_particle_localization', 'landmarks', :type => :buffer, :size => 100, :pull => false, :update_frequency => 33 do |sample, name|
+    Vizkit.connect_port_to 'uw_particle_localization', 'mixedmap', :type => :buffer, :size => 100, :pull => false, :update_frequency => 33 do |sample, name|
         landmark.updateMap(sample)
         sample
     end
