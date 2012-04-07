@@ -61,7 +61,7 @@ bool Task::startHook()
      config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
      config.init_covariance = convertProperty<Eigen::Matrix3d>(_init_covariance.value());
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
-     config.sonar_covariance = convertProperty<Eigen::Matrix3d>(_sonar_covariance.value());
+     config.sonar_covariance = _sonar_covariance.value();
      
      if(_static_motion_covariance.value().size() > 0) {
          config.use_static_motion_covariance(convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value()));
@@ -98,7 +98,7 @@ void Task::updateHook()
 
      MixedMap localization_map = map->getMap();
 
-     _landmarks.write(localization_map);
+     _mixedmap.write(localization_map);
      _particles.write(localizer->getParticleSet());
 }
 

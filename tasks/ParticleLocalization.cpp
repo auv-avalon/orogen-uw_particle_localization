@@ -70,19 +70,36 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidB
 
 double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, const NodeMap& M)
 {
-    return 0;
+    double angle = Z.start_angle;
+    double yaw = base::getYaw(vehicle_pose.orientation);
+    double measure_distance = Z.ranges[0] / 1000.0;
+    
+    Eigen::AngleAxis<double> sonar_yaw(angle, Eigen::Vector3d::UnitZ()); 
+    Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
+    Eigen::Affine3d SonarToAvalon(Eigen::Translation3d(-1.0, 0.0, 0.0));
+
+    Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(measure_distance, 0.0, 0.0);
+    Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.position;
+
+    boost::tuple<Node*, double> distance = M.getNearestDistance("root.wall", AbsZ, X.position);
+
+    double probability = gaussian1d(distance.get<1>(), 0.0, filter_config.sonar_covariance);
+
+    return probability;
 }
 
 
 bool ParticleLocalization::isMaximumRange(const base::samples::LaserScan& Z)
 {
-    return false;
+    double range = Z.ranges[0];
+
+    return (range == base::samples::TOO_FAR || range >= filter_config.sonar_maximum_distance) ;
 }
 
 
 bool ParticleLocalization::belongsToWorld(const PoseParticle& X, const NodeMap& M)
 {
-    return true;
+    return M.belongsToWorld(X.position);
 }
 
   

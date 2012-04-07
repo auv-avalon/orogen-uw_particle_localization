@@ -28,16 +28,20 @@ struct FilterConfig {
     FilterConfig() : 
         particle_number(50),
         particle_interspersal_ratio(0.0),
+	effective_sample_size_threshold(particle_number / 2.0),
+	minimum_perceptions(2),
         init_position(0.0, 0.0, 0.0), 
         init_covariance(Eigen::Matrix3d::Zero()),
         sonar_maximum_distance(20.0),
-        sonar_covariance(Eigen::Matrix3d::Zero()),
+        sonar_covariance(1.0),
         use_motion_covariance(false)
     {}
 
     // General properties
     int particle_number;
     double particle_interspersal_ratio;
+    double effective_sample_size_threshold;
+    int minimum_perceptions;
 
     // Initialization
     Eigen::Vector3d init_position;
@@ -45,7 +49,7 @@ struct FilterConfig {
 
     // Sensor uncertainty
     double sonar_maximum_distance;
-    Eigen::Matrix3d sonar_covariance;
+    double sonar_covariance;
 
     // optional properties
     void use_static_motion_covariance(const Eigen::Matrix3d& covariance) {
