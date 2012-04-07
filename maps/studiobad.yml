@@ -4,10 +4,10 @@ root:
   wall:
     - line: [-8.65, 0.0, -1.10]
       size: [10.0, 2.20]
-      orientation: 90.0
+      orientation: 1.57
     - line: [8.65, 0.0, -1.10]
       size: [10.0, 2.20]
-      orientation: 90.0
+      orientation: 1.57
     - line: [0.0, -5.0, -1.10] 
       size: [17.3, 2.20]
       orientation: 0.0
