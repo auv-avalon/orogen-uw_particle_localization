@@ -26,8 +26,7 @@ struct PoseParticle {
 };
 
 
-class ParticleLocalization : public ParticleFilter<PoseParticle>,
-  public Dynamic<PoseParticle, base::samples::RigidBodyState>,
+class ParticleLocalization : public ParticleFilter<PoseParticle, base::samples::RigidBodyState, NodeMap>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>
 {
 public:
@@ -36,19 +35,23 @@ public:
 
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov);
 
-  virtual double dynamic(PoseParticle& state, const base::samples::RigidBodyState& speed);
-  virtual double perception(PoseParticle& state, const base::samples::LaserScan& scan, const NodeMap& map);
+  virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u);
+  virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
 
-  virtual void preprocessing(const base::samples::RigidBodyState& speed);
+  virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
+  virtual bool isMaximumRange(const base::samples::LaserScan& z);
   
   virtual base::Vector3d position(const PoseParticle& state) const;
   virtual base::Orientation orientation(const PoseParticle& state) const;
+  virtual bool belongsToWorld(const PoseParticle& x, const NodeMap& map);
+
   virtual double getWeight(const PoseParticle& state) const;
   virtual void setWeight(PoseParticle& state, double value);
   
   virtual base::samples::RigidBodyState& estimate();
 
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
+  void setCurrentSpeed(const base::samples::RigidBodyState& speed);
 
 private:
   FilterConfig filter_config;
