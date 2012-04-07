@@ -12,18 +12,18 @@ viz = view3d.createPlugin("uw_localization_particle", "ParticleVisualization")
 landmark = view3d.createPlugin("uw_localization_mixedmap", "MixedMapVisualization")
 view3d.show
 
-Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
-#    sim = TaskContext.get 'avalon_simulation'
-#    sonar = TaskContext.get 'sonar'
-#    state = TaskContext.get 'state_estimator'
+Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
+    sim = TaskContext.get 'avalon_simulation'
+    sonar = TaskContext.get 'sonar'
+    state = TaskContext.get 'state_estimator'
     pos = TaskContext.get 'uw_particle_localization'
     feature = Orocos::TaskContext.get 'sonar_feature_estimator'
 
-#    sonar.sonar_beam.connect_to feature.sonar_input
-#    state.pose_samples.connect_to pos.orientation_samples
-#    state.pose_samples.connect_to pos.speed_samples
+    sonar.sonar_beam.connect_to feature.sonar_input
+    state.pose_samples.connect_to pos.orientation_samples
+    state.pose_samples.connect_to pos.speed_samples
 
-#    feature.derivative_history_length = 1
+    feature.derivative_history_length = 1
 
     pos.init_position = [0.0, 0.0, 0.0]
     pos.init_covariance = [17.0, 0.0, 0.0,
@@ -31,8 +31,15 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 
                            0.0, 0.0, 1.0]
 
     pos.particle_number = 100
-
+    pos.minimum_perceptions = 5
+    pos.effective_sample_size_threshold = 100 / 2.0
+    pos.particle_interspersal_ratio = 0.0
+    pos.sonar_maximum_distance = 10.0
     pos.sonar_covariance = 1.0
+
+    pos.perception_ratio = 0.7
+    pos.noise_ratio = 0.2
+    pos.max_distance_ratio = 0.1
 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 
@@ -49,9 +56,8 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 
         sample
     end
 
-
     pos.start
-##    feature.start
+    feature.start
 
     Vizkit.exec
 end

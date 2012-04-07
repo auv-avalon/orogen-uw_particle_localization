@@ -76,6 +76,15 @@ task_context "Task" do
    property("static_motion_covariance", "/std/vector<double>").
         doc("sets a static covariance for speed samples")
 
+   property("perception_ratio", "double", 0.7).
+	doc("sets importance ratio for perception updates")
+ 
+   property("noise_ratio", "double", 0.2).
+	doc("sets importance ratio for random noise in observations")
+
+   property("max_distance_ratio", "double", 0.1).
+	doc("sets importance ratio for maximum distance perceptions")
+
    # ----------------------------------------------------------------------
    # aggregator properties 
    # ----------------------------------------------------------------------
