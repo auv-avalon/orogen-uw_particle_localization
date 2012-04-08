@@ -105,18 +105,25 @@ void Task::updateHook()
 
 void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
 {
+    base::Vector3d ratio(_perception_ratio.value(), _noise_ratio.value(), _max_distance_ratio.value());
+
+    localizer->observe(scan, *map, ratio, 1.0 / _sonar_maximum_distance.value());
+
+    std::cout << "UPDATE LASER" << std::endl;
 }
 
 
 
 void Task::callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs)
 {
+    localizer->setCurrentOrientation(rbs);
 }
 
 
 
 void Task::callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs)
 {
+    localizer->update(rbs);
 }
 
 

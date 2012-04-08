@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------------
- * slam/sonar_particle_filter.h
+ * avalon/orogen/uw_particle_localization/ParticleLocalization.hpp
  * written by Christoph Mueller, Oct 2011
  * University of Bremen
  * ----------------------------------------------------------------------------
