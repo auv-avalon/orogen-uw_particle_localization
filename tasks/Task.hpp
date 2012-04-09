@@ -26,6 +26,8 @@ namespace uw_particle_localization {
         int orientation_sid;
         int speed_sid;
 
+        unsigned number_sonar_perceptions;
+
         void callbackLaser(base::Time ts, const base::samples::LaserScan& scan);
         void callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs);
         void callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs);

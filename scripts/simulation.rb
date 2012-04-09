@@ -46,16 +46,18 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
                            0.0, 5.0, 0.0,
                            0.0, 0.0, 1.0]
 
+    pos.static_motion_covariance = [2.0,0.0,0.0, 0.0,2.0,0.0, 0.0,0.0,0.0]
+
     pos.particle_number = 100
     pos.minimum_perceptions = 5
-    pos.effective_sample_size_threshold = 100 / 2.0
+    pos.effective_sample_size_threshold = 70
     pos.particle_interspersal_ratio = 0.0
-    pos.sonar_maximum_distance = 10.0
-    pos.sonar_covariance = 1.0
+    pos.sonar_maximum_distance = 20.0
+    pos.sonar_covariance = 3.0
 
-    pos.perception_ratio = 0.7
-    pos.noise_ratio = 0.2
-    pos.max_distance_ratio = 0.1
+    pos.perception_ratio = 1.0
+    pos.noise_ratio = 0.0
+    pos.max_distance_ratio = 0.0
 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 

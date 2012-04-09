@@ -62,10 +62,16 @@ bool Task::startHook()
      config.init_covariance = convertProperty<Eigen::Matrix3d>(_init_covariance.value());
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
-     
+
+     number_sonar_perceptions = 0;
+    
+
      if(_static_motion_covariance.value().size() > 0) {
          config.use_static_motion_covariance(convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value()));
+         std::cout << "use static motion cov" << std::endl;
      }
+
+     std::cout << "ele: " << _static_motion_covariance.value().size() << std::endl;
 
      localizer = new ParticleLocalization(config);
      map = new NodeMap(_yaml_map.value());
@@ -94,6 +100,8 @@ void Task::updateHook()
          aggr->push(laser_sid, laser.time, laser);
      }
 
+     while( aggr->step() );
+
      _streamaligner_status.write(aggr->getStatus());
 
      MixedMap localization_map = map->getMap();
@@ -107,9 +115,17 @@ void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
 {
     base::Vector3d ratio(_perception_ratio.value(), _noise_ratio.value(), _max_distance_ratio.value());
 
-    localizer->observe(scan, *map, ratio, 1.0 / _sonar_maximum_distance.value());
+    double Neff = localizer->observe(scan, *map, ratio, 1.0 / _sonar_maximum_distance.value());
 
-    std::cout << "UPDATE LASER" << std::endl;
+    number_sonar_perceptions++;
+
+    _effective_sample_size.write(Neff);
+
+    if(number_sonar_perceptions >= _minimum_perceptions.value() 
+            && Neff < _effective_sample_size_threshold.value()) {
+        localizer->resample();
+        number_sonar_perceptions = 0;
+    }
 }
 
 

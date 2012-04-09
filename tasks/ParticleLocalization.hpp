@@ -18,11 +18,16 @@
 
 namespace uw_localization {
 
-struct PoseParticle {
-  base::Position position;
-  base::Vector3d velocity;
+struct PoseParticle : public Particle {
+  virtual base::Position position() const { return p_position; }
+  
+  virtual base::Orientation orientation() const { return pose->orientation; }
+
+  base::Position p_position;
+  base::Vector3d p_velocity;
   base::Time timestamp;
-  double confidence;
+
+  static base::samples::RigidBodyState* pose;
 };
 
 
@@ -40,15 +45,10 @@ public:
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
   virtual bool isMaximumRange(const base::samples::LaserScan& z);
-  
-  virtual base::Vector3d position(const PoseParticle& state) const;
-  virtual base::Orientation orientation(const PoseParticle& state) const;
-  virtual bool belongsToWorld(const PoseParticle& x, const NodeMap& map);
 
-  virtual double getWeight(const PoseParticle& state) const;
-  virtual void setWeight(PoseParticle& state, double value);
-  
   virtual base::samples::RigidBodyState& estimate();
+
+  virtual bool isParticleInWorld(const PoseParticle& X, const NodeMap& M);
 
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
   void setCurrentSpeed(const base::samples::RigidBodyState& speed);
