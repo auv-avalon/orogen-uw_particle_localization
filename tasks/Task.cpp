@@ -63,6 +63,8 @@ bool Task::startHook()
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
 
+     current_depth = 0;
+
      number_sonar_perceptions = 0;
     
 
@@ -75,6 +77,8 @@ bool Task::startHook()
 
      localizer = new ParticleLocalization(config);
      map = new NodeMap(_yaml_map.value());
+
+     localizer->setSonarDebug(this);
 
      return true;
 }
@@ -96,7 +100,7 @@ void Task::updateHook()
          aggr->push(speed_sid, speed.time, speed);
      }
 
-     while(_laser_samples.read(laser, false) == RTT::NewData) {
+     while(current_depth < _minimum_depth.value() && _laser_samples.read(laser, false) == RTT::NewData) {
          aggr->push(laser_sid, laser.time, laser);
      }
 
@@ -133,6 +137,7 @@ void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
 void Task::callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs)
 {
     localizer->setCurrentOrientation(rbs);
+    current_depth = rbs.position.z();
 }
 
 
@@ -153,6 +158,11 @@ void Task::stopHook()
      delete map;
 }
 
+
+void Task::write(const uw_localization::debug::SonarPerception& sample)
+{
+    _sonar_perception.write(sample);
+}
 
 // void Task::errorHook()
 // {

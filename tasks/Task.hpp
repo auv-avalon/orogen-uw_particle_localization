@@ -4,6 +4,7 @@
 #define UW_PARTICLE_LOCALIZATION_TASK_TASK_HPP
 
 #include "uw_particle_localization/TaskBase.hpp"
+#include <uw_localization/filters/particle_filter.hpp>
 
 namespace aggregator {
     class StreamAligner;
@@ -16,7 +17,8 @@ namespace uw_localization {
 
 namespace uw_particle_localization {
 
-    class Task : public TaskBase
+    class Task : public TaskBase,
+        public uw_localization::DebugWriter<uw_localization::debug::SonarPerception>
     {
 	friend class TaskBase;
     protected:
@@ -25,6 +27,7 @@ namespace uw_particle_localization {
         int laser_sid;
         int orientation_sid;
         int speed_sid;
+        double current_depth;
 
         unsigned number_sonar_perceptions;
 
@@ -35,19 +38,12 @@ namespace uw_particle_localization {
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;
 
+        void write(const uw_localization::debug::SonarPerception& sample);
+
 
     public:
-        /** TaskContext constructor for Task
-         * \param name Name of the task. This name needs to be unique to make it identifiable via nameservices.
-         * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
-         */
         Task(std::string const& name = "uw_particle_localization::Task", TaskCore::TaskState initial_state = Stopped);
 
-        /** TaskContext constructor for Task 
-         * \param name Name of the task. This name needs to be unique to make it identifiable for nameservices. 
-         * \param engine The RTT Execution engine to be used for this task, which serialises the execution of all commands, programs, state machines and incoming events for a task. 
-         * \param initial_state The initial TaskState of the TaskContext. Default is Stopped state.
-         */
         Task(std::string const& name, RTT::ExecutionEngine* engine, TaskCore::TaskState initial_state = Stopped);
 
         /** Default deconstructor of Task

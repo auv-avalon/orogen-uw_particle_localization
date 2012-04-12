@@ -9,7 +9,8 @@ base::samples::RigidBodyState* PoseParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
     : filter_config(config), 
-    StaticSpeedNoise(Random::multi_gaussian<3>())
+    StaticSpeedNoise(Random::multi_gaussian<3>()),
+    sonar_debug(0)
 {
     if(config.has_static_motion_covariance()) {
         StaticSpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.get_static_motion_covariance()); 
@@ -88,6 +89,15 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     boost::tuple<Node*, double> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
 
     double probability = gaussian1d(0.0, filter_config.sonar_covariance, distance.get<1>());
+
+    if(sonar_debug != 0) {
+        uw_localization::debug::SonarPerception s;
+        s.particle = X.p_position;
+        s.obstacle = AbsZ;
+        s.laser_distance = distance.get<1>();
+        s.perception_confidence = probability;
+        sonar_debug->write(s);
+    }
 
     return probability;
 }

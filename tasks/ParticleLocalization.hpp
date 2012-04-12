@@ -15,6 +15,7 @@
 #include <uw_localization/filters/particle_filter.hpp>
 #include <uw_localization/maps/node_map.hpp>
 #include "LocalizationConfig.hpp"
+#include "Types.hpp"
 
 namespace uw_localization {
 
@@ -53,11 +54,18 @@ public:
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
   void setCurrentSpeed(const base::samples::RigidBodyState& speed);
 
+  void setSonarDebug(DebugWriter<uw_localization::debug::SonarPerception>* debug) {
+      sonar_debug = debug;
+  }
+
 private:
   FilterConfig filter_config;
   base::samples::RigidBodyState vehicle_pose;
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
   double z_sample;
+
+  /** observers */
+  DebugWriter<uw_localization::debug::SonarPerception>* sonar_debug;
 };
 
 

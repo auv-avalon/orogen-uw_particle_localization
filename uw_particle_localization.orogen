@@ -6,6 +6,7 @@ using_library "aggregator"
 
 import_types_from "base"
 import_types_from "aggregator"
+import_types_from "tasks/Types.hpp"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/map.hpp"
 
@@ -14,9 +15,6 @@ task_context "Task" do
    # output samples 
    # ----------------------------------------------------------------------
    
-   output_port("particles", "/uw_localization/debug/ParticleSet").
-        doc("current particle set used in this filter")
-
    output_port("mixedmap", "/uw_localization/MixedMap").
         doc("current using map")
 
@@ -29,6 +27,13 @@ task_context "Task" do
    output_port("streamaligner_status", "/aggregator/StreamAlignerStatus").
         doc("provides debug information on the state of stream aligner")
 
+   output_port("particles", "/uw_localization/debug/ParticleSet").
+        doc("current particle set used in this filter")
+
+   output_port("sonar_perception", "/uw_localization/debug/SonarPerception").
+        doc("return debug information for sonar perception updates")
+
+ 
    # ----------------------------------------------------------------------
    # input samples 
    # ----------------------------------------------------------------------
@@ -51,6 +56,9 @@ task_context "Task" do
 
    property("particle_number", "int").
         doc("number of used particles")
+
+   property("minimum_depth", "double", -0.4).
+        doc("minimum depth for collecting perception samples")
 
    property("particle_interspersal_ratio", "double", 0.0).
         doc("ratio for generating new particles after each measurement")
