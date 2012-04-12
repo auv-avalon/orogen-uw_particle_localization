@@ -37,17 +37,17 @@ view3d.show
 
 Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
     sonar = log.task 'sonar'
-    state = log.task "pose_estimator"
+    state = log.task "state_estimator"
     pos = TaskContext.get 'uw_particle_localization'
     feature = Orocos::TaskContext.get 'sonar_feature_estimator'
 
-    sonar.SonarScan.connect_to feature.sonar_input
-    state.pose_samples.connect_to pos.orientation_samples
-    state.pose_samples.connect_to pos.speed_samples
+    sonar.BaseScan.connect_to feature.sonar_input
+    state.orientation_samples.connect_to pos.orientation_samples
+    state.orientation_samples.connect_to pos.speed_samples
     feature.new_feature.connect_to pos.laser_samples
 
-    feature.derivative_history_length = 1
-    feature.plain_threshold = 0.5
+    feature.derivative_history_length = 5
+#    feature.plain_threshold = 0.5
     feature.signal_threshold = 0.7
     feature.enable_debug_output = true
 
@@ -60,19 +60,18 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
     pos.static_motion_covariance = [2.0,0.0,0.0, 0.0,2.0,0.0, 0.0,0.0,0.0]
 
     pos.particle_number = 100
-    pos.minimum_perceptions = 5
+    pos.minimum_depth = -0.5
+    pos.minimum_perceptions = 7
     pos.effective_sample_size_threshold = 70
     pos.particle_interspersal_ratio = 0.0
-    pos.sonar_maximum_distance = 20.0
-    pos.sonar_covariance = 3.0
+    pos.sonar_maximum_distance = 10.0
+    pos.sonar_covariance = 2.0
 
     pos.perception_ratio = 1.0
     pos.noise_ratio = 0.0
     pos.max_distance_ratio = 0.0
 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
-
-
 
     Vizkit.connect_port_to 'uw_particle_localization', 'particles', :type => :buffer, :size => 100, :pull => false, :update_frequency => 33 do |sample, _|
         viz.updateParticles(sample)
@@ -84,19 +83,18 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
         sample
     end
 
-    Vizkit.connect_port_to 'sonar_feature_estimator', 'new_feature', :type => :buffer, :size => 100, :pull => false, :update_frequency => 33 do |sample, _|
-        laserviz.updateLaserScan(sample)
-        sample
-    end
+#    Vizkit.connect_port_to 'sonar_feature_estimator', 'new_feature', :type => :buffer, :size => 100, :pull => false, :update_frequency => 33 do |sample, _|
+#        laserviz.updateLaserScan(sample)
+#        sample
+#    end
 
     Vizkit.connect_port_to 'pose_estimator', 'pose_samples', :type => :buffer, :size => 100, :pull => false, :update_frequency => 33 do |sample, _|
         laserviz.updatePose(sample)
-        gt.updateRigidBodyState(sample)
         sonarbeamviz.updateBodyState(sample)
         sample
     end
 
-    log.sonar.SonarScan  do |sample|
+    log.sonar.BaseScan  do |sample|
         sonarbeamviz.updateSonarBeam(sample)
         sample
     end
