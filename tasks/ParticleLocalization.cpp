@@ -96,6 +96,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
         s.obstacle = AbsZ;
         s.laser_distance = distance.get<1>();
         s.perception_confidence = probability;
+        s.timestamp = X.timestamp;
         sonar_debug->write(s);
     }
 

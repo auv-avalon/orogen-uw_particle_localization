@@ -9,6 +9,7 @@
 #define UW_PARTICLE_LOCALIZATION_TYPES_HPP_
 
 #include <base/eigen.h>
+#include <base/time.h>
 
 namespace uw_localization {
 namespace debug {
@@ -19,6 +20,9 @@ struct SonarPerception {
 
    /** chosen most proper obstacle point from sonar */
    base::Vector3d obstacle;
+
+   /** Timestamp */
+   base::Time timestamp;
 
    /** laser distance */
    double laser_distance;
