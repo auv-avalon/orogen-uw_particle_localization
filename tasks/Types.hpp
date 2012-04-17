@@ -21,6 +21,9 @@ struct SonarPerception {
    /** chosen most proper obstacle point from sonar */
    base::Vector3d obstacle;
 
+   /** chosen expected obstacle point from map */
+   base::Vector3d expected_obstacle;
+
    /** Timestamp */
    base::Time timestamp;
 

@@ -19,7 +19,7 @@
 
 namespace uw_localization {
 
-struct PoseParticle : public Particle {
+struct PoseParticle : public ParticleBase {
   virtual base::Position position() const { return p_position; }
   
   virtual base::Orientation orientation() const { return pose->orientation; }
@@ -37,7 +37,7 @@ class ParticleLocalization : public ParticleFilter<PoseParticle, base::samples::
 {
 public:
   ParticleLocalization(const FilterConfig& config);
-  ~ParticleLocalization();
+  virtual ~ParticleLocalization();
 
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov);
 

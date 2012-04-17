@@ -86,7 +86,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(measure_distance, 0.0, 0.0);
     Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.p_position;
 
-    boost::tuple<Node*, double> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
+    boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
 
     double probability = gaussian1d(0.0, filter_config.sonar_covariance, distance.get<1>());
 
@@ -94,6 +94,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
         uw_localization::debug::SonarPerception s;
         s.particle = X.p_position;
         s.obstacle = AbsZ;
+        s.expected_obstacle = distance.get<2>();
         s.laser_distance = distance.get<1>();
         s.perception_confidence = probability;
         s.timestamp = X.timestamp;
@@ -127,7 +128,7 @@ bool ParticleLocalization::isParticleInWorld(const PoseParticle& X, const NodeMa
 
 void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {
-    vehicle_pose.orientation = orientation.orientation;
+    vehicle_pose.orientation = orientation.orientation * Eigen::AngleAxis<double>(filter_config.yaw_offset, Eigen::Vector3d::UnitZ());
     vehicle_pose.cov_orientation = orientation.cov_orientation;
     vehicle_pose.angular_velocity = orientation.angular_velocity;
     vehicle_pose.cov_angular_velocity = orientation.cov_angular_velocity;

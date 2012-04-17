@@ -62,6 +62,7 @@ bool Task::startHook()
      config.init_covariance = convertProperty<Eigen::Matrix3d>(_init_covariance.value());
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
+     config.yaw_offset = _yaw_offset.value();
 
      current_depth = 0;
 
@@ -110,7 +111,8 @@ void Task::updateHook()
 
      MixedMap localization_map = map->getMap();
 
-     _mixedmap.write(localization_map);
+     _map_wall_lines.write(localization_map.lines);
+     _map_landmarks.write(localization_map.landmarks);
      _particles.write(localizer->getParticleSet());
 }
 
@@ -122,8 +124,6 @@ void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
     double Neff = localizer->observe(scan, *map, ratio, 1.0 / _sonar_maximum_distance.value());
 
     number_sonar_perceptions++;
-
-    _effective_sample_size.write(Neff);
 
     if(number_sonar_perceptions >= _minimum_perceptions.value() 
             && Neff < _effective_sample_size_threshold.value()) {
