@@ -50,6 +50,14 @@ task_context "Task" do
         doc("current motion sample retrieved from our motion model").
         needs_reliable_connection
 
+   input_port("pose_update", "/base/samples/RigidBodyState").
+        doc("position samples from another localization").
+        needs_reliable_connection
+
+   input_port("ground_truth", "/base/samples/RigidBodyState").
+        doc("current ground truth for particle teleport").
+        needs_reliable_connection
+
    # ----------------------------------------------------------------------
    # properties
    # ----------------------------------------------------------------------
@@ -68,6 +76,9 @@ task_context "Task" do
 
    property("effective_sample_size_threshold", "double", 0.0).
 	doc("effective sample size threshold controls the resampling timing and uses values between 0 and N particles")
+
+   property("reset_timeout", "double", 10.0).
+        doc("automatic reset of particle filter after not receiving any perception for X seconds")
 
    property("minimum_perceptions", "int", 5).
 	doc("minimum number of perceptions before starting resampling")
@@ -109,6 +120,8 @@ task_context "Task" do
    property("laser_period", "double", 0.1)
    property("orientation_period", "double", 0.01)
    property("speed_period", "double", 0.01)
+   property("hough_period", "double", 0.1)
+   property("groundtruth_period", "double", 0.01)
 end
 
 

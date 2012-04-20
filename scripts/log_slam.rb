@@ -6,8 +6,8 @@ include Orocos
 Orocos.initialize
 
 options = {}
-components = ["sonar.0.log", "state_estimator.0.log", "bottom_camera.0.log"]
-dir = "~/logs/final_run/"
+components = ["sonar.19.log", "pose_estimator.19.log"]
+dir = "~/logs/slam/"
 
 files = components.map do |comp|
     File.join(dir, "#{comp}")
@@ -22,43 +22,41 @@ ep = view3d.createPlugin("RigidBodyStateVisualization")
 laserviz = view3d.createPlugin 'uw_localization_laserscan', 'LaserScanVisualization'
 viz = view3d.createPlugin("uw_localization_particle", "ParticleVisualization")
 map = view3d.createPlugin("uw_localization_mapfeature", "MapFeatureVisualization")
-sonarbeamviz = view3d.createPlugin("sonarbeam","SonarBeamVisualization")
+sonarbeamviz = view3d.createPlugin("sonarbeam", "SonarBeamVisualization")
 
 Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
     Orocos.log_all_ports
 
     sonar = log.task 'sonar'
-    state = log.task "state_estimator"
-    bottom_camera = log.task "bottom_camera"
+    state = log.task "pose_estimator"
     pos = TaskContext.get 'uw_particle_localization'
     feature = Orocos::TaskContext.get 'sonar_feature_estimator'
 
-    sonar.BaseScan.connect_to feature.sonar_input
-    state.orientation_samples.connect_to pos.orientation_samples
-    state.orientation_samples.connect_to pos.speed_samples
+    sonar.SonarScan.connect_to feature.sonar_input
+    state.pose_samples.connect_to pos.orientation_samples
+    state.pose_samples.connect_to pos.speed_samples
     feature.new_feature.connect_to pos.laser_samples
 
     feature.derivative_history_length = 1
 
-    pos.init_position = [0.0,  -4.0, 0.0]
+    pos.init_position =   [0.0,-4.0, 0.0]
     pos.init_covariance = [8.0, 0.0, 0.0,
                            0.0, 4.0, 0.0,
                            0.0, 0.0, 1.0]
 
     pos.static_motion_covariance = [2.0,0.0,0.0, 0.0,2.0,0.0, 0.0,0.0,0.0]
 
-    pos.particle_number = 30
-    pos.minimum_depth = -0.5
-    pos.minimum_perceptions = 3
-    pos.effective_sample_size_threshold = 80
+    pos.particle_number = 40
+    pos.minimum_depth = 0.0
+    pos.minimum_perceptions = 1
+    pos.effective_sample_size_threshold = 35
     pos.particle_interspersal_ratio = 0.0
-    pos.sonar_maximum_distance = 10.0
-    pos.sonar_covariance = 1.0
-    pos.yaw_offset = Math::PI / 2.0
+    pos.sonar_maximum_distance = 13.0
+    pos.sonar_covariance = 2.0
 
     pos.perception_ratio = 0.7
-    pos.noise_ratio = 0.0
-    pos.max_distance_ratio = 0.3
+    pos.noise_ratio = 0.1
+    pos.max_distance_ratio = 0.2
 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 
@@ -82,13 +80,19 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
         sample
     end
 
-    Vizkit.connect_port_to 'pose_estimator', 'pose_samples', :pull => false, :update_frequency => 33 do |sample, _|
-        laserviz.updatePose(sample)
-#        sonarbeamviz.updateBodyState(sample)
+    Vizkit.connect_port_to 'uw_particle_localization', 'pose_samples', :pull => false, :update_frequency => 33 do |sample, _|
+        ep.updateRigidBodyState(sample)
         sample
     end
 
-#    log.sonar.BaseScan  do |sample|
+    log.pose_estimator.pose_samples do |sample|
+        gt.updateRigidBodyState(sample)
+        laserviz.updatePose(sample)
+        sonarbeamviz.updateBodyState(sample)
+        sample
+    end
+
+#    log.sonar.SonarScan  do |sample|
 #        sonarbeamviz.updateSonarBeam(sample)
 #        sample
 #    end
@@ -97,8 +101,6 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
     feature.configure
     pos.start
     feature.start
-
-    Vizkit.display bottom_camera.frame
 
     Vizkit.control log 
     Vizkit.exec

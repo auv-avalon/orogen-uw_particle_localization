@@ -55,6 +55,16 @@ bool Task::startHook()
              size_factor * _max_sample_delay.value() / _speed_period.value(),
              base::Time::fromSeconds(_speed_period.value()));
 
+     hough_sid = aggr->registerStream<base::samples::RigidBodyState>(
+             boost::bind(&Task::callbackSpeed, this, _1, _2),
+             size_factor * _max_sample_delay.value() / _hough_period.value(),
+             base::Time::fromSeconds(_hough_period.value()));
+
+     gt_sid = aggr->registerStream<base::samples::RigidBodyState>(
+             boost::bind(&Task::callbackGroundtruth, this, _1, _2),
+             size_factor * _max_sample_delay.value() / _groundtruth_period.value(),
+             base::Time::fromSeconds(_groundtruth_period.value()));
+
      FilterConfig config;
      config.particle_number = _particle_number.value();
      config.particle_interspersal_ratio = _particle_interspersal_ratio.value();
@@ -91,6 +101,8 @@ void Task::updateHook()
    
      base::samples::RigidBodyState orientation;
      base::samples::RigidBodyState speed;
+     base::samples::RigidBodyState hough;
+     base::samples::RigidBodyState gt;
      base::samples::LaserScan laser;
 
      while(_orientation_samples.read(orientation, false) == RTT::NewData) {
@@ -105,6 +117,15 @@ void Task::updateHook()
          aggr->push(laser_sid, laser.time, laser);
      }
 
+     while(_pose_update.read(hough, false) == RTT::NewData) {
+         aggr->push(hough_sid, hough.time, hough);
+     }
+
+     while(_ground_truth.read(gt, false) == RTT::NewData) {
+         aggr->push(gt_sid, gt.time, gt);
+     }
+
+
      while( aggr->step() );
 
      _streamaligner_status.write(aggr->getStatus());
@@ -114,6 +135,7 @@ void Task::updateHook()
      _map_wall_lines.write(localization_map.lines);
      _map_landmarks.write(localization_map.landmarks);
      _particles.write(localizer->getParticleSet());
+     _pose_samples.write(localizer->estimate());
 }
 
 
@@ -130,6 +152,8 @@ void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
         localizer->resample();
         number_sonar_perceptions = 0;
     }
+
+    last_perception = ts;
 }
 
 
@@ -140,6 +164,17 @@ void Task::callbackOrientation(base::Time ts, const base::samples::RigidBodyStat
     current_depth = rbs.position.z();
 }
 
+
+void Task::callbackGroundtruth(base::Time ts, const base::samples::RigidBodyState& rbs)
+{
+    localizer->teleportParticles(rbs);
+}
+
+
+void Task::callbackHough(base::Time ts, const base::samples::RigidBodyState& rbs)
+{
+    last_perception = ts;
+}
 
 
 void Task::callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs)

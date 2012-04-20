@@ -23,16 +23,21 @@ namespace uw_particle_localization {
 	friend class TaskBase;
     protected:
         aggregator::StreamAligner* aggr;
+        base::Time last_perception;
 
         int laser_sid;
         int orientation_sid;
         int speed_sid;
+        int hough_sid;
+        int gt_sid;
         double current_depth;
 
         unsigned number_sonar_perceptions;
 
         void callbackLaser(base::Time ts, const base::samples::LaserScan& scan);
         void callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs);
+        void callbackGroundtruth(base::Time ts, const base::samples::RigidBodyState& rbs);
+        void callbackHough(base::Time ts, const base::samples::RigidBodyState& rbs);
         void callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs);
 
         uw_localization::ParticleLocalization* localizer;

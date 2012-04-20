@@ -126,6 +126,16 @@ bool ParticleLocalization::isParticleInWorld(const PoseParticle& X, const NodeMa
 }
 
 
+void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState& pose)
+{
+    for(unsigned i = 0; i < particles.size(); i++) {
+        particles[i].p_position = pose.position;
+        particles[i].main_confidence = 1.0 / particles.size();
+        particles[i].part_confidences = Eigen::Vector3d(0.0, 0.0, 0.0);
+    }
+}
+
+
 void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {
     vehicle_pose.orientation = orientation.orientation * Eigen::AngleAxis<double>(filter_config.yaw_offset, Eigen::Vector3d::UnitZ());

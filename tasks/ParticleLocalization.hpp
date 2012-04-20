@@ -54,6 +54,8 @@ public:
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
   void setCurrentSpeed(const base::samples::RigidBodyState& speed);
 
+  void teleportParticles(const base::samples::RigidBodyState& position);
+
   void setSonarDebug(DebugWriter<uw_localization::debug::SonarPerception>* debug) {
       sonar_debug = debug;
   }
