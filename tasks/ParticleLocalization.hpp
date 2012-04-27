@@ -39,7 +39,7 @@ public:
   ParticleLocalization(const FilterConfig& config);
   virtual ~ParticleLocalization();
 
-  virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov);
+  virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
 
   virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);

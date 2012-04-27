@@ -69,22 +69,19 @@ bool Task::startHook()
      config.particle_number = _particle_number.value();
      config.particle_interspersal_ratio = _particle_interspersal_ratio.value();
      config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
-     config.init_covariance = convertProperty<Eigen::Matrix3d>(_init_covariance.value());
+     config.init_variance = convertProperty<Eigen::Vector3d>(_init_variance.value());
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
      config.yaw_offset = _yaw_offset.value();
+     config.pure_random_motion = _pure_random_motion.value();
 
      current_depth = 0;
 
      number_sonar_perceptions = 0;
-    
 
      if(_static_motion_covariance.value().size() > 0) {
          config.use_static_motion_covariance(convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value()));
-         std::cout << "use static motion cov" << std::endl;
      }
-
-     std::cout << "ele: " << _static_motion_covariance.value().size() << std::endl;
 
      localizer = new ParticleLocalization(config);
      map = new NodeMap(_yaml_map.value());
@@ -131,11 +128,14 @@ void Task::updateHook()
      _streamaligner_status.write(aggr->getStatus());
 
      MixedMap localization_map = map->getMap();
+     base::samples::RigidBodyState pose = localizer->estimate();
 
      _map_wall_lines.write(localization_map.lines);
      _map_landmarks.write(localization_map.landmarks);
      _particles.write(localizer->getParticleSet());
-     _pose_samples.write(localizer->estimate());
+
+     if(!pose.time.isNull())
+         _pose_samples.write(pose);
 }
 
 
@@ -148,7 +148,7 @@ void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
     number_sonar_perceptions++;
 
     if(number_sonar_perceptions >= _minimum_perceptions.value() 
-            && Neff < _effective_sample_size_threshold.value()) {
+            && (Neff / _particle_number.value()) < _effective_sample_size_threshold.value()) {
         localizer->resample();
         number_sonar_perceptions = 0;
     }
@@ -162,6 +162,12 @@ void Task::callbackOrientation(base::Time ts, const base::samples::RigidBodyStat
 {
     localizer->setCurrentOrientation(rbs);
     current_depth = rbs.position.z();
+
+    if(!last_perception.isNull() && (ts - last_perception).toSeconds() > _reset_timeout.value()) {
+        localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
+                base::getYaw(rbs.orientation), 0.0); 
+        last_perception = ts;
+    }
 }
 
 

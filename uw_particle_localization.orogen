@@ -75,7 +75,7 @@ task_context "Task" do
         doc("ratio for generating new particles after each measurement")
 
    property("effective_sample_size_threshold", "double", 0.0).
-	doc("effective sample size threshold controls the resampling timing and uses values between 0 and N particles")
+	doc("effective sample size threshold controls the resampling timing and uses values between 0.0 and 1.0 particles")
 
    property("reset_timeout", "double", 10.0).
         doc("automatic reset of particle filter after not receiving any perception for X seconds")
@@ -86,7 +86,7 @@ task_context "Task" do
    property("init_position", "/std/vector<double>").
         doc("initial centre position for all particles")
 
-   property("init_covariance", "/std/vector<double>").
+   property("init_variance", "/std/vector<double>").
         doc("spatial covariance from initial centre position for initialization")
 
    property("yaml_map", "/std/string").
@@ -97,6 +97,9 @@ task_context "Task" do
 
    property("sonar_covariance", "double").
         doc("sets sonar covariance for defining measurement uncertainty")
+
+   property("pure_random_motion", "bool", false).
+        doc("ignore velocity in speed samples for dynamic update")
 
    property("static_motion_covariance", "/std/vector<double>").
         doc("sets a static covariance for speed samples")

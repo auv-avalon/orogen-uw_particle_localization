@@ -9,27 +9,27 @@ base::samples::RigidBodyState* PoseParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
     : filter_config(config), 
-    StaticSpeedNoise(Random::multi_gaussian<3>()),
+    StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.get_static_motion_covariance())),
     sonar_debug(0)
 {
-    if(config.has_static_motion_covariance()) {
-        StaticSpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.get_static_motion_covariance()); 
-    }
-
-    initialize(config.particle_number, config.init_position, config.init_covariance, 0.0, 0.0);
+    initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
 }
 
 ParticleLocalization::~ParticleLocalization()
 {}
 
 
-void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Matrix3d& cov, double yaw, double yaw_cov)
+void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& var, double yaw, double yaw_cov)
 {
-    MultiNormalRandom<3> initializer = Random::multi_gaussian(pos, cov);
+    UniformRealRandom pos_x = Random::uniform_real(pos.x(), var.x());
+    UniformRealRandom pos_y = Random::uniform_real(pos.y(), var.y());
+    UniformRealRandom pos_z = Random::uniform_real(pos.z(), var.z());
+
+    particles.clear();
 
     for(unsigned i = 0; i < numbers; i++) {
         PoseParticle pp;
-        pp.p_position = initializer();
+        pp.p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
         pp.p_velocity = base::Vector3d(0.0, 0.0, 0.0);
         pp.main_confidence = 1.0 / numbers;
         pp.part_confidences = Eigen::Vector3d(0.0, 0.0, 0.0);
@@ -47,11 +47,17 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
     MultiNormalRandom<3> SpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), U.cov_velocity);
 
     base::Vector3d v_noisy;
+    base::Vector3d u_velocity;
+
+    if(filter_config.pure_random_motion)
+        u_velocity = base::Vector3d(0.0, 0.0, 0.0);
+    else
+        u_velocity = U.velocity;
 
     if(filter_config.has_static_motion_covariance()) {
-        v_noisy = U.velocity + StaticSpeedNoise();
+        v_noisy = u_velocity + StaticSpeedNoise();
     } else {
-        v_noisy = U.velocity + SpeedNoise();
+        v_noisy = u_velocity + SpeedNoise();
     }
     
     base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
@@ -138,6 +144,7 @@ void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState
 
 void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {
+    vehicle_pose.time = timestamp;
     vehicle_pose.orientation = orientation.orientation * Eigen::AngleAxis<double>(filter_config.yaw_offset, Eigen::Vector3d::UnitZ());
     vehicle_pose.cov_orientation = orientation.cov_orientation;
     vehicle_pose.angular_velocity = orientation.angular_velocity;
