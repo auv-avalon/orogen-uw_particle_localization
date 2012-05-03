@@ -5,6 +5,8 @@
 
 #include "uw_particle_localization/TaskBase.hpp"
 #include <uw_localization/filters/particle_filter.hpp>
+#include <vector>
+#include <list>
 
 namespace aggregator {
     class StreamAligner;
@@ -32,7 +34,12 @@ namespace uw_particle_localization {
         int gt_sid;
         double current_depth;
 
+        std::vector<double> weights;
+        std::list<base::samples::RigidBodyState> buffer;
+
         unsigned number_sonar_perceptions;
+
+        void step(const base::samples::RigidBodyState& sample);
 
         void callbackLaser(base::Time ts, const base::samples::LaserScan& scan);
         void callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs);

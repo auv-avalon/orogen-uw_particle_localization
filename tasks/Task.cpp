@@ -2,6 +2,7 @@
 
 #include "Task.hpp"
 #include "ParticleLocalization.hpp"
+#include "Fir.hpp"
 #include <aggregator/StreamAligner.hpp>
 
 using namespace uw_particle_localization;
@@ -75,6 +76,8 @@ bool Task::startHook()
      config.yaw_offset = _yaw_offset.value();
      config.pure_random_motion = _pure_random_motion.value();
 
+     weights = MovingAverage(_aliasing_buffer_size.value());
+
      current_depth = 0;
 
      number_sonar_perceptions = 0;
@@ -89,6 +92,36 @@ bool Task::startHook()
      localizer->setSonarDebug(this);
 
      return true;
+}
+
+
+void Task::step(const base::samples::RigidBodyState& sample)
+{
+    if(!_aliasing_buffer_size.value() > 0)
+        _pose_samples.write(sample);
+
+    buffer.push_front(sample);
+
+    if(buffer.size() == _aliasing_buffer_size.value()) {
+        base::samples::RigidBodyState& back = buffer.back();
+
+        unsigned i = 0;
+        std::list<base::samples::RigidBodyState>::const_iterator it = buffer.begin();
+
+        base::Vector3d position = base::Vector3d::Zero();
+
+        while(it != buffer.end()) {
+            position += weights[i] * it->position;
+            ++i;
+            ++it;
+        }
+
+        back.position = position;
+
+        _pose_samples.write(back);
+
+        buffer.pop_back();
+    }
 }
 
 
@@ -134,8 +167,9 @@ void Task::updateHook()
      _map_landmarks.write(localization_map.landmarks);
      _particles.write(localizer->getParticleSet());
 
-     if(!pose.time.isNull())
-         _pose_samples.write(pose);
+     if(!pose.time.isNull()) {
+         step(pose);
+     }
 }
 
 
