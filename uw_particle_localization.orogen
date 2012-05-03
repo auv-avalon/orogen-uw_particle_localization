@@ -71,6 +71,9 @@ task_context "Task" do
    property("minimum_depth", "double", -0.4).
         doc("minimum depth for collecting perception samples")
 
+   property("aliasing_buffer_size", "int", 5).
+        doc("fir size for pose aliasing on output port")
+
    property("particle_interspersal_ratio", "double", 0.0).
         doc("ratio for generating new particles after each measurement")
 
@@ -125,6 +128,12 @@ task_context "Task" do
    property("speed_period", "double", 0.01)
    property("hough_period", "double", 0.1)
    property("groundtruth_period", "double", 0.01)
+
+   port_driven :laser_samples
+   port_driven :orientation_samples
+   port_driven :speed_samples
+   port_driven :pose_update
+   port_driven :ground_truth
 end
 
 
