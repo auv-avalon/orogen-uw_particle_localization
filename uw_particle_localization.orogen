@@ -9,6 +9,7 @@ import_types_from "aggregator"
 import_types_from "tasks/Types.hpp"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/map.hpp"
+import_types_from "uw_localization/types/environment.hpp"
 
 task_context "Task" do
    # ----------------------------------------------------------------------
@@ -20,6 +21,9 @@ task_context "Task" do
 
    output_port("map_landmarks", "/std/vector</uw_localization/Landmark>").     
         doc("current landmark features from the using map")
+
+   output_port("environment", "/uw_localization/Environment").
+        doc("current map environment")
 
    output_port("pose_samples", "/base/samples/RigidBodyState").
         doc("pose estimation merged with other state informations")
@@ -144,7 +148,6 @@ deployment "uw_particle_localization_test" do
     add_default_logger
 
     # Declares it as periodic, with a period of 100ms
-    task("uw_particle_localization", "Task").
-        periodic(0.1)
+    task("uw_particle_localization", "Task")
 end
 

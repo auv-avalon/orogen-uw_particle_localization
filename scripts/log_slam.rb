@@ -6,8 +6,8 @@ include Orocos
 Orocos.initialize
 
 options = {}
-components = ["sonar.19.log", "pose_estimator.19.log"]
-dir = "~/logs/slam/"
+components = ["sonar.6.0.log", "pose_estimator.6.0.log"]
+dir = "~/logs/20101104_ekfslam/"
 
 files = components.map do |comp|
     File.join(dir, "#{comp}")
@@ -16,15 +16,13 @@ end
 log = Orocos::Log::Replay.open(*files)
 
 view3d = Vizkit.default_loader.create_widget 'vizkit::Vizkit3DWidget'
+view3d.show_grid = false
 view3d.show
 gt = view3d.createPlugin("RigidBodyStateVisualization")
 ep = view3d.createPlugin("RigidBodyStateVisualization")
-laserviz = view3d.createPlugin 'uw_localization_laserscan', 'LaserScanVisualization'
-viz = view3d.createPlugin("uw_localization_particle", "ParticleVisualization")
-map = view3d.createPlugin("uw_localization_mapfeature", "MapFeatureVisualization")
-sonarbeamviz = view3d.createPlugin("sonarbeam", "SonarBeamVisualization")
+mon = view3d.createPlugin("uw_localization_monitor", "MonitorVisualization")
 
-Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
+Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
     Orocos.log_all_ports
 
     sonar = log.task 'sonar'
@@ -40,16 +38,14 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
     feature.derivative_history_length = 1
 
     pos.init_position =   [0.0,-4.0, 0.0]
-    pos.init_covariance = [8.0, 0.0, 0.0,
-                           0.0, 4.0, 0.0,
-                           0.0, 0.0, 1.0]
+    pos.init_variance = [4.0, 4.0, 0.0]
 
     pos.static_motion_covariance = [2.0,0.0,0.0, 0.0,2.0,0.0, 0.0,0.0,0.0]
 
     pos.particle_number = 40
     pos.minimum_depth = 0.0
     pos.minimum_perceptions = 1
-    pos.effective_sample_size_threshold = 35
+    pos.effective_sample_size_threshold = 0.8
     pos.particle_interspersal_ratio = 0.0
     pos.sonar_maximum_distance = 13.0
     pos.sonar_covariance = 2.0
@@ -60,23 +56,9 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 
-    Vizkit.connect_port_to 'uw_particle_localization', 'particles', :pull => false, :update_frequency => 33 do |sample, _|
-        viz.updateParticles(sample)
-        sample
-    end
-
-    Vizkit.connect_port_to 'uw_particle_localization', 'map_landmarks', :pull => false, :update_frequency => 33 do |sample, _|
-        map.updateLandmarks(sample)
-        sample
-    end
-
-    Vizkit.connect_port_to 'uw_particle_localization', 'map_wall_lines', :pull => false, :update_frequency => 33 do |sample, _|
-        map.updateLinemarks(sample)
-        sample
-    end
-
-    Vizkit.connect_port_to 'sonar_feature_estimator', 'new_feature', :pull => false, :update_frequency => 33 do |sample, _|
-        laserviz.updateLaserScan(sample)
+    Vizkit.display pos.environment
+    Vizkit.connect_port_to 'uw_particle_localization', 'environment', :pull => false, :update_frequency => 33 do |sample, _|
+        mon.updateEnvironment(sample)
         sample
     end
 
@@ -87,15 +69,8 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
 
     log.pose_estimator.pose_samples do |sample|
         gt.updateRigidBodyState(sample)
-        laserviz.updatePose(sample)
-        sonarbeamviz.updateBodyState(sample)
         sample
     end
-
-#    log.sonar.SonarScan  do |sample|
-#        sonarbeamviz.updateSonarBeam(sample)
-#        sample
-#    end
 
     pos.configure
     feature.configure

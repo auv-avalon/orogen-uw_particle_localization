@@ -13,6 +13,8 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
     sonar_debug(0)
 {
     initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
+    
+    generation = 0;
 }
 
 ParticleLocalization::~ParticleLocalization()
@@ -36,6 +38,8 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
         
         particles.push_back(pp);
     }
+
+    generation++;
 
     PoseParticle::pose = &vehicle_pose;
 }
@@ -78,6 +82,14 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidB
     return U.time;
 }
 
+
+/*
+ * asfd
+ * asdf
+ * sadf
+ * TODO:
+ * safd
+ */
 
 double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, const NodeMap& M)
 {

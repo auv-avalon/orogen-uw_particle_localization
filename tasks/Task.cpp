@@ -91,6 +91,7 @@ bool Task::startHook()
 
      localizer->setSonarDebug(this);
 
+
      return true;
 }
 
@@ -160,11 +161,10 @@ void Task::updateHook()
 
      _streamaligner_status.write(aggr->getStatus());
 
-     MixedMap localization_map = map->getMap();
+     _environment.write(map->getEnvironment());
+     
      base::samples::RigidBodyState pose = localizer->estimate();
 
-     _map_wall_lines.write(localization_map.lines);
-     _map_landmarks.write(localization_map.landmarks);
      _particles.write(localizer->getParticleSet());
 
      if(!pose.time.isNull()) {
