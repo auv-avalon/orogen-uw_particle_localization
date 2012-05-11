@@ -41,11 +41,12 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 
     pos.init_variance = [4.0, 4.0, 0.0]
 
     pos.static_motion_covariance = [2.0,0.0,0.0, 0.0,2.0,0.0, 0.0,0.0,0.0]
+    pos.pure_random_motion = true
 
-    pos.particle_number = 40
+    pos.particle_number = 20
     pos.minimum_depth = 0.0
     pos.minimum_perceptions = 1
-    pos.effective_sample_size_threshold = 0.8
+    pos.effective_sample_size_threshold = 0.9
     pos.particle_interspersal_ratio = 0.0
     pos.sonar_maximum_distance = 13.0
     pos.sonar_covariance = 2.0
@@ -57,8 +58,21 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", :wait => 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 
     Vizkit.display pos.environment
+    Vizkit.display pos.particles
+    Vizkit.display pos.debug_sonar
+    
     Vizkit.connect_port_to 'uw_particle_localization', 'environment', :pull => false, :update_frequency => 33 do |sample, _|
         mon.updateEnvironment(sample)
+        sample
+    end
+
+    Vizkit.connect_port_to 'uw_particle_localization', 'particles', :pull => false, :update_frequency => 33 do |sample, _|
+        mon.updateParticleSet(sample)
+        sample
+    end
+
+    Vizkit.connect_port_to 'uw_particle_localization', 'debug_sonar', :pull => false, :update_frequency => 33 do |sample, _|
+        mon.updateParticleInfo(sample)
         sample
     end
 
