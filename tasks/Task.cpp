@@ -72,6 +72,7 @@ bool Task::startHook()
      config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
      config.init_variance = convertProperty<Eigen::Vector3d>(_init_variance.value());
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
+     config.sonar_minimum_distance = _sonar_minimum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
      config.yaw_offset = _yaw_offset.value();
      config.pure_random_motion = _pure_random_motion.value();
@@ -90,7 +91,6 @@ bool Task::startHook()
      map = new NodeMap(_yaml_map.value());
 
      localizer->setSonarDebug(this);
-
 
      return true;
 }
@@ -177,12 +177,12 @@ void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
 {
     base::Vector3d ratio(_perception_ratio.value(), _noise_ratio.value(), _max_distance_ratio.value());
 
-    double Neff = localizer->observe(scan, *map, ratio, 1.0 / _sonar_maximum_distance.value());
+    double Neff = localizer->observe(scan, *map);
 
     number_sonar_perceptions++;
 
     if(number_sonar_perceptions >= _minimum_perceptions.value() 
-            && (Neff / _particle_number.value()) < _effective_sample_size_threshold.value()) {
+            && Neff < _effective_sample_size_threshold.value()) {
         localizer->resample();
         number_sonar_perceptions = 0;
     }
@@ -234,9 +234,9 @@ void Task::stopHook()
 }
 
 
-void Task::write(const uw_localization::debug::SonarPerception& sample)
+void Task::write(const uw_localization::ParticleInfo& sample)
 {
-    _sonar_perception.write(sample);
+    _debug_sonar.write(sample);
 }
 
 // void Task::errorHook()

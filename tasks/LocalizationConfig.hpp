@@ -49,6 +49,7 @@ struct FilterConfig {
 
     // Sensor uncertainty
     double sonar_maximum_distance;
+    double sonar_minimum_distance;
     double sonar_covariance;
 
     // optional properties

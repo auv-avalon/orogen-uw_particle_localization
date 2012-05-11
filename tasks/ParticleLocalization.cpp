@@ -34,7 +34,6 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
         pp.p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
         pp.p_velocity = base::Vector3d(0.0, 0.0, 0.0);
         pp.main_confidence = 1.0 / numbers;
-        pp.part_confidences = Eigen::Vector3d(0.0, 0.0, 0.0);
         
         particles.push_back(pp);
     }
@@ -43,6 +42,7 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
 
     PoseParticle::pose = &vehicle_pose;
 }
+
 
 
 
@@ -83,51 +83,113 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidB
 }
 
 
-/*
- * asfd
- * asdf
- * sadf
- * TODO:
- * safd
- */
+double ParticleLocalization::observe(const base::samples::LaserScan& z, const NodeMap& m) 
+{
+    pi.infos.clear();
+    pi.generation = generation;
+    pi.type = 0;
+
+    std::vector<double> perception_weights;
+    double sum_perception_weight = 0.0;
+    double sum_main_confidence = 0.0;
+    double Neff = 0.0;
+    unsigned i;
+
+    // calculate all perceptions
+    for(ParticleIterator it = particles.begin(); it != particles.end(); it++) {
+        perception_weights.push_back(perception(*it, z, m));
+        sum_perception_weight += perception_weights.back();
+    }
+
+    if(sum_perception_weight <= 0.0) {
+        sonar_debug->write(pi);
+        return 0.0;
+    }
+
+    i = 0;
+
+    // normalize perception weights and form mixed weight based on probabilities of perception, random_noise, maximum_range_noise
+    for(ParticleIterator it = particles.begin(); it != particles.end(); it++) {
+        it->main_confidence *= perception_weights[i++] / sum_perception_weight;
+
+        sum_main_confidence += it->main_confidence;
+    }
+
+    // normalize overall confidence
+    for(ParticleIterator it = particles.begin(); it != particles.end(); it++) {
+        it->main_confidence = it->main_confidence / sum_main_confidence;
+
+        Neff += it->main_confidence * it->main_confidence;
+    }
+
+    sonar_debug->write(pi);
+
+    return (1.0 / Neff) / particles.size();
+}
 
 double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, const NodeMap& M)
 {
+    uw_localization::PointInfo info;
+    info.time = X.timestamp;
+
     double angle = Z.start_angle;
     double yaw = base::getYaw(vehicle_pose.orientation);
-    double measure_distance = Z.ranges[0] / 1000.0;
-    
+    double z_distance = Z.ranges[0] / 1000.0;
+
+    // check if this particle is still part of the world
+    if(!M.belongsToWorld(X.p_position)) {
+        debug(-1.0, "invalid position", 0.0);
+        return 0.0;
+    }
+
+    // check if current laser scan is in a valid range
+    if(Z.ranges[0] == base::samples::TOO_FAR 
+            || z_distance > filter_config.sonar_maximum_distance 
+            || z_distance < filter_config.sonar_minimum_distance)
+    {
+        double p = 1.0 / (filter_config.sonar_maximum_distance - filter_config.sonar_minimum_distance);
+        debug(z_distance, "not in range", p);
+        return p;
+    }
+   
+    // check current measurement with map
     Eigen::AngleAxis<double> sonar_yaw(angle, Eigen::Vector3d::UnitZ()); 
     Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
-    Eigen::Affine3d SonarToAvalon(Eigen::Translation3d(-1.0, 0.0, 0.0));
+    Eigen::Affine3d SonarToAvalon(Eigen::Translation3d(-0.5, 0.0, 0.0));
 
-    Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(measure_distance, 0.0, 0.0);
+    Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(z_distance, 0.0, 0.0);
     Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.p_position;
 
     boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
 
     double probability = gaussian1d(0.0, filter_config.sonar_covariance, distance.get<1>());
 
-    if(sonar_debug != 0) {
-        uw_localization::debug::SonarPerception s;
-        s.particle = X.p_position;
-        s.obstacle = AbsZ;
-        s.expected_obstacle = distance.get<2>();
-        s.laser_distance = distance.get<1>();
-        s.perception_confidence = probability;
-        s.timestamp = X.timestamp;
-        sonar_debug->write(s);
-    }
+    debug(z_distance, distance.get<2>(), AbsZ, probability);
 
     return probability;
 }
 
-
-bool ParticleLocalization::isMaximumRange(const base::samples::LaserScan& Z)
+void ParticleLocalization::debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, double conf)
 {
-    double range = Z.ranges[0] / 1000.0;
+    uw_localization::PointInfo info;
+    info.distance = distance;
+    info.desire_point = desire;
+    info.real_point = real;
+    info.confidence = conf;
+        
+    pi.infos.push_back(info);
+}
 
-    return (range == base::samples::TOO_FAR || range >= filter_config.sonar_maximum_distance) ;
+
+
+void ParticleLocalization::debug(double distance, const std::string& msg, double conf)
+{
+    uw_localization::PointInfo info;
+    info.distance = distance;
+    info.status = msg;
+    info.confidence = conf;
+
+    pi.infos.push_back(info);
 }
 
 
@@ -139,17 +201,11 @@ void ParticleLocalization::setCurrentSpeed(const base::samples::RigidBodyState& 
 }
 
 
-bool ParticleLocalization::isParticleInWorld(const PoseParticle& X, const NodeMap& M) {
-    return M.belongsToWorld(X.p_position);
-}
-
-
 void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState& pose)
 {
     for(unsigned i = 0; i < particles.size(); i++) {
         particles[i].p_position = pose.position;
         particles[i].main_confidence = 1.0 / particles.size();
-        particles[i].part_confidences = Eigen::Vector3d(0.0, 0.0, 0.0);
     }
 }
 

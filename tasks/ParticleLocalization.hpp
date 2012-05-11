@@ -14,6 +14,7 @@
 #include <machine_learning/RandomNumbers.hpp>
 #include <uw_localization/filters/particle_filter.hpp>
 #include <uw_localization/maps/node_map.hpp>
+#include <uw_localization/types/info.hpp>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
 
@@ -45,18 +46,20 @@ public:
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
-  virtual bool isMaximumRange(const base::samples::LaserScan& z);
 
   virtual base::samples::RigidBodyState& estimate();
 
-  virtual bool isParticleInWorld(const PoseParticle& X, const NodeMap& M);
+  virtual double observe(const base::samples::LaserScan& z, const NodeMap& m);
+
+  void debug(double distance, const std::string& msg, double conf);
+  void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, double conf);
 
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
   void setCurrentSpeed(const base::samples::RigidBodyState& speed);
 
   void teleportParticles(const base::samples::RigidBodyState& position);
 
-  void setSonarDebug(DebugWriter<uw_localization::debug::SonarPerception>* debug) {
+  void setSonarDebug(DebugWriter<uw_localization::ParticleInfo>* debug) {
       sonar_debug = debug;
   }
 
@@ -66,8 +69,10 @@ private:
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
   double z_sample;
 
+  uw_localization::ParticleInfo pi;
+
   /** observers */
-  DebugWriter<uw_localization::debug::SonarPerception>* sonar_debug;
+  DebugWriter<uw_localization::ParticleInfo>* sonar_debug;
 };
 
 

@@ -8,7 +8,7 @@ import_types_from "base"
 import_types_from "aggregator"
 import_types_from "tasks/Types.hpp"
 import_types_from "uw_localization/types/particle.hpp"
-import_types_from "uw_localization/types/map.hpp"
+import_types_from "uw_localization/types/info.hpp"
 import_types_from "uw_localization/types/environment.hpp"
 
 task_context "Task" do
@@ -16,12 +16,6 @@ task_context "Task" do
    # output samples 
    # ----------------------------------------------------------------------
    
-   output_port("map_wall_lines", "/std/vector</uw_localization/Linemark>").
-        doc("current wall features from the using map")
-
-   output_port("map_landmarks", "/std/vector</uw_localization/Landmark>").     
-        doc("current landmark features from the using map")
-
    output_port("environment", "/uw_localization/Environment").
         doc("current map environment")
 
@@ -30,6 +24,9 @@ task_context "Task" do
 
    output_port("particles", "/uw_localization/ParticleSet").
         doc("current particle set used in this filter")
+
+   output_port("debug_sonar", "/uw_localization/ParticleInfo").
+        doc("Debug information for sonar perceptions")
 
    output_port("sonar_perception", "/uw_localization/debug/SonarPerception").
         doc("return debug information for sonar perception updates")
@@ -100,6 +97,9 @@ task_context "Task" do
 	doc("start map for localization algorithm")
 
    property("sonar_maximum_distance", "double", 20.0).
+        doc("set maximum distance for filtering sonar samples")
+
+   property("sonar_minimum_distance", "double", 1.0).
         doc("set maximum distance for filtering sonar samples")
 
    property("sonar_covariance", "double").
