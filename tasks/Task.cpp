@@ -69,8 +69,6 @@ bool Task::startHook()
      FilterConfig config;
      config.particle_number = _particle_number.value();
      config.particle_interspersal_ratio = _particle_interspersal_ratio.value();
-     config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
-     config.init_variance = convertProperty<Eigen::Vector3d>(_init_variance.value());
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_minimum_distance = _sonar_minimum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
@@ -78,6 +76,11 @@ bool Task::startHook()
      config.pure_random_motion = _pure_random_motion.value();
 
      weights = MovingAverage(_aliasing_buffer_size.value());
+
+     if(!_init_position.value().empty() && !_init_variance.value().empty()) {
+         config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
+         config.init_variance = convertProperty<Eigen::Vector3d>(_init_variance.value());
+     }
 
      current_depth = 0;
 
@@ -89,6 +92,12 @@ bool Task::startHook()
 
      localizer = new ParticleLocalization(config);
      map = new NodeMap(_yaml_map.value());
+
+     if(_init_position.value().empty() || _init_variance.value().empty()) 
+        localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
+                0.0, 0.0); 
+     else
+        localizer->initialize(_particle_number.value(), config.init_position, config.init_variance, 0.0, 0.0);
 
      localizer->setSonarDebug(this);
 
@@ -175,9 +184,7 @@ void Task::updateHook()
 
 void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
 {
-    base::Vector3d ratio(_perception_ratio.value(), _noise_ratio.value(), _max_distance_ratio.value());
-
-    double Neff = localizer->observe(scan, *map);
+    double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
 
     number_sonar_perceptions++;
 

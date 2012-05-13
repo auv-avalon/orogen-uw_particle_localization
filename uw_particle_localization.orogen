@@ -102,7 +102,7 @@ task_context "Task" do
    property("sonar_minimum_distance", "double", 1.0).
         doc("set maximum distance for filtering sonar samples")
 
-   property("sonar_covariance", "double").
+   property("sonar_covariance", "double", 2.0).
         doc("sets sonar covariance for defining measurement uncertainty")
 
    property("pure_random_motion", "bool", false).
@@ -111,15 +111,9 @@ task_context "Task" do
    property("static_motion_covariance", "/std/vector<double>").
         doc("sets a static covariance for speed samples")
 
-   property("perception_ratio", "double", 0.7).
-	doc("sets importance ratio for perception updates")
+   property("sonar_importance", "double", 1.0).
+	doc("sets importance ratio for sonar perception updates")
  
-   property("noise_ratio", "double", 0.2).
-	doc("sets importance ratio for random noise in observations")
-
-   property("max_distance_ratio", "double", 0.1).
-	doc("sets importance ratio for maximum distance perceptions")
-
    # ----------------------------------------------------------------------
    # aggregator properties 
    # ----------------------------------------------------------------------
