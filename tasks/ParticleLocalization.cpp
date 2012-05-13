@@ -83,49 +83,21 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidB
 }
 
 
-double ParticleLocalization::observe(const base::samples::LaserScan& z, const NodeMap& m) 
+
+
+double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance)
 {
     pi.infos.clear();
     pi.generation = generation;
     pi.type = 0;
 
-    std::vector<double> perception_weights;
-    double sum_perception_weight = 0.0;
-    double sum_main_confidence = 0.0;
-    double Neff = 0.0;
-    unsigned i;
-
-    // calculate all perceptions
-    for(ParticleIterator it = particles.begin(); it != particles.end(); it++) {
-        perception_weights.push_back(perception(*it, z, m));
-        sum_perception_weight += perception_weights.back();
-    }
-
-    if(sum_perception_weight <= 0.0) {
-        sonar_debug->write(pi);
-        return 0.0;
-    }
-
-    i = 0;
-
-    // normalize perception weights and form mixed weight based on probabilities of perception, random_noise, maximum_range_noise
-    for(ParticleIterator it = particles.begin(); it != particles.end(); it++) {
-        it->main_confidence *= perception_weights[i++] / sum_perception_weight;
-
-        sum_main_confidence += it->main_confidence;
-    }
-
-    // normalize overall confidence
-    for(ParticleIterator it = particles.begin(); it != particles.end(); it++) {
-        it->main_confidence = it->main_confidence / sum_main_confidence;
-
-        Neff += it->main_confidence * it->main_confidence;
-    }
+    double effective_sample_size = observe(z, m, importance);
 
     sonar_debug->write(pi);
 
-    return (1.0 / Neff) / particles.size();
+    return effective_sample_size;
 }
+
 
 double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, const NodeMap& M)
 {

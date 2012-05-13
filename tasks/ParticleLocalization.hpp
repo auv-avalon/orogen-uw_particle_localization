@@ -49,7 +49,7 @@ public:
 
   virtual base::samples::RigidBodyState& estimate();
 
-  virtual double observe(const base::samples::LaserScan& z, const NodeMap& m);
+  double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
 
   void debug(double distance, const std::string& msg, double conf);
   void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, double conf);
