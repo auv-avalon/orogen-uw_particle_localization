@@ -196,7 +196,7 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
 base::samples::RigidBodyState& ParticleLocalization::estimate()
 {
     // use position estimate retrieved from particle filter
-    vehicle_pose.position = mean_position;
+    vehicle_pose.position = best_position;
     vehicle_pose.cov_position = cov_position;
 
     // use z samples from depth reader

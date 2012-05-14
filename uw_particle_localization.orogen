@@ -29,9 +29,6 @@ task_context "Task" do
    output_port("debug_sonar", "/uw_localization/ParticleInfo").
         doc("Debug information for sonar perceptions")
 
-   output_port("sonar_perception", "/uw_localization/debug/SonarPerception").
-        doc("return debug information for sonar perception updates")
-
    output_port("streamaligner_status", "/aggregator/StreamAlignerStatus").
         doc("provides debug information on the state of stream aligner")
 
