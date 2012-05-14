@@ -9,6 +9,7 @@ import_types_from "aggregator"
 import_types_from "tasks/Types.hpp"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
+import_types_from "uw_localization/types/map.hpp"
 import_types_from "uw_localization/types/environment.hpp"
 
 task_context "Task" do
