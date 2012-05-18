@@ -9,8 +9,14 @@ e = []
 
 log = Log::Replay.open(ARGV)
 
-log.pose_estimator.pose_samples { |sample| g << sample }
-log.uw_particle_localization.pose_samples { |sample| e << sample }
+log.pose_estimator.pose_samples { |sample| 
+    g << sample 
+    sample
+}
+log.uw_particle_localization.pose_samples { |sample| 
+    e << sample 
+    sample
+}
 
 log.run
 
@@ -18,6 +24,7 @@ ptr = 0
 
 error = 0.0
 var = 0.0
+std = 0.0
 min = 1_000_000.0
 max = 0.0
 
@@ -30,7 +37,7 @@ for pos in e
     data = Result.new
     start = pos.time unless start
 
-    next if last_sample and (pos.time - last_sample.time).abs < 5.0
+    next if last_sample and (pos.time - last_sample.time).abs < 1.0
 
     while ptr < g.size and (pos.time - g[ptr].time).abs > 0.01
         ptr += 1
@@ -76,6 +83,7 @@ puts "\nAverage Error: #{error / result.size}"
 puts "Max Error: #{max}"
 puts "Min Error: #{min}"
 puts "Variance: #{var / (result.size - 1)}"
+puts "Std: #{Math::sqrt(var / (result.size - 1))}"
 puts "Samples: #{result.size}"
 
 system 'gnuplot ./templates/stats.plot'

@@ -7,8 +7,12 @@ include Orocos
 Orocos.initialize
 
 options = {}
-components = ["sonar.6.0.log", "pose_estimator.6.0.log", "avalon_control.6.0.log"]
-dir = "~/logs/20101104_ekfslam/"
+#components = ["sonar.6.0.log", "pose_estimator.6.0.log", "avalon_control.6.0.log"]
+#dir = "~/logs/20101104_ekfslam/"
+
+components = ["sonar.3.0.log", "pose_estimator.3.0.log", "avalon_control.3.0.log"]
+dir = "~/logs/20101111_ekfslam/"
+
 
 files = components.map do |comp|
     File.join(dir, "#{comp}")
@@ -19,8 +23,8 @@ log = Orocos::Log::Replay.open(*files)
 view3d = Vizkit.default_loader.create_widget 'vizkit::Vizkit3DWidget'
 view3d.show_grid = false
 view3d.show
-gt = view3d.createPlugin("RigidBodyStateVisualization")
-ep = view3d.createPlugin("RigidBodyStateVisualization")
+gt = view3d.createPlugin("vizkit-base", "RigidBodyStateVisualization")
+ep = view3d.createPlugin("vizkit-base", "RigidBodyStateVisualization")
 mon = view3d.createPlugin("uw_localization_monitor", "MonitorVisualization")
 
 Orocos.run "uwv_dynamic_model", "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
@@ -36,6 +40,7 @@ Orocos.run "uwv_dynamic_model", "uw_particle_localization_test", "sonar_feature_
     sonar.SonarScan.connect_to feature.sonar_input
     motion.hbridge_commands.connect_to mm.thrusterinput
     state.pose_samples.connect_to pos.orientation_samples
+#    state.pose_samples.connect_to pos.speed_samples
     mm.uwvstate.connect_to pos.speed_samples
     feature.new_feature.connect_to pos.laser_samples
 

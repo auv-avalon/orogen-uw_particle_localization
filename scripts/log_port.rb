@@ -47,7 +47,7 @@ Orocos.run "uwv_dynamic_model", "uw_particle_localization_test", "sonar_feature_
     pos.init_position = [0.0,-4.0, 0.0]
     pos.init_variance = [10.0, 10.0, 0.0]
 
-    pos.static_motion_covariance = [4.0,0.0,0.0, 0.0,4.0,0.0, 0.0,0.0,0.0]
+    pos.static_motion_covariance = [4.0,0.0,0.0,  0.0,4.0,0.0,  0.0,0.0,0.0]
     pos.pure_random_motion = true
 
     pos.particle_number = 20
