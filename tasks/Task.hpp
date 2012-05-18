@@ -26,6 +26,7 @@ namespace uw_particle_localization {
     protected:
         aggregator::StreamAligner* aggr;
         base::Time last_perception;
+        base::Time start_time;
 
         int laser_sid;
         int orientation_sid;

@@ -111,6 +111,14 @@ task_context "Task" do
 
    property("sonar_importance", "double", 1.0).
 	doc("sets importance ratio for sonar perception updates")
+
+   property("waiting_time", "double", 7.0).
+        doc("sets number of seconds a pose sample should be written after reinitialization")
+
+   # ----------------------------------------------------------------------
+   # runtime states
+   # ----------------------------------------------------------------------
+   runtime_states :WAITING
  
    # ----------------------------------------------------------------------
    # aggregator properties 

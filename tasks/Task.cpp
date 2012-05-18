@@ -128,7 +128,8 @@ void Task::step(const base::samples::RigidBodyState& sample)
 
         back.position = position;
 
-        _pose_samples.write(back);
+        if(state() == RUNNING)
+            _pose_samples.write(back);
 
         buffer.pop_back();
     }
@@ -204,10 +205,20 @@ void Task::callbackOrientation(base::Time ts, const base::samples::RigidBodyStat
     localizer->setCurrentOrientation(rbs);
     current_depth = rbs.position.z();
 
+    if(start_time.isNull()) {
+        start_time = ts;
+    }
+
+    if((ts - start_time).toSeconds() > _waiting_time.value())
+        state(RUNNING);
+    else 
+        state(WAITING);
+
     if(!last_perception.isNull() && (ts - last_perception).toSeconds() > _reset_timeout.value()) {
         localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
                 base::getYaw(rbs.orientation), 0.0); 
         last_perception = ts;
+        start_time = ts;
     }
 }
 
