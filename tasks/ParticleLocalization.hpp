@@ -20,14 +20,12 @@
 
 namespace uw_localization {
 
-struct PoseParticle : public ParticleBase {
-  virtual base::Position position() const { return p_position; }
-  
-  virtual base::Orientation orientation() const { return pose->orientation; }
-
+struct PoseParticle {
   base::Position p_position;
   base::Vector3d p_velocity;
   base::Time timestamp;
+
+  double main_confidence;
 
   static base::samples::RigidBodyState* pose;
 };
@@ -42,12 +40,16 @@ public:
 
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
 
+  virtual base::Position position(const PoseParticle& X) const { return X.p_position; }
+  virtual base::samples::RigidBodyState orientation(const PoseParticle& X) const { return *(X.pose); }
+
+  virtual double confidence(const PoseParticle& X) const { return X.main_confidence; }
+  virtual void   setConfidence(PoseParticle& X, double weight) { X.main_confidence = weight; }
+
   virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
-
-  virtual base::samples::RigidBodyState& estimate();
 
   double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
 

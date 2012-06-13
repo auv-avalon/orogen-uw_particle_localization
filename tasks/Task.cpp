@@ -112,7 +112,7 @@ void Task::step(const base::samples::RigidBodyState& sample)
 
     buffer.push_front(sample);
 
-    if(buffer.size() == _aliasing_buffer_size.value()) {
+    if(buffer.size() == static_cast<size_t>(_aliasing_buffer_size.value())) {
         base::samples::RigidBodyState& back = buffer.back();
 
         unsigned i = 0;
@@ -189,7 +189,7 @@ void Task::callbackLaser(base::Time ts, const base::samples::LaserScan& scan)
 
     number_sonar_perceptions++;
 
-    if(number_sonar_perceptions >= _minimum_perceptions.value() 
+    if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
             && Neff < _effective_sample_size_threshold.value()) {
         localizer->resample();
         number_sonar_perceptions = 0;

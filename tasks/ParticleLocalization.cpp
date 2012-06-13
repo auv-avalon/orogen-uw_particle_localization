@@ -21,15 +21,16 @@ ParticleLocalization::~ParticleLocalization()
 {}
 
 
+
 void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& var, double yaw, double yaw_cov)
 {
-    UniformRealRandom pos_x = Random::uniform_real(pos.x(), var.x());
-    UniformRealRandom pos_y = Random::uniform_real(pos.y(), var.y());
-    UniformRealRandom pos_z = Random::uniform_real(pos.z(), var.z());
+    UniformRealRandom pos_x = Random::uniform_real(pos.x() - var.x() * 0.5, pos.x() + var.x() * 0.5 );
+    UniformRealRandom pos_y = Random::uniform_real(pos.y() - var.y() * 0.5, pos.y() + var.y() * 0.5 );
+    UniformRealRandom pos_z = Random::uniform_real(pos.z() - var.z() * 0.5, pos.z() + var.z() * 0.5 );
 
     particles.clear();
 
-    for(unsigned i = 0; i < numbers; i++) {
+    for(int i = 0; i < numbers; i++) {
         PoseParticle pp;
         pp.p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
         pp.p_velocity = base::Vector3d(0.0, 0.0, 0.0);
@@ -74,6 +75,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
 
     X.p_velocity = v_noisy;
     X.timestamp = U.time;
+    X.p_position.z() = z_sample;
 }
 
 
@@ -81,8 +83,6 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidB
 {
     return U.time;
 }
-
-
 
 
 double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance)
@@ -175,9 +175,10 @@ void ParticleLocalization::setCurrentSpeed(const base::samples::RigidBodyState& 
 
 void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState& pose)
 {
-    for(unsigned i = 0; i < particles.size(); i++) {
-        particles[i].p_position = pose.position;
-        particles[i].main_confidence = 1.0 / particles.size();
+    std::list<PoseParticle>::iterator it;
+    for(it = particles.begin(); it != particles.end(); ++it) {
+        it->p_position = pose.position;
+        it->main_confidence = 1.0 / particles.size();
     }
 }
 
@@ -192,18 +193,6 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
     z_sample = orientation.position.z();
 }
 
-
-base::samples::RigidBodyState& ParticleLocalization::estimate()
-{
-    // use position estimate retrieved from particle filter
-    vehicle_pose.position = best_position;
-    vehicle_pose.cov_position = cov_position;
-
-    // use z samples from depth reader
-    vehicle_pose.position.z() = z_sample;
-
-    return vehicle_pose;
-}
 
 
   
