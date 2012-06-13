@@ -53,15 +53,15 @@ public:
 
   double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
 
-  void debug(double distance, const std::string& msg, double conf);
-  void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, double conf);
+  void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
+  void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
 
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
   void setCurrentSpeed(const base::samples::RigidBodyState& speed);
 
   void teleportParticles(const base::samples::RigidBodyState& position);
 
-  void setSonarDebug(DebugWriter<uw_localization::ParticleInfo>* debug) {
+  void setSonarDebug(DebugWriter<uw_localization::PointInfo>* debug) {
       sonar_debug = debug;
   }
 
@@ -71,10 +71,10 @@ private:
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
   double z_sample;
 
-  uw_localization::ParticleInfo pi;
+  uw_localization::PointInfo best_sonar_measurement;
 
   /** observers */
-  DebugWriter<uw_localization::ParticleInfo>* sonar_debug;
+  DebugWriter<uw_localization::PointInfo>* sonar_debug;
 };
 
 

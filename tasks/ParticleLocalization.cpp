@@ -87,13 +87,13 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidB
 
 double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance)
 {
-    pi.infos.clear();
-    pi.generation = generation;
-    pi.type = 0;
-
     double effective_sample_size = observe(z, m, importance);
 
-    sonar_debug->write(pi);
+    best_sonar_measurement.time = z.time;
+
+    sonar_debug->write(best_sonar_measurement);
+
+    best_sonar_measurement.confidence = -1.0;
 
     return effective_sample_size;
 }
@@ -110,7 +110,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
     // check if this particle is still part of the world
     if(!M.belongsToWorld(X.p_position)) {
-        debug(-1.0, "invalid position", 0.0);
+        debug(z_distance, X.p_position, 0.0, NOT_IN_WORLD); 
         return 0.0;
     }
 
@@ -120,7 +120,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
             || z_distance < filter_config.sonar_minimum_distance)
     {
         double p = 1.0 / (filter_config.sonar_maximum_distance - filter_config.sonar_minimum_distance);
-        debug(z_distance, "not in range", p);
+        debug(z_distance, X.p_position, p, OUT_OF_RANGE);
         return p;
     }
    
@@ -136,32 +136,39 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
     double probability = gaussian1d(0.0, filter_config.sonar_covariance, distance.get<1>());
 
-    debug(z_distance, distance.get<2>(), AbsZ, probability);
+    debug(z_distance, distance.get<2>(), AbsZ, X.p_position, probability);
 
     return probability;
 }
 
-void ParticleLocalization::debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, double conf)
+void ParticleLocalization::debug(double distance, const base::Vector3d& location, double conf, PointStatus status)
 {
-    uw_localization::PointInfo info;
-    info.distance = distance;
-    info.desire_point = desire;
-    info.real_point = real;
-    info.confidence = conf;
-        
-    pi.infos.push_back(info);
+    if(best_sonar_measurement.confidence < conf) {
+        uw_localization::PointInfo info;
+        info.distance = distance;
+        info.desire_point = base::Vector3d(0.0, 0.0, 0.0);
+        info.real_point = base::Vector3d(0.0, 0.0, 0.0);
+        info.location = location;
+        info.confidence = conf;
+        info.status = status;
+
+        best_sonar_measurement = info;
+    }
 }
 
-
-
-void ParticleLocalization::debug(double distance, const std::string& msg, double conf)
+void ParticleLocalization::debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf)
 {
-    uw_localization::PointInfo info;
-    info.distance = distance;
-    info.status = msg;
-    info.confidence = conf;
+    if(best_sonar_measurement.confidence < conf) {
+        uw_localization::PointInfo info;
+        info.distance = distance;
+        info.desire_point = desire;
+        info.real_point = real;
+        info.location = loc;
+        info.confidence = conf;
+        info.status = OKAY;
 
-    pi.infos.push_back(info);
+        best_sonar_measurement = info;
+    }
 }
 
 

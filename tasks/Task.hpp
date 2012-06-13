@@ -20,7 +20,7 @@ namespace uw_localization {
 namespace uw_particle_localization {
 
     class Task : public TaskBase,
-        public uw_localization::DebugWriter<uw_localization::ParticleInfo>
+        public uw_localization::DebugWriter<uw_localization::PointInfo>
     {
 	friend class TaskBase;
     protected:
@@ -51,7 +51,7 @@ namespace uw_particle_localization {
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;
 
-        void write(const uw_localization::ParticleInfo& sample);
+        void write(const uw_localization::PointInfo& sample);
 
 
     public:

@@ -252,9 +252,9 @@ void Task::stopHook()
 }
 
 
-void Task::write(const uw_localization::ParticleInfo& sample)
+void Task::write(const uw_localization::PointInfo& sample)
 {
-    _debug_sonar.write(sample);
+    _debug_sonar_beam.write(sample);
 }
 
 // void Task::errorHook()

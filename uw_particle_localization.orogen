@@ -26,8 +26,8 @@ task_context "Task" do
    output_port("particles", "/uw_localization/ParticleSet").
         doc("current particle set used in this filter")
 
-   output_port("debug_sonar", "/uw_localization/ParticleInfo").
-        doc("Debug information for sonar perceptions")
+   output_port("debug_sonar_beam", "/uw_localization/PointInfo").
+        doc("Debug information for best sonar perceptions")
 
    output_port("streamaligner_status", "/aggregator/StreamAlignerStatus").
         doc("provides debug information on the state of stream aligner")
