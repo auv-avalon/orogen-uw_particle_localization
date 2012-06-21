@@ -2,6 +2,7 @@ require 'orocos'
 require 'vizkit'
 
 include Orocos
+Orocos.CORBA.name_service = cfg["nameserver"].to_s
 Orocos.initialize
 
 view3d = Vizkit.default_loader.create_widget 'vizkit::Vizkit3DWidget'

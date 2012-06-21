@@ -13,7 +13,7 @@ log.pose_estimator.pose_samples { |sample|
     g << sample 
     sample
 }
-log.uw_particle_localization.pose_samples { |sample| 
+log.sonar_wall_hough.position { |sample| 
     e << sample 
     sample
 }
@@ -36,11 +36,13 @@ last_sample = nil
 x = []
 y = []
 
+e.shift(5)
+
 for pos in e
     data = Result.new
     start = pos.time unless start
 
-    next if last_sample and (pos.time - last_sample.time).abs < 2.0
+    # next if last_sample and (pos.time - last_sample.time).abs < 2.0
 
     while ptr < g.size and (pos.time - g[ptr].time).abs > 0.01
         ptr += 1
