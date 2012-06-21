@@ -28,7 +28,7 @@ struct FilterConfig {
     FilterConfig() : 
         particle_number(50),
         yaw_offset(0.0),
-        particle_interspersal_ratio(0.0),
+        hough_interspersal_ratio(0.0),
 	effective_sample_size_threshold(particle_number / 2.0),
 	minimum_perceptions(2),
         sonar_maximum_distance(20.0),
@@ -39,7 +39,7 @@ struct FilterConfig {
     // General properties
     int particle_number;
     double yaw_offset;
-    double particle_interspersal_ratio;
+    double hough_interspersal_ratio;
     double effective_sample_size_threshold;
     int minimum_perceptions;
     bool pure_random_motion;

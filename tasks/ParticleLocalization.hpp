@@ -10,9 +10,11 @@
 
 #include <base/eigen.h>
 #include <base/samples/rigid_body_state.h>
+#include <base/actuators/status.h>
 #include <base/samples/laser_scan.h>
 #include <machine_learning/RandomNumbers.hpp>
 #include <uw_localization/filters/particle_filter.hpp>
+#include <uw_localization/model/uw_motion_model.hpp>
 #include <uw_localization/maps/node_map.hpp>
 #include <uw_localization/types/info.hpp>
 #include "LocalizationConfig.hpp"
@@ -31,12 +33,16 @@ struct PoseParticle {
 };
 
 
-class ParticleLocalization : public ParticleFilter<PoseParticle, base::samples::RigidBodyState, NodeMap>,
+class ParticleLocalization : public ParticleFilter<PoseParticle, NodeMap>,
+  public Dynamic<PoseParticle, base::actuators::Status>,
+  public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
   virtual ~ParticleLocalization();
+
+  UwVehicleParameter VehicleParameter() const;
 
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
 
@@ -47,9 +53,12 @@ public:
   virtual void   setConfidence(PoseParticle& X, double weight) { X.main_confidence = weight; }
 
   virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u);
+  virtual void dynamic(PoseParticle& x, const base::actuators::Status& u);
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
+  virtual const base::Time& getTimestamp(const base::actuators::Status& u);
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
+  virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m);
 
   double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
 
@@ -67,6 +76,7 @@ public:
 
 private:
   FilterConfig filter_config;
+  UwMotionModel motion_model;
   base::samples::RigidBodyState vehicle_pose;
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
   double z_sample;

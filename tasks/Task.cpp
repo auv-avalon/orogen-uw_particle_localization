@@ -56,8 +56,13 @@ bool Task::startHook()
              size_factor * _max_sample_delay.value() / _speed_period.value(),
              base::Time::fromSeconds(_speed_period.value()));
 
+     thruster_sid = aggr->registerStream<base::actuators::Status>(
+             boost::bind(&Task::callbackThruster, this, _1, _2),
+             size_factor * _max_sample_delay.value() / _thruster_period.value(),
+             base::Time::fromSeconds(_thruster_period.value()));
+
      hough_sid = aggr->registerStream<base::samples::RigidBodyState>(
-             boost::bind(&Task::callbackSpeed, this, _1, _2),
+             boost::bind(&Task::callbackHough, this, _1, _2),
              size_factor * _max_sample_delay.value() / _hough_period.value(),
              base::Time::fromSeconds(_hough_period.value()));
 
@@ -68,7 +73,7 @@ bool Task::startHook()
 
      FilterConfig config;
      config.particle_number = _particle_number.value();
-     config.particle_interspersal_ratio = _particle_interspersal_ratio.value();
+     config.hough_interspersal_ratio = _hough_interspersal_ratio.value();
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_minimum_distance = _sonar_minimum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
@@ -145,6 +150,7 @@ void Task::updateHook()
      base::samples::RigidBodyState hough;
      base::samples::RigidBodyState gt;
      base::samples::LaserScan laser;
+     base::actuators::Status status;
 
      while(_orientation_samples.read(orientation, false) == RTT::NewData) {
          aggr->push(orientation_sid, orientation.time, orientation);                 
@@ -152,6 +158,10 @@ void Task::updateHook()
 
      while(_speed_samples.read(speed, false) == RTT::NewData) {
          aggr->push(speed_sid, speed.time, speed);
+     }
+
+     while(_thruster_samples.read(status, false) == RTT::NewData) {
+         aggr->push(thruster_sid, status.time, status);
      }
 
      while(current_depth < _minimum_depth.value() && _laser_samples.read(laser, false) == RTT::NewData) {
@@ -166,6 +176,9 @@ void Task::updateHook()
          aggr->push(gt_sid, gt.time, gt);
      }
 
+     while(_ground_truth.read(gt, false) == RTT::NewData) {
+         aggr->push(gt_sid, gt.time, gt);
+     }
 
      while( aggr->step() );
 
@@ -232,6 +245,8 @@ void Task::callbackGroundtruth(base::Time ts, const base::samples::RigidBodyStat
 void Task::callbackHough(base::Time ts, const base::samples::RigidBodyState& rbs)
 {
     last_perception = ts;
+
+    localizer->interspersal(rbs, *map);
 }
 
 
@@ -240,6 +255,11 @@ void Task::callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs
     localizer->update(rbs);
 }
 
+
+void Task::callbackThruster(base::Time ts, const base::actuators::Status& status)
+{
+    localizer->update(status);
+}
 
 
 void Task::stopHook()

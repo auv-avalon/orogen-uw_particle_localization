@@ -31,6 +31,7 @@ namespace uw_particle_localization {
         int laser_sid;
         int orientation_sid;
         int speed_sid;
+        int thruster_sid;
         int hough_sid;
         int gt_sid;
         double current_depth;
@@ -47,6 +48,7 @@ namespace uw_particle_localization {
         void callbackGroundtruth(base::Time ts, const base::samples::RigidBodyState& rbs);
         void callbackHough(base::Time ts, const base::samples::RigidBodyState& rbs);
         void callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs);
+        void callbackThruster(base::Time ts, const base::actuators::Status& rbs);
 
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;

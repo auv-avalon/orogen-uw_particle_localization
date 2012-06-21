@@ -9,6 +9,7 @@ base::samples::RigidBodyState* PoseParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
     : filter_config(config), 
+    motion_model(VehicleParameter()),
     StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.get_static_motion_covariance())),
     sonar_debug(0)
 {
@@ -19,6 +20,38 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
 
 ParticleLocalization::~ParticleLocalization()
 {}
+
+
+UwVehicleParameter ParticleLocalization::VehicleParameter() const
+{
+    UwVehicleParameter p;
+
+    p.Length = 1.4;
+    p.Radius = 0.15;
+    p.Mass = 65;
+
+    p.InertiaTensor << 0.5 * p.Mass * (p.Radius * p.Radius), 0.0, 0.0, 
+        0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
+        0.0, 0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length);
+
+    p.ThrusterCoefficient = Vector6d::Ones() * 0.005;
+    p.ThrusterVoltage = 25.4;
+
+    p.TCM << 0.0, 0.0, 1.0, 0.0, -0.92, 0.0, // HEAVE
+             0.0, 0.0, 1.0, 0.0, 0.205, 0.0, // HEAVE
+             1.0, 0.0, 0.0, 0.0, 0.0, -0.17, // SURGE
+             1.0, 0.0, 0.0, 0.0, 0.0, 0.17, // SURGE
+             0.0, 1.0, 0.0, 0.0, 0.0, -0.81, // SWAY
+             0.0, 1.0, 0.0, 0.0, 0.0, 0.04;  // SWAY
+
+    p.DampingX << -0.03, -1.49, 0.19, -0.64;
+    p.DampingY << -0.006, -0.84, -0.4, 1.36;
+    p.DampingZ << -1.49, 46.00, 28.9016, -647.24;
+
+    p.floating = true;
+
+    return p;
+}
 
 
 
@@ -78,12 +111,52 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
     X.p_position.z() = z_sample;
 }
 
+void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Status& Ut)
+{
+    Vector12d Xt;
+
+    if( !X.timestamp.isNull() ) {
+        double dt = (Ut.time - X.timestamp).toSeconds();
+
+        base::Vector3d v_noisy;
+        base::Vector3d u_velocity;
+
+        if(filter_config.pure_random_motion) {
+            u_velocity = base::Vector3d(0.0, 0.0, 0.0);
+        }  else {
+            Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
+               0.0, 0.0, 0.0, 
+               X.p_position.x(), X.p_position.y(), X.p_position.z(),
+               0.0, 0.0, 0.0;
+
+            Vector12d U = motion_model.transition(Xt, dt, Ut);
+
+            u_velocity = U.block<3, 1>(0, 0);
+        }
+
+        v_noisy = u_velocity + StaticSpeedNoise();
+
+        base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
+
+        X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+        X.p_velocity = v_noisy;
+    }
+
+    X.timestamp = Ut.time;
+    X.p_position.z() = z_sample;
+}
+
+
 
 const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidBodyState& U)
 {
     return U.time;
 }
 
+const base::Time& ParticleLocalization::getTimestamp(const base::actuators::Status& U)
+{
+    return U.time;
+}
 
 double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance)
 {
@@ -91,7 +164,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
 
     best_sonar_measurement.time = z.time;
 
-    sonar_debug->write(best_sonar_measurement);
+    //sonar_debug->write(best_sonar_measurement);
 
     best_sonar_measurement.confidence = -1.0;
 
@@ -140,6 +213,29 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
     return probability;
 }
+
+
+void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m)
+{
+    size_t number = reduceParticles(1.0 - filter_config.hough_interspersal_ratio);
+
+    PoseParticle best = particles.front();
+    PoseParticle last = particles.back();
+
+    MultiNormalRandom<3> Pose = Random::multi_gaussian(p.position, p.cov_position);
+
+    for(size_t i = particles.size(); i < filter_config.particle_number; i++) {
+        PoseParticle pp;
+        pp.p_position = Pose();
+        pp.p_velocity = best.p_velocity;
+        pp.main_confidence = best.main_confidence - 0.001;
+
+        particles.push_back(pp);
+    }
+
+    normalizeParticles();
+}
+
 
 void ParticleLocalization::debug(double distance, const base::Vector3d& location, double conf, PointStatus status)
 {

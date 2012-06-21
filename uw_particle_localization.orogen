@@ -49,6 +49,9 @@ task_context "Task" do
         doc("current motion sample retrieved from our motion model").
         needs_reliable_connection
 
+   input_port('thruster_samples', '/base/actuators/Status').
+        doc('status input for thrusters')
+
    input_port("pose_update", "/base/samples/RigidBodyState").
         doc("position samples from another localization").
         needs_reliable_connection
@@ -73,8 +76,8 @@ task_context "Task" do
    property("aliasing_buffer_size", "int", 5).
         doc("fir size for pose aliasing on output port")
 
-   property("particle_interspersal_ratio", "double", 0.0).
-        doc("ratio for generating new particles after each measurement")
+   property("hough_interspersal_ratio", "double", 0.0).
+        doc("ratio for generating new particles after each hough measurement")
 
    property("effective_sample_size_threshold", "double", 0.0).
 	doc("effective sample size threshold controls the resampling timing and uses values between 0.0 and 1.0 particles")
@@ -130,11 +133,13 @@ task_context "Task" do
    property("laser_period", "double", 0.1)
    property("orientation_period", "double", 0.01)
    property("speed_period", "double", 0.01)
+   property("thruster_period", "double", 0.01)
    property("hough_period", "double", 0.1)
    property("groundtruth_period", "double", 0.01)
 
    port_driven :laser_samples
    port_driven :orientation_samples
+   port_driven :thruster_samples
    port_driven :speed_samples
    port_driven :pose_update
    port_driven :ground_truth
