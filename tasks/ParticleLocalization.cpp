@@ -13,7 +13,6 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
     StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
     sonar_debug(0)
 {
-    initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0); 
     generation = 0;
 }
 

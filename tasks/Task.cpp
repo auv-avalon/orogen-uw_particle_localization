@@ -37,11 +37,15 @@ bool Task::startHook()
          return false;
 
      aggr = new aggregator::StreamAligner;
+     
+     std::cout << "Setup NodeMap" << std::endl;
      map = new NodeMap(_yaml_map.value());
      
      aggr->setTimeout(base::Time::fromSeconds(_max_sample_delay.value()));
 
      const double size_factor = 2.0;
+
+     std::cout << "Setup StreamAligner for all input ports" << std::endl;
 
      laser_sid = aggr->registerStream<base::samples::LaserScan>(
              boost::bind(&Task::callbackLaser, this, _1, _2),
@@ -94,6 +98,8 @@ bool Task::startHook()
 
      number_sonar_perceptions = 0;
 
+     std::cout << "Setup Static motion covariance" << std::endl;
+
      if(_static_motion_covariance.value().size() > 0) {
          config.static_motion_covariance = convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value());
      } else {
@@ -113,6 +119,7 @@ bool Task::startHook()
      }
 
      localizer = new ParticleLocalization(config);
+     localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
      
      localizer->setSonarDebug(this);
 
