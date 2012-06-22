@@ -36,6 +36,8 @@ bool Task::startHook()
      if (! TaskBase::startHook())
          return false;
 
+     std::cout << "Execute Start hook" << std::endl;
+
      aggr = new aggregator::StreamAligner;
      aggr->setTimeout(base::Time::fromSeconds(_max_sample_delay.value()));
 
@@ -71,6 +73,8 @@ bool Task::startHook()
              size_factor * _max_sample_delay.value() / _groundtruth_period.value(),
              base::Time::fromSeconds(_groundtruth_period.value()));
 
+     std::cout << "Registered start hook" << std::endl;
+
      FilterConfig config;
      config.particle_number = _particle_number.value();
      config.hough_interspersal_ratio = _hough_interspersal_ratio.value();
@@ -95,6 +99,8 @@ bool Task::startHook()
          config.use_static_motion_covariance(convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value()));
      }
 
+     std::cout << "Start particle initialization" << std::endl;
+
      localizer = new ParticleLocalization(config);
      map = new NodeMap(_yaml_map.value());
 
@@ -105,6 +111,8 @@ bool Task::startHook()
         localizer->initialize(_particle_number.value(), config.init_position, config.init_variance, 0.0, 0.0);
 
      localizer->setSonarDebug(this);
+
+     std::cout << " Return true" << std::endl;
 
      return true;
 }
@@ -156,11 +164,11 @@ void Task::updateHook()
          aggr->push(orientation_sid, orientation.time, orientation);                 
      }
 
-     while(_speed_samples.read(speed, false) == RTT::NewData) {
+     while(_speed_samples.connected() && _speed_samples.read(speed, false) == RTT::NewData) {
          aggr->push(speed_sid, speed.time, speed);
      }
 
-     while(_thruster_samples.read(status, false) == RTT::NewData) {
+     while(_thruster_samples.connected() && _thruster_samples.read(status, false) == RTT::NewData) {
          aggr->push(thruster_sid, status.time, status);
      }
 
@@ -168,15 +176,11 @@ void Task::updateHook()
          aggr->push(laser_sid, laser.time, laser);
      }
 
-     while(_pose_update.read(hough, false) == RTT::NewData) {
+     while(_pose_update.connected() && _pose_update.read(hough, false) == RTT::NewData) {
          aggr->push(hough_sid, hough.time, hough);
      }
 
-     while(_ground_truth.read(gt, false) == RTT::NewData) {
-         aggr->push(gt_sid, gt.time, gt);
-     }
-
-     while(_ground_truth.read(gt, false) == RTT::NewData) {
+     while(_ground_truth.connected() && _ground_truth.read(gt, false) == RTT::NewData) {
          aggr->push(gt_sid, gt.time, gt);
      }
 
