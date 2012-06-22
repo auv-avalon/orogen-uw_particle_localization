@@ -47,6 +47,7 @@ public:
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
 
   virtual base::Position position(const PoseParticle& X) const { return X.p_position; }
+  virtual base::Vector3d velocity(const PoseParticle& X) const { return X.p_velocity; }
   virtual base::samples::RigidBodyState orientation(const PoseParticle& X) const { return *(X.pose); }
 
   virtual double confidence(const PoseParticle& X) const { return X.main_confidence; }

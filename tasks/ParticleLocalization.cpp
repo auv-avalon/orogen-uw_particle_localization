@@ -34,7 +34,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
         0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
         0.0, 0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length);
 
-    p.ThrusterCoefficient = Vector6d::Ones() * 0.005;
+    p.ThrusterCoefficient << 0.006, 0.006, -0.006, -0.006, 0.006, -0.006;
     p.ThrusterVoltage = 25.4;
 
     p.TCM << 0.0, 0.0, 1.0, 0.0, -0.92, 0.0, // HEAVE
@@ -44,10 +44,9 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
              0.0, 1.0, 0.0, 0.0, 0.0, -0.81, // SWAY
              0.0, 1.0, 0.0, 0.0, 0.0, 0.04;  // SWAY
 
-    p.DampingX << -0.03, -1.49, 0.19, -0.64;
-    p.DampingY << -0.006, -0.84, -0.4, 1.36;
-    p.DampingZ << -1.49, 46.00, 28.9016, -647.24;
-
+    p.DampingX << 1.0, 3.183; 
+    p.DampingY << 12.58, 13.75;
+    p.DampingZ << 0.0, -23.8;
     p.floating = true;
 
     return p;
@@ -118,6 +117,10 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
     if( !X.timestamp.isNull() ) {
         double dt = (Ut.time - X.timestamp).toSeconds();
 
+        if(dt < 0.1) {
+            return;
+        }
+
         base::Vector3d v_noisy;
         base::Vector3d u_velocity;
 
@@ -129,21 +132,30 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
                X.p_position.x(), X.p_position.y(), X.p_position.z(),
                0.0, 0.0, 0.0;
 
+            std::cout << "v_0: " << X.p_velocity.transpose() << std::endl;
             Vector12d U = motion_model.transition(Xt, dt, Ut);
 
             u_velocity = U.block<3, 1>(0, 0);
+
+            std::cout << "v_t: " << u_velocity.transpose() << std::endl;
         }
 
         v_noisy = u_velocity + StaticSpeedNoise();
+
+        v_noisy(0) = (fabs(v_noisy(0) > 0.4) ? (v_noisy(0) < 0.0 ? -0.4 : 0.4) : v_noisy(0));
+        v_noisy(1) = (fabs(v_noisy(1) > 0.4) ? (v_noisy(1) < 0.0 ? -0.4 : 0.4) : v_noisy(1));
+        v_noisy(2) = (fabs(v_noisy(2) > 0.4) ? (v_noisy(2) < 0.0 ? -0.4 : 0.4) : v_noisy(2));
 
         base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 
         X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
         X.p_velocity = v_noisy;
+        X.p_position.z() = z_sample;
+        X.timestamp = Ut.time;
+    } else {
+        X.timestamp = Ut.time;
     }
-
-    X.timestamp = Ut.time;
-    X.p_position.z() = z_sample;
+    
 }
 
 
