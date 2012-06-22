@@ -10,11 +10,10 @@ base::samples::RigidBodyState* PoseParticle::pose = 0;
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
     : filter_config(config), 
     motion_model(VehicleParameter()),
-    StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.get_static_motion_covariance())),
+    StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
     sonar_debug(0)
 {
-    initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
-    
+    initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0); 
     generation = 0;
 }
 
@@ -34,7 +33,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
         0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
         0.0, 0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length);
 
-    p.ThrusterCoefficient << 0.006, 0.006, -0.006, -0.006, 0.006, -0.006;
+    p.ThrusterCoefficient << 0.005, 0.005, -0.005, -0.005, 0.005, -0.005;
     p.ThrusterVoltage = 25.4;
 
     p.TCM << 0.0, 0.0, 1.0, 0.0, -0.92, 0.0, // HEAVE
@@ -44,8 +43,8 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
              0.0, 1.0, 0.0, 0.0, 0.0, -0.81, // SWAY
              0.0, 1.0, 0.0, 0.0, 0.0, 0.04;  // SWAY
 
-    p.DampingX << 1.0, 3.183; 
-    p.DampingY << 12.58, 13.75;
+    p.DampingX << 0.761, 6.836;
+    p.DampingY << 1000.0, 2000.0; // 1.599, 58.28;
     p.DampingZ << 0.0, -23.8;
     p.floating = true;
 
@@ -91,11 +90,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
     else
         u_velocity = U.velocity;
 
-    if(filter_config.has_static_motion_covariance()) {
-        v_noisy = u_velocity + StaticSpeedNoise();
-    } else {
-        v_noisy = u_velocity + SpeedNoise();
-    }
+    v_noisy = u_velocity + StaticSpeedNoise();
     
     base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 
@@ -229,7 +224,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
 void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m)
 {
-    size_t number = reduceParticles(1.0 - filter_config.hough_interspersal_ratio);
+    reduceParticles(1.0 - filter_config.hough_interspersal_ratio);
 
     PoseParticle best = particles.front();
     PoseParticle last = particles.back();

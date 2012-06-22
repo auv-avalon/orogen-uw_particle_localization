@@ -36,9 +36,9 @@ bool Task::startHook()
      if (! TaskBase::startHook())
          return false;
 
-     std::cout << "Execute Start hook" << std::endl;
-
      aggr = new aggregator::StreamAligner;
+     map = new NodeMap(_yaml_map.value());
+     
      aggr->setTimeout(base::Time::fromSeconds(_max_sample_delay.value()));
 
      const double size_factor = 2.0;
@@ -73,8 +73,6 @@ bool Task::startHook()
              size_factor * _max_sample_delay.value() / _groundtruth_period.value(),
              base::Time::fromSeconds(_groundtruth_period.value()));
 
-     std::cout << "Registered start hook" << std::endl;
-
      FilterConfig config;
      config.particle_number = _particle_number.value();
      config.hough_interspersal_ratio = _hough_interspersal_ratio.value();
@@ -84,11 +82,12 @@ bool Task::startHook()
      config.yaw_offset = _yaw_offset.value();
      config.pure_random_motion = _pure_random_motion.value();
 
-     weights = MovingAverage(_aliasing_buffer_size.value());
-
      if(!_init_position.value().empty() && !_init_variance.value().empty()) {
          config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
          config.init_variance = convertProperty<Eigen::Vector3d>(_init_variance.value());
+     } else {
+         config.init_position = base::Vector3d(0.0, 0.0, 0.0);
+         config.init_variance = map->getLimitations();
      }
 
      current_depth = 0;
@@ -96,58 +95,29 @@ bool Task::startHook()
      number_sonar_perceptions = 0;
 
      if(_static_motion_covariance.value().size() > 0) {
-         config.use_static_motion_covariance(convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value()));
+         config.static_motion_covariance = convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value());
+     } else {
+         std::cout << "No static motion covariance assigned. Use standard matrix" << std::endl;
+         Eigen::Matrix3d id = Eigen::Matrix3d::Identity();
+         id(2,2) = 0.0;
+         config.static_motion_covariance = id;
+         
+         std::vector<double> value;
+         for(unsigned i = 0; i < config.static_motion_covariance.rows(); i++) {
+             for(unsigned j = 0; j < config.static_motion_covariance.cols(); j++) {
+                 value.push_back(config.static_motion_covariance(i,j));
+             }
+         }
+
+         _static_motion_covariance.set(value);
      }
 
-     std::cout << "Start particle initialization" << std::endl;
-
      localizer = new ParticleLocalization(config);
-     map = new NodeMap(_yaml_map.value());
-
-     if(_init_position.value().empty() || _init_variance.value().empty()) 
-        localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
-                0.0, 0.0); 
-     else
-        localizer->initialize(_particle_number.value(), config.init_position, config.init_variance, 0.0, 0.0);
-
+     
      localizer->setSonarDebug(this);
-
-     std::cout << " Return true" << std::endl;
 
      return true;
 }
-
-
-void Task::step(const base::samples::RigidBodyState& sample)
-{
-    if(!_aliasing_buffer_size.value() > 0)
-        _pose_samples.write(sample);
-
-    buffer.push_front(sample);
-
-    if(buffer.size() == static_cast<size_t>(_aliasing_buffer_size.value())) {
-        base::samples::RigidBodyState& back = buffer.back();
-
-        unsigned i = 0;
-        std::list<base::samples::RigidBodyState>::const_iterator it = buffer.begin();
-
-        base::Vector3d position = base::Vector3d::Zero();
-
-        while(it != buffer.end()) {
-            position += weights[i] * it->position;
-            ++i;
-            ++it;
-        }
-
-        back.position = position;
-
-        if(state() == RUNNING)
-            _pose_samples.write(back);
-
-        buffer.pop_back();
-    }
-}
-
 
 void Task::updateHook()
 {
@@ -195,7 +165,7 @@ void Task::updateHook()
      _particles.write(localizer->getParticleSet());
 
      if(!pose.time.isNull()) {
-         step(pose);
+        _pose_samples.write(pose);
      }
 }
 

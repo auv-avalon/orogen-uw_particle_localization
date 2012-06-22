@@ -32,8 +32,7 @@ struct FilterConfig {
 	effective_sample_size_threshold(particle_number / 2.0),
 	minimum_perceptions(2),
         sonar_maximum_distance(20.0),
-        sonar_covariance(1.0),
-        use_motion_covariance(false)
+        sonar_covariance(1.0)
     {}
 
     // General properties
@@ -52,22 +51,7 @@ struct FilterConfig {
     double sonar_minimum_distance;
     double sonar_covariance;
 
-    // optional properties
-    void use_static_motion_covariance(const Eigen::Matrix3d& covariance) {
-        static_motion_covariance = covariance;
-        use_motion_covariance = true;
-    }
-
-    void reset_static_motion_covariance() {
-        use_motion_covariance = false;
-    }
-
-    bool has_static_motion_covariance() const { return use_motion_covariance; }
-    const Eigen::Matrix3d& get_static_motion_covariance() const { return static_motion_covariance; }
-
- private: 
     Eigen::Matrix3d static_motion_covariance;
-    bool use_motion_covariance;
 };
 
 
