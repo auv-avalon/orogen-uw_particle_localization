@@ -67,14 +67,11 @@ task_context "Task" do
    property("yaw_offset", "double", 0.0).
         doc("yaw offset if reference heading is not constistent with current mission")
 
-   property("particle_number", "int", 50).
+   property("particle_number", "int", 40).
         doc("number of used particles")
 
-   property("minimum_depth", "double", -0.4).
+   property("minimum_depth", "double", 0.0).
         doc("minimum depth for collecting perception samples")
-
-   property("aliasing_buffer_size", "int", 5).
-        doc("fir size for pose aliasing on output port")
 
    property("hough_interspersal_ratio", "double", 0.0).
         doc("ratio for generating new particles after each hough measurement")
