@@ -8,12 +8,12 @@ namespace uw_localization {
 base::samples::RigidBodyState* PoseParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
-    : filter_config(config), 
+    : ParticleFilter<PoseParticle, NodeMap>(), filter_config(config), 
     motion_model(VehicleParameter()),
     StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
     sonar_debug(0)
 {
-    generation = 0;
+    first_perception_received = false;
 }
 
 ParticleLocalization::~ParticleLocalization()
@@ -32,7 +32,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 //        0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
 //        0.0, 0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length);
 
-    p.ThrusterCoefficient << 0.005, 0.005, -0.005, -0.005, 0.005, -0.005;
+    p.ThrusterCoefficient << 0.000, 0.000, -0.005, -0.005, 0.005, -0.005;
     p.ThrusterVoltage = 25.4;
 
     p.TCM << 0.0, 0.0, 1.0, // 0.0, -0.92, 0.0, // HEAVE
@@ -43,7 +43,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
              0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
 
     p.DampingX << 0.761, 6.836;
-    p.DampingY << 1000.0, 2000.0; // 1.599, 58.28;
+    p.DampingY << 1.599, 58.28;
     p.DampingZ << 0.0, -23.8;
     p.floating = true;
 
@@ -79,8 +79,6 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
 
 void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U)
 {
-    MultiNormalRandom<3> SpeedNoise = Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), U.cov_velocity);
-
     base::Vector3d v_noisy;
     base::Vector3d u_velocity;
 
@@ -111,10 +109,6 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
     if( !X.timestamp.isNull() ) {
         double dt = (Ut.time - X.timestamp).toSeconds();
 
-        if(dt < 0.1) {
-            return;
-        }
-
         base::Vector3d v_noisy;
         base::Vector3d u_velocity;
 
@@ -124,19 +118,13 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
             Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
                X.p_position.x(), X.p_position.y(), X.p_position.z();
 
-            std::cout << "v_0: " << X.p_velocity.transpose() << std::endl;
             Vector6d U = motion_model.transition(Xt, dt, Ut);
 
             u_velocity = U.block<3, 1>(0, 0);
 
-            std::cout << "v_t: " << u_velocity.transpose() << std::endl;
         }
 
         v_noisy = u_velocity + StaticSpeedNoise();
-
-        v_noisy(0) = (fabs(v_noisy(0) > 0.4) ? (v_noisy(0) < 0.0 ? -0.4 : 0.4) : v_noisy(0));
-        v_noisy(1) = (fabs(v_noisy(1) > 0.4) ? (v_noisy(1) < 0.0 ? -0.4 : 0.4) : v_noisy(1));
-        v_noisy(2) = (fabs(v_noisy(2) > 0.4) ? (v_noisy(2) < 0.0 ? -0.4 : 0.4) : v_noisy(2));
 
         base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 
@@ -214,6 +202,8 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     double probability = gaussian1d(0.0, filter_config.sonar_covariance, distance.get<1>());
 
     debug(z_distance, distance.get<2>(), AbsZ, X.p_position, probability);
+
+    first_perception_received = true;
 
     return probability;
 }
