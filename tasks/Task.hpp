@@ -24,7 +24,6 @@ namespace uw_particle_localization {
     {
 	friend class TaskBase;
     protected:
-        aggregator::StreamAligner* aggr;
         base::Time last_perception;
         base::Time start_time;
 
@@ -43,12 +42,11 @@ namespace uw_particle_localization {
 
         void step(const base::samples::RigidBodyState& sample);
 
-        void callbackLaser(base::Time ts, const base::samples::LaserScan& scan);
-        void callbackOrientation(base::Time ts, const base::samples::RigidBodyState& rbs);
-        void callbackGroundtruth(base::Time ts, const base::samples::RigidBodyState& rbs);
-        void callbackHough(base::Time ts, const base::samples::RigidBodyState& rbs);
-        void callbackSpeed(base::Time ts, const base::samples::RigidBodyState& rbs);
-        void callbackThruster(base::Time ts, const base::actuators::Status& rbs);
+        virtual void laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan);
+        virtual void orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+        virtual void speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+        virtual void thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& rbs);
+        virtual void pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
 
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;
@@ -57,9 +55,9 @@ namespace uw_particle_localization {
 
 
     public:
-        Task(std::string const& name = "uw_particle_localization::Task", TaskCore::TaskState initial_state = Stopped);
+        Task(std::string const& name = "uw_particle_localization::Task");
 
-        Task(std::string const& name, RTT::ExecutionEngine* engine, TaskCore::TaskState initial_state = Stopped);
+        Task(std::string const& name, RTT::ExecutionEngine* engine);
 
         /** Default deconstructor of Task
          */

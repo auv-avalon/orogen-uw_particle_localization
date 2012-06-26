@@ -2,10 +2,8 @@ name "uw_particle_localization"
 
 using_library "uw_localization"
 using_library "machine_learning"
-using_library "aggregator"
 
 import_types_from "base"
-import_types_from "aggregator"
 import_types_from "tasks/Types.hpp"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
@@ -28,10 +26,6 @@ task_context "Task" do
 
    output_port("debug_sonar_beam", "/uw_localization/PointInfo").
         doc("Debug information for best sonar perceptions")
-
-   output_port("streamaligner_status", "/aggregator/StreamAlignerStatus").
-        doc("provides debug information on the state of stream aligner")
-
 
    # ----------------------------------------------------------------------
    # input samples 
@@ -121,19 +115,17 @@ task_context "Task" do
    runtime_states :WAITING
  
    # ----------------------------------------------------------------------
-   # aggregator properties 
+   # stream aligner
    # ----------------------------------------------------------------------
-
-   property("max_sample_delay", "double", 2.0).
-        doc("Time in s the particle filter will wait for expected samples")
-
-   property("laser_period", "double", 0.1)
-   property("orientation_period", "double", 0.01)
-   property("speed_period", "double", 0.01)
-   property("thruster_period", "double", 0.01)
-   property("hough_period", "double", 0.1)
-   property("groundtruth_period", "double", 0.01)
-
+   stream_aligner do
+       max_latency 2.0
+       align_port "laser_samples", 0.1
+       align_port "orientation_samples", 0.01
+       align_port "speed_samples", 0.01
+       align_port "thruster_samples", 0.01
+       align_port "pose_update", 0.1
+   end
+ 
    port_driven :laser_samples
    port_driven :orientation_samples
    port_driven :thruster_samples
