@@ -28,19 +28,19 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
     p.Radius = 0.15;
     p.Mass = 65;
 
-    p.InertiaTensor << 0.5 * p.Mass * (p.Radius * p.Radius), 0.0, 0.0, 
-        0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
-        0.0, 0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length);
+//    p.InertiaTensor << 0.5 * p.Mass * (p.Radius * p.Radius), 0.0, 0.0, 
+//        0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
+//        0.0, 0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length);
 
     p.ThrusterCoefficient << 0.005, 0.005, -0.005, -0.005, 0.005, -0.005;
     p.ThrusterVoltage = 25.4;
 
-    p.TCM << 0.0, 0.0, 1.0, 0.0, -0.92, 0.0, // HEAVE
-             0.0, 0.0, 1.0, 0.0, 0.205, 0.0, // HEAVE
-             1.0, 0.0, 0.0, 0.0, 0.0, -0.17, // SURGE
-             1.0, 0.0, 0.0, 0.0, 0.0, 0.17, // SURGE
-             0.0, 1.0, 0.0, 0.0, 0.0, -0.81, // SWAY
-             0.0, 1.0, 0.0, 0.0, 0.0, 0.04;  // SWAY
+    p.TCM << 0.0, 0.0, 1.0, // 0.0, -0.92, 0.0, // HEAVE
+             0.0, 0.0, 1.0, //0.0, 0.205, 0.0, // HEAVE
+             1.0, 0.0, 0.0, //0.0, 0.0, -0.17, // SURGE
+             1.0, 0.0, 0.0, //0.0, 0.0, 0.17, // SURGE
+             0.0, 1.0, 0.0, //0.0, 0.0, -0.81, // SWAY
+             0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
 
     p.DampingX << 0.761, 6.836;
     p.DampingY << 1000.0, 2000.0; // 1.599, 58.28;
@@ -106,7 +106,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
 
 void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Status& Ut)
 {
-    Vector12d Xt;
+    Vector6d Xt;
 
     if( !X.timestamp.isNull() ) {
         double dt = (Ut.time - X.timestamp).toSeconds();
@@ -122,12 +122,10 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
             u_velocity = base::Vector3d(0.0, 0.0, 0.0);
         }  else {
             Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
-               0.0, 0.0, 0.0, 
-               X.p_position.x(), X.p_position.y(), X.p_position.z(),
-               0.0, 0.0, 0.0;
+               X.p_position.x(), X.p_position.y(), X.p_position.z();
 
             std::cout << "v_0: " << X.p_velocity.transpose() << std::endl;
-            Vector12d U = motion_model.transition(Xt, dt, Ut);
+            Vector6d U = motion_model.transition(Xt, dt, Ut);
 
             u_velocity = U.block<3, 1>(0, 0);
 
