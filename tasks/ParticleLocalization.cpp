@@ -156,7 +156,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
 
     best_sonar_measurement.time = z.time;
 
-    //sonar_debug->write(best_sonar_measurement);
+    sonar_debug->write(best_sonar_measurement);
 
     best_sonar_measurement.confidence = -1.0;
 
