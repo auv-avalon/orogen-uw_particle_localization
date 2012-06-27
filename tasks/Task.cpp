@@ -135,11 +135,13 @@ void Task::updateHook()
      _environment.write(map->getEnvironment());
      
      base::samples::RigidBodyState pose = localizer->estimate();
+     base::samples::RigidBodyState motion = localizer->dead_reckoning();
 
      _particles.write(localizer->getParticleSet());
 
      if(!pose.time.isNull()) {
         _pose_samples.write(pose);
+        _dead_reckoning_samples.write(motion);
      }
 }
 
@@ -201,6 +203,7 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& status)
 {
     localizer->update(status);
+    localizer->update_dead_reckoning(status);
 }
 
 

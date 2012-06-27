@@ -21,6 +21,9 @@ task_context "Task" do
    output_port("pose_samples", "/base/samples/RigidBodyState").
         doc("pose estimation merged with other state informations")
 
+   output_port("dead_reckoning_samples", "/base/samples/RigidBodyState").
+        doc("poses measured only by motion model")
+
    output_port("particles", "/uw_localization/ParticleSet").
         doc("current particle set used in this filter")
 

@@ -55,6 +55,7 @@ public:
 
   virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u);
   virtual void dynamic(PoseParticle& x, const base::actuators::Status& u);
+
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::actuators::Status& u);
 
@@ -67,7 +68,9 @@ public:
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
 
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
-  void setCurrentSpeed(const base::samples::RigidBodyState& speed);
+
+  void update_dead_reckoning(const base::actuators::Status& u);
+  const base::samples::RigidBodyState& dead_reckoning() const { return motion_pose; }
 
   void teleportParticles(const base::samples::RigidBodyState& position);
 
@@ -79,8 +82,9 @@ private:
   FilterConfig filter_config;
   UwMotionModel motion_model;
   base::samples::RigidBodyState vehicle_pose;
+  base::samples::RigidBodyState motion_pose;
+
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
-  double z_sample;
 
   uw_localization::PointInfo best_sonar_measurement;
 

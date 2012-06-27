@@ -99,7 +99,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
 
     X.p_velocity = v_noisy;
     X.timestamp = U.time;
-    X.p_position.z() = z_sample;
+    X.p_position.z() = vehicle_pose.position.z();
 }
 
 void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Status& Ut)
@@ -130,13 +130,36 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 
         X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
         X.p_velocity = v_noisy;
-        X.p_position.z() = z_sample;
-        X.timestamp = Ut.time;
-    } else {
-        X.timestamp = Ut.time;
-    }
+        X.p_position.z() = vehicle_pose.position.z();
+    } 
     
+    X.timestamp = Ut.time;
 }
+
+void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& Ut)
+{
+    if( !motion_pose.time.isNull() ) {
+        Vector6d Xt;
+
+        double dt = (Ut.time - motion_pose.time).toSeconds();
+        Xt.block<3,1>(0,0) = motion_pose.velocity;
+        Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
+
+        Vector6d U = motion_model.transition(Xt, dt, Ut);
+        base::Vector3d u_t1 = U.block<3,1>(0,0);
+
+        base::Vector3d v_avg = (motion_pose.velocity + u_t1) / 2.0;
+
+        motion_pose.position = motion_pose.position + vehicle_pose.orientation * (v_avg * dt);
+        motion_pose.velocity = u_t1;
+    } 
+
+    motion_pose.time = Ut.time;
+
+    motion_pose.orientation = vehicle_pose.orientation;
+    motion_pose.position.z() = vehicle_pose.position.z();
+}
+
 
 
 
@@ -262,14 +285,6 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& desire, 
 }
 
 
-void ParticleLocalization::setCurrentSpeed(const base::samples::RigidBodyState& speed)
-{
-    vehicle_pose.time = speed.time;
-    vehicle_pose.velocity = speed.velocity;
-    vehicle_pose.cov_velocity = speed.cov_velocity;
-}
-
-
 void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState& pose)
 {
     std::list<PoseParticle>::iterator it;
@@ -283,11 +298,10 @@ void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState
 void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {
     vehicle_pose.time = timestamp;
-    vehicle_pose.orientation = orientation.orientation * Eigen::AngleAxis<double>(filter_config.yaw_offset, Eigen::Vector3d::UnitZ());
+    vehicle_pose.orientation = orientation.orientation;
     vehicle_pose.cov_orientation = orientation.cov_orientation;
+    vehicle_pose.position = orientation.position;
     vehicle_pose.angular_velocity = orientation.angular_velocity;
-    vehicle_pose.cov_angular_velocity = orientation.cov_angular_velocity;
-    z_sample = orientation.position.z();
 }
 
 
