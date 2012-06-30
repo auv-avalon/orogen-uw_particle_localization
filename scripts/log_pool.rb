@@ -42,7 +42,7 @@ hg.setColor(Eigen::Vector3.new(0.0, 1.0, 0.0))
 
 env.map = mapfile
 
-Orocos.run "uwv_dynamic_model", "sonar_feature_estimator", "sonar_wall_hough_deployment", :wait => 999 do
+Orocos.run "uw_particle_localization_test", "sonar_feature_estimator", "sonar_wall_hough_deployment", :wait => 999 do
     Orocos.log_all_ports
 
     sonar = log.task 'sonar'
@@ -51,7 +51,6 @@ Orocos.run "uwv_dynamic_model", "sonar_feature_estimator", "sonar_wall_hough_dep
     # hough = log.task 'sonar_wall_hough'
     pos = TaskContext.get 'uw_particle_localization'
     feature = TaskContext.get 'sonar_feature_estimator'
-    mm = TaskContext.get 'uwv_dynamic_model'
 
     hough = Orocos::TaskContext.get 'sonar_wall_hough'
     hough.sensorAngularResolution = 4.950773558368496
@@ -78,38 +77,28 @@ Orocos.run "uwv_dynamic_model", "sonar_feature_estimator", "sonar_wall_hough_dep
 
     feature.derivative_history_length = 1
 
-    params = mm.uwv_param
-    #AvalonModelParameters::initialize_vehicle_parameters(params)
-    mm.uwv_param = params
-
-    pos.init_position = [-4.0, 0.0, 0.0]
-    pos.init_variance = [4.0, 4.0, 0.0]
+    pos.init_position = [-7.0, -0.2, 0.0]
+    pos.init_variance = [1.0, 1.0, 0.0]
 
 #    pos.static_motion_covariance = [4.0,0.0,0.0, 0.0,4.0,0.0, 0.0,0.0,0.0]
 #    pos.pure_random_motion = true
-    pos.static_motion_covariance = [0.01,0.0,0.0, 0.0,0.01,0.0, 0.0,0.0,0.0]
+    pos.static_motion_covariance = [0.00001,0.0,0.0, 0.0,0.00001,0.0, 0.0,0.0,0.0]
     pos.pure_random_motion = false
 
 
-    pos.particle_number = 10
+    pos.particle_number = 50
     pos.minimum_depth = 0.0
-    pos.minimum_perceptions = 2
+    pos.minimum_perceptions = 3
     pos.effective_sample_size_threshold = 0.9
     pos.hough_interspersal_ratio = 0.1
     pos.sonar_maximum_distance = 12.0
-    pos.sonar_covariance = 2.0
+    pos.sonar_covariance = 4.0
 
     pos.yaml_map = mapfile
     Vizkit.display pos
-    Vizkit.display mm
     Vizkit.display feature
     Vizkit.display hough
     
-#    Vizkit.connect_port_to 'uw_particle_localization', 'environment', :pull => false, :update_frequency => 33 do |sample, _|
-#        env.updateMap(sample)
-#        sample
-#    end
-
     Vizkit.connect_port_to 'uw_particle_localization', 'particles', :pull => false, :update_frequency => 33 do |sample, _|
         pviz.updateParticles(sample)
         sample
@@ -120,7 +109,7 @@ Orocos.run "uwv_dynamic_model", "sonar_feature_estimator", "sonar_wall_hough_dep
         sample
     end
 
-    Vizkit.connect_port_to 'uw_particle_localization', 'pose_samples', :pull => false, :update_frequency => 33 do |sample, _|
+    Vizkit.connect_port_to 'uw_particle_localization', 'dead_reckoning_samples', :pull => false, :update_frequency => 33 do |sample, _|
         ep.updateRigidBodyState(sample)
         sample
     end
@@ -130,12 +119,10 @@ Orocos.run "uwv_dynamic_model", "sonar_feature_estimator", "sonar_wall_hough_dep
         sample
     end
  
-    mm.configure
     pos.configure
     feature.configure
     pos.start
     feature.start
-    mm.start
     hough.start
 
     Vizkit.control log 

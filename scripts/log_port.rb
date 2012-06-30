@@ -37,8 +37,6 @@ sviz.max_z = mapyaml["reference"][2]
 env.resolution = 2.0
 
 Orocos.run "uwv_dynamic_model", "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
-    Orocos.log_all_ports
-
     sonar = log.task 'sonar'
     state = log.task 'orientation_estimator'
     motion = log.task 'motion_control'
