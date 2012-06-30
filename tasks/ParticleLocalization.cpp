@@ -14,6 +14,7 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
     sonar_debug(0)
 {
     first_perception_received = false;
+    PoseParticle::pose = &vehicle_pose;
 }
 
 ParticleLocalization::~ParticleLocalization()
@@ -26,7 +27,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 
     p.Length = 1.4;
     p.Radius = 0.15;
-    p.Mass = 65;
+    p.Mass = 63;
 
 //    p.InertiaTensor << 0.5 * p.Mass * (p.Radius * p.Radius), 0.0, 0.0, 
 //        0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
@@ -42,8 +43,8 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
              0.0, 1.0, 0.0, //0.0, 0.0, -0.81, // SWAY
              0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
 
-    p.DampingX << 0.761, 6.836;
-    p.DampingY << 1.599, 58.28;
+    p.DampingX << 8.0, 0.05;//6.836, 0.761;
+    p.DampingY << 58.28, 1.599;
     p.DampingZ << 0.0, -23.8;
     p.floating = true;
 
@@ -71,7 +72,7 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
 
     generation++;
 
-    PoseParticle::pose = &vehicle_pose;
+    motion_pose.position = pos;
 }
 
 
