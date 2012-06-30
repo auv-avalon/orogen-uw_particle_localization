@@ -40,45 +40,6 @@ bool Task::startHook()
      std::cout << "Setup NodeMap" << std::endl;
      map = new NodeMap(_yaml_map.value());
      
-     /*
-     aggr = new aggregator::StreamAligner;
-     aggr->setTimeout(base::Time::fromSeconds(_max_sample_delay.value()));
-
-     const double size_factor = 2.0;
-
-     std::cout << "Setup StreamAligner for all input ports" << std::endl;
-
-     laser_sid = aggr->registerStream<base::samples::LaserScan>(
-             boost::bind(&Task::callbackLaser, this, _1, _2),
-             size_factor * _max_sample_delay.value() / _laser_period.value(),
-             base::Time::fromSeconds(_laser_period.value()));
-
-     orientation_sid = aggr->registerStream<base::samples::RigidBodyState>(
-             boost::bind(&Task::callbackOrientation, this, _1, _2),
-             size_factor * _max_sample_delay.value() / _orientation_period.value(),
-             base::Time::fromSeconds(_orientation_period.value()));
-
-     speed_sid = aggr->registerStream<base::samples::RigidBodyState>(
-             boost::bind(&Task::callbackSpeed, this, _1, _2),
-             size_factor * _max_sample_delay.value() / _speed_period.value(),
-             base::Time::fromSeconds(_speed_period.value()));
-
-     thruster_sid = aggr->registerStream<base::actuators::Status>(
-             boost::bind(&Task::callbackThruster, this, _1, _2),
-             size_factor * _max_sample_delay.value() / _thruster_period.value(),
-             base::Time::fromSeconds(_thruster_period.value()));
-
-     hough_sid = aggr->registerStream<base::samples::RigidBodyState>(
-             boost::bind(&Task::callbackHough, this, _1, _2),
-             size_factor * _max_sample_delay.value() / _hough_period.value(),
-             base::Time::fromSeconds(_hough_period.value()));
-
-     gt_sid = aggr->registerStream<base::samples::RigidBodyState>(
-             boost::bind(&Task::callbackGroundtruth, this, _1, _2),
-             size_factor * _max_sample_delay.value() / _groundtruth_period.value(),
-             base::Time::fromSeconds(_groundtruth_period.value()));
-     */
-
      FilterConfig config;
      config.particle_number = _particle_number.value();
      config.hough_interspersal_ratio = _hough_interspersal_ratio.value();
@@ -139,10 +100,11 @@ void Task::updateHook()
 
      _particles.write(localizer->getParticleSet());
 
-     if(!pose.time.isNull()) {
+     if(!pose.time.isNull()) 
         _pose_samples.write(pose);
-        _dead_reckoning_samples.write(motion);
-     }
+
+     if(!motion.time.isNull())
+       _dead_reckoning_samples.write(motion);
 }
 
 
