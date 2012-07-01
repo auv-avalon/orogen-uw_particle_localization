@@ -30,6 +30,9 @@ task_context "Task" do
    output_port("debug_sonar_beam", "/uw_localization/PointInfo").
         doc("Debug information for best sonar perceptions")
 
+   output_port("stats", "/uw_localization/Stats").
+        doc("various values representing current localization state")
+
    # ----------------------------------------------------------------------
    # input samples 
    # ----------------------------------------------------------------------
@@ -51,10 +54,6 @@ task_context "Task" do
 
    input_port("pose_update", "/base/samples/RigidBodyState").
         doc("position samples from another localization").
-        needs_reliable_connection
-
-   input_port("ground_truth", "/base/samples/RigidBodyState").
-        doc("current ground truth for particle teleport").
         needs_reliable_connection
 
    # ----------------------------------------------------------------------
@@ -109,14 +108,12 @@ task_context "Task" do
    property("sonar_importance", "double", 1.0).
 	doc("sets importance ratio for sonar perception updates")
 
-   property("waiting_time", "double", 7.0).
+   property("perception_history_number", "int", 8).
+        doc("set history size for determing uncertainty_degree of best measurement samples")
+
+   property("waiting_time", "double", 0.0).
         doc("sets number of seconds a pose sample should be written after reinitialization")
 
-   # ----------------------------------------------------------------------
-   # runtime states
-   # ----------------------------------------------------------------------
-   runtime_states :WAITING
- 
    # ----------------------------------------------------------------------
    # stream aligner
    # ----------------------------------------------------------------------
@@ -134,7 +131,6 @@ task_context "Task" do
    port_driven :thruster_samples
    port_driven :speed_samples
    port_driven :pose_update
-   port_driven :ground_truth
 end
 
 

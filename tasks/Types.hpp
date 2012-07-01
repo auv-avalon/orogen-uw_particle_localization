@@ -12,28 +12,22 @@
 #include <base/time.h>
 
 namespace uw_localization {
-namespace debug {
 
-struct SonarPerception {
-   /** position of the current particle */
-   base::Vector3d particle;
+struct Stats {
+    /** current time */
+    base::Time timestamp;
 
-   /** chosen most proper obstacle point from sonar */
-   base::Vector3d obstacle;
+    /** computed degree of uncertainty over best measurement samples */
+    double uncertainty_degree;
 
-   /** chosen expected obstacle point from map */
-   base::Vector3d expected_obstacle;
+    /** effective_sample size for resampling timing */
+    double effective_sample_size;
 
-   /** Timestamp */
-   base::Time timestamp;
-
-   /** laser distance */
-   double laser_distance;
-
-   /** confidence for this perception */
-   double perception_confidence;
+    /** particle generation */
+    unsigned int particle_generation;
 };
 
-}}
+
+}
 
 #endif

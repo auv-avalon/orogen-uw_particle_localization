@@ -42,6 +42,7 @@ bool Task::startHook()
      
      FilterConfig config;
      config.particle_number = _particle_number.value();
+     config.perception_history_number = _perception_history_number.value();
      config.hough_interspersal_ratio = _hough_interspersal_ratio.value();
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_minimum_distance = _sonar_minimum_distance.value();
@@ -112,6 +113,10 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 {
     double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
 
+    if(localizer->hasStats()) {
+        _stats.write(localizer->getStats());
+    }
+
     number_sonar_perceptions++;
 
     if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
@@ -133,11 +138,6 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
     if(start_time.isNull()) {
         start_time = ts;
     }
-
-    if((ts - start_time).toSeconds() > _waiting_time.value())
-        state(RUNNING);
-    else 
-        state(WAITING);
 
     if(!last_perception.isNull() && (ts - last_perception).toSeconds() > _reset_timeout.value()) {
         localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 

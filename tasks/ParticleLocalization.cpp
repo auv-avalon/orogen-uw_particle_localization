@@ -11,6 +11,7 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
     : ParticleFilter<PoseParticle, NodeMap>(), filter_config(config), 
     motion_model(VehicleParameter()),
     StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
+    perception_history_sum(0.0),
     sonar_debug(0)
 {
     first_perception_received = false;
@@ -60,6 +61,8 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     UniformRealRandom pos_z = Random::uniform_real(pos.z() - var.z() * 0.5, pos.z() + var.z() * 0.5 );
 
     particles.clear();
+    perception_history.clear();
+    perception_history_sum = 0.0;
 
     for(int i = 0; i < numbers; i++) {
         PoseParticle pp;
@@ -182,6 +185,9 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
 
     sonar_debug->write(best_sonar_measurement);
 
+    if(best_sonar_measurement.status == OKAY)
+        addHistory(best_sonar_measurement);
+
     best_sonar_measurement.confidence = -1.0;
 
     return effective_sample_size;
@@ -232,6 +238,34 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     return probability;
 }
 
+
+void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
+{
+    if(perception_history.size() >= filter_config.perception_history_number) {
+        perception_history_sum -= perception_history.front();
+        perception_history.pop_front();
+    }
+
+    perception_history.push_back(info.confidence);
+    perception_history_sum += perception_history.back();
+}
+
+bool ParticleLocalization::hasStats() const
+{
+    return (perception_history.size() == filter_config.perception_history_number) && !timestamp.isNull();
+}
+
+
+uw_localization::Stats ParticleLocalization::getStats() const
+{
+    uw_localization::Stats stats;
+    stats.timestamp = timestamp;
+    stats.uncertainty_degree = perception_history_sum / filter_config.perception_history_number;
+    stats.effective_sample_size = effective_sample_size;
+    stats.particle_generation = generation;
+
+    return stats;
+}
 
 void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m)
 {

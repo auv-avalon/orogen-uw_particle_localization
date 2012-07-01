@@ -67,6 +67,11 @@ public:
   void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
 
+  void addHistory(const PointInfo& status);
+
+  bool hasStats() const;
+  uw_localization::Stats getStats() const;
+
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
 
   void update_dead_reckoning(const base::actuators::Status& u);
@@ -87,6 +92,9 @@ private:
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
 
   uw_localization::PointInfo best_sonar_measurement;
+
+  std::list<double> perception_history;
+  double perception_history_sum;
 
   /** observers */
   DebugWriter<uw_localization::PointInfo>* sonar_debug;
