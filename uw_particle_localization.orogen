@@ -5,6 +5,7 @@ using_library "machine_learning"
 
 import_types_from "base"
 import_types_from "tasks/Types.hpp"
+import_types_from "offshore_pipeline_detector"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
 import_types_from "uw_localization/types/map.hpp"
@@ -52,6 +53,10 @@ task_context "Task" do
    input_port('thruster_samples', '/base/actuators/Status').
         doc('status input for thrusters')
 
+   input_port('pipeline_samples', '/controlData::Pipeline').
+        doc("visual pipeline samples from bottom_camera when pipeline detected").
+        needs_reliable_connection
+
    input_port("pose_update", "/base/samples/RigidBodyState").
         doc("position samples from another localization").
         needs_reliable_connection
@@ -60,10 +65,7 @@ task_context "Task" do
    # properties
    # ----------------------------------------------------------------------
 
-   property("yaw_offset", "double", 0.0).
-        doc("yaw offset if reference heading is not constistent with current mission")
-
-   property("particle_number", "int", 40).
+  property("particle_number", "int", 40).
         doc("number of used particles")
 
    property("minimum_depth", "double", 0.0).
@@ -111,8 +113,8 @@ task_context "Task" do
    property("perception_history_number", "int", 8).
         doc("set history size for determing uncertainty_degree of best measurement samples")
 
-   property("waiting_time", "double", 0.0).
-        doc("sets number of seconds a pose sample should be written after reinitialization")
+   property("init_sample_rejection", "int", 100).
+        doc("dont use the first n sonar samples for state estimation")
 
    # ----------------------------------------------------------------------
    # stream aligner
@@ -123,6 +125,7 @@ task_context "Task" do
        align_port "orientation_samples", 0.01
        align_port "speed_samples", 0.01
        align_port "thruster_samples", 0.01
+       align_port "pipeline_samples", 0.1
        align_port "pose_update", 0.1
    end
  
@@ -130,6 +133,7 @@ task_context "Task" do
    port_driven :orientation_samples
    port_driven :thruster_samples
    port_driven :speed_samples
+   port_driven :pipeline_samples
    port_driven :pose_update
 end
 

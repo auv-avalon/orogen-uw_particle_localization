@@ -25,21 +25,9 @@ M convertProperty(const std::vector<double>& v) {
 }
 
 struct FilterConfig {
-    FilterConfig() : 
-        particle_number(50),
-        perception_history_number(5),
-        yaw_offset(0.0),
-        hough_interspersal_ratio(0.0),
-	effective_sample_size_threshold(particle_number / 2.0),
-	minimum_perceptions(2),
-        sonar_maximum_distance(20.0),
-        sonar_covariance(1.0)
-    {}
-
     // General properties
     int particle_number;
     int perception_history_number;
-    double yaw_offset;
     double hough_interspersal_ratio;
     double effective_sample_size_threshold;
     int minimum_perceptions;
