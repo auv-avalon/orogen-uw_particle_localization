@@ -43,11 +43,9 @@ bool Task::startHook()
      FilterConfig config;
      config.particle_number = _particle_number.value();
      config.perception_history_number = _perception_history_number.value();
-     config.hough_interspersal_ratio = _hough_interspersal_ratio.value();
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_minimum_distance = _sonar_minimum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
-     config.yaw_offset = _yaw_offset.value();
      config.pure_random_motion = _pure_random_motion.value();
 
      if(!_init_position.value().empty() && !_init_variance.value().empty()) {
@@ -61,6 +59,7 @@ bool Task::startHook()
      current_depth = 0;
 
      number_sonar_perceptions = 0;
+     number_rejected_samples = 0;
 
      std::cout << "Setup Static motion covariance" << std::endl;
 
@@ -111,6 +110,13 @@ void Task::updateHook()
 
 void Task::laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan)
 {
+    last_perception = ts;
+
+    if(number_rejected_samples < static_cast<unsigned>(_init_sample_rejection.value())) {
+        number_rejected_samples++;
+        return;
+    }
+
     double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
 
     if(localizer->hasStats()) {
@@ -124,11 +130,13 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
         localizer->resample();
         number_sonar_perceptions = 0;
     }
-
-    last_perception = ts;
 }
 
 
+void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline) 
+{
+
+}
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
@@ -152,7 +160,9 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
 {
     last_perception = ts;
 
-    localizer->interspersal(rbs, *map);
+    localizer->interspersal(rbs, *map, _hough_interspersal_ratio.value());
+
+    number_sonar_perceptions = 0;
 }
 
 
