@@ -110,6 +110,9 @@ task_context "Task" do
    property("sonar_importance", "double", 1.0).
 	doc("sets importance ratio for sonar perception updates")
 
+   property("pipeline_importance", "double", 0.5).
+        doc("sets importance ratio for pipeline perception updates")
+
    property("perception_history_number", "int", 8).
         doc("set history size for determing uncertainty_degree of best measurement samples")
 
