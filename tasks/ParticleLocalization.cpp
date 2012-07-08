@@ -30,10 +30,6 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
     p.Radius = 0.15;
     p.Mass = 63;
 
-//    p.InertiaTensor << 0.5 * p.Mass * (p.Radius * p.Radius), 0.0, 0.0, 
-//        0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length), 0.0,
-//        0.0, 0.0, (1.0 / 12.0) * p.Mass * (3.0 * p.Radius * p.Radius + p.Length * p.Length);
-
     p.ThrusterCoefficient << 0.000, 0.000, -0.005, -0.005, 0.005, -0.005;
     p.ThrusterVoltage = 25.4;
 
@@ -230,7 +226,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
 
     double probability = gaussian1d(0.0, filter_config.sonar_covariance, distance.get<1>());
-
+    
     debug(z_distance, distance.get<2>(), AbsZ, X.p_position, probability);
 
     first_perception_received = true;
@@ -267,9 +263,9 @@ uw_localization::Stats ParticleLocalization::getStats() const
     return stats;
 }
 
-void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m)
+void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m, double ratio)
 {
-    reduceParticles(1.0 - filter_config.hough_interspersal_ratio);
+    reduceParticles(1.0 - ratio);
 
     PoseParticle best = particles.front();
     PoseParticle last = particles.back();

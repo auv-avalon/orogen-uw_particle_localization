@@ -60,7 +60,7 @@ public:
   virtual const base::Time& getTimestamp(const base::actuators::Status& u);
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
-  virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m);
+  virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio);
 
   double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
 
