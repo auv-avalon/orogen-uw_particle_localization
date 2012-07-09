@@ -243,7 +243,11 @@ double ParticleLocalization::perception(const PoseParticle& X, const controlData
     Eigen::Vector3d RelZ(-0.7, 0.0, -2.0);
     Eigen::Vector3d AbsZ = (abs_yaw * RelZ) + X.p_position;
 
-    boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.pipeline", AbsZ, X.p_position);
+    boost::tuple<Node*, double, Eigen::Vector3d> distance;
+    if(Z.inspection_state == controlData::END_OF_PIPE)
+        distance = M.getNearestDistance("root.end_of_pipe", AbsZ, X.p_position);
+    else
+        distance = M.getNearestDistance("root.pipeline", AbsZ, X.p_position);
 
     double probability = gaussian1d(0.0, filter_config.pipeline_covariance, distance.get<1>());
 
