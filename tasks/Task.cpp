@@ -138,8 +138,16 @@ void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pip
 {
     last_perception = ts;
 
-    if(pipeline.state != NO_PIPE)
-        localizer->observe(pipeline, *map, _pipeline_importance.value());
+    switch(pipeline.inspection_state) {
+        case controlData::FOUND_PIPE:
+        case controlData::FOLLOW_PIPE:
+        case controlData::END_OF_PIPE:
+        case controlData::ALIGN_AUV:
+            localizer->observe(pipeline, *map, _pipeline_importance.value());
+            break;
+        default:
+            break;
+    }
 }
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
