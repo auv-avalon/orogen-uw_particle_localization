@@ -17,6 +17,7 @@
 #include <uw_localization/model/uw_motion_model.hpp>
 #include <uw_localization/maps/node_map.hpp>
 #include <uw_localization/types/info.hpp>
+#include <offshore_pipeline_detector/pipeline.h>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
 
@@ -36,7 +37,8 @@ struct PoseParticle {
 class ParticleLocalization : public ParticleFilter<PoseParticle, NodeMap>,
   public Dynamic<PoseParticle, base::actuators::Status>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
-  public Perception<PoseParticle, base::samples::LaserScan, NodeMap>
+  public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
+  public Perception<PoseParticle, controlData::Pipeline, NodeMap>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -60,6 +62,7 @@ public:
   virtual const base::Time& getTimestamp(const base::actuators::Status& u);
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
+  virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, const NodeMap& m);
   virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio);
 
   double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);

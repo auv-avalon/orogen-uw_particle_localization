@@ -42,12 +42,12 @@ sonarpoint_viz.min_z = 0.0
 sonarpoint_viz.max_z = mapdepth
 
 environment_viz.map = mapfile
-environment_viz.grid_resolution = 2.0
+environment_viz.grid_resolution = 1.0
 
 position_viz.setColor(Eigen::Vector3.new(1.0, 0.0, 0.0))
 hough_viz.setColor(Eigen::Vector3.new(0.0, 1.0, 0.0))
 
-Orocos.run "uw_particle_localization", "sonar_wall_hough", "sonar_feature_estimator", :wait => 999 do
+Orocos.run "uw_particle_localization", "sonar_wall_hough", "sonar_feature_estimator", "pipeline_follower", :wait => 999 do
     sonar = log.task 'sonar'
     yaw_z = log.task 'depth_orientation_fusion'
     bottom_camera = log.task 'bottom_camera'
@@ -56,6 +56,7 @@ Orocos.run "uw_particle_localization", "sonar_wall_hough", "sonar_feature_estima
     localization = TaskContext.get 'uw_particle_localization'
     feature = TaskContext.get 'sonar_feature_estimator'
     hough = TaskContext.get 'sonar_wall_hough'
+    pipeline = TaskContext.get 'pipeline_follower'
 
     sonar.sonar_beam.connect_to feature.sonar_input
     sonar.sonar_beam.connect_to hough.sonar_samples
@@ -63,18 +64,26 @@ Orocos.run "uw_particle_localization", "sonar_wall_hough", "sonar_feature_estima
 #    hough.position.connect_to localization.pose_update
     yaw_z.pose_samples.connect_to localization.orientation_samples
     yaw_z.pose_samples.connect_to hough.orientation_samples
+    yaw_z.pose_samples.connect_to pipeline.orientation_sample
+    yaw_z.pose_samples.connect_to pipeline.altitude_samples
     feature.new_feature.connect_to localization.laser_samples
+
+    bottom_camera.frame.connect_to pipeline.frame 
+    pipeline.pipeline.connect_to localization.pipeline_samples
+    
 
     Orocos.apply_conf_file(feature, File.join(configpath, "sonar_feature_estimator::Task.yml"), ["default"])
     Orocos.apply_conf_file(localization, File.join(configpath, "uw_particle_localization::Task.yml"), ["default"])
     Orocos.apply_conf_file(hough, File.join(configpath, "sonar_wall_hough::Task.yml"), ["default"])
+    Orocos.apply_conf_file(pipeline, File.join(configpath, "offshore_pipeline_detector::Task.yml"), ["default"])
 
     localization.yaml_map = mapfile
 
     Vizkit.display localization
     Vizkit.display feature
     Vizkit.display hough
-    Vizkit.display front_camera.frame
+    Vizkit.display pipeline
+#    Vizkit.display front_camera.frame
     Vizkit.display bottom_camera.frame
  
     Vizkit.connect_port_to 'uw_particle_localization', 'particles', :pull => false, :update_frequency => 33 do |sample, _|
@@ -100,9 +109,11 @@ Orocos.run "uw_particle_localization", "sonar_wall_hough", "sonar_feature_estima
     localization.configure
     feature.configure
     hough.configure
+    pipeline.configure
     localization.start
     feature.start
-    hough.start
+#    hough.start
+    pipeline.start
 
     Vizkit.control log
     Vizkit.exec

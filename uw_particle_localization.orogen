@@ -101,6 +101,9 @@ task_context "Task" do
    property("sonar_covariance", "double", 2.0).
         doc("sets sonar covariance for defining measurement uncertainty")
 
+   property("pipeline_covariance", "double", 1.0).
+        doc("sets pipeline covariance for defining measurement uncertainty")
+
    property("pure_random_motion", "bool", false).
         doc("ignore velocity in speed samples for dynamic update")
 

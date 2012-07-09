@@ -235,6 +235,23 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 }
 
 
+double ParticleLocalization::perception(const PoseParticle& X, const controlData::Pipeline& Z, const NodeMap& M) 
+{
+    double yaw = base::getYaw(vehicle_pose.orientation);
+    Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
+
+    Eigen::Vector3d RelZ(-0.7, 0.0, -2.0);
+    Eigen::Vector3d AbsZ = (abs_yaw * RelZ) + X.p_position;
+
+    boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.pipeline", AbsZ, X.p_position);
+
+    double probability = gaussian1d(0.0, filter_config.pipeline_covariance, distance.get<1>());
+
+    first_perception_received = true;
+
+    return probability;
+}
+
 void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
 {
     if(perception_history.size() >= filter_config.perception_history_number) {
@@ -268,7 +285,6 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
     reduceParticles(1.0 - ratio);
 
     PoseParticle best = particles.front();
-    PoseParticle last = particles.back();
 
     MultiNormalRandom<3> Pose = Random::multi_gaussian(p.position, p.cov_position);
 

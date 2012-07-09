@@ -46,6 +46,7 @@ bool Task::startHook()
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_minimum_distance = _sonar_minimum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
+     config.pipeline_covariance = _pipeline_covariance.value();
      config.pure_random_motion = _pure_random_motion.value();
 
      if(!_init_position.value().empty() && !_init_variance.value().empty()) {
@@ -135,7 +136,10 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 
 void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline) 
 {
+    last_perception = ts;
 
+    if(pipeline.state != NO_PIPE)
+        localizer->observe(pipeline, *map, _pipeline_importance.value());
 }
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)

@@ -40,6 +40,7 @@ struct FilterConfig {
     double sonar_maximum_distance;
     double sonar_minimum_distance;
     double sonar_covariance;
+    double pipeline_covariance;
 
     Eigen::Matrix3d static_motion_covariance;
 };
