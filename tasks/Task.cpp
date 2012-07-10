@@ -94,17 +94,19 @@ void Task::updateHook()
 {
      TaskBase::updateHook();
    
-     _environment.write(map->getEnvironment());
+     if(_debug.value())
+       _environment.write(map->getEnvironment());
      
      base::samples::RigidBodyState pose = localizer->estimate();
      base::samples::RigidBodyState motion = localizer->dead_reckoning();
 
-     _particles.write(localizer->getParticleSet());
+     if(_debug.value())
+        _particles.write(localizer->getParticleSet());
 
      if(!pose.time.isNull()) 
         _pose_samples.write(pose);
 
-     if(!motion.time.isNull())
+     if(!motion.time.isNull() && _debug.value())
        _dead_reckoning_samples.write(motion);
 }
 
@@ -203,7 +205,8 @@ void Task::stopHook()
 
 void Task::write(const uw_localization::PointInfo& sample)
 {
-    _debug_sonar_beam.write(sample);
+    if(_debug.value())
+        _debug_sonar_beam.write(sample);
 }
 
 // void Task::errorHook()

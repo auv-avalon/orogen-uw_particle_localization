@@ -65,7 +65,10 @@ task_context "Task" do
    # properties
    # ----------------------------------------------------------------------
 
-  property("particle_number", "int", 40).
+   property("debug", "bool", false).
+        doc("write all debug informations to output ports")
+
+   property("particle_number", "int", 40).
         doc("number of used particles")
 
    property("minimum_depth", "double", 0.0).

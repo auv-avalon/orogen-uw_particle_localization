@@ -28,7 +28,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 
     p.Length = 1.4;
     p.Radius = 0.15;
-    p.Mass = 63;
+    p.Mass = 65;
 
     p.ThrusterCoefficient << 0.000, 0.000, -0.005, -0.005, 0.005, -0.005;
     p.ThrusterVoltage = 25.4;
@@ -40,7 +40,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
              0.0, 1.0, 0.0, //0.0, 0.0, -0.81, // SWAY
              0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
 
-    p.DampingX << 8.0, 0.05;//6.836, 0.761;
+    p.DampingX << -4.5418, 4.9855;//6.836, 0.761;
     p.DampingY << 58.28, 1.599;
     p.DampingZ << 0.0, -23.8;
     p.floating = true;
@@ -88,7 +88,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
         u_velocity = U.velocity;
 
     v_noisy = u_velocity + StaticSpeedNoise();
-    
+
     base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 
     if( !X.timestamp.isNull() ) {
@@ -125,6 +125,11 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
         }
 
         v_noisy = u_velocity + StaticSpeedNoise();
+        
+        if(v_noisy.x() > 0.55)
+            v_noisy.x() = 0.55;
+        else if(v_noisy.x() < -0.55)
+            v_noisy.x() = -0.55;
 
         base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 
