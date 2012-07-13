@@ -106,7 +106,7 @@ void Task::updateHook()
      if(!pose.time.isNull()) 
         _pose_samples.write(pose);
 
-     if(!motion.time.isNull() && _debug.value())
+     if(!motion.time.isNull())
        _dead_reckoning_samples.write(motion);
 }
 
