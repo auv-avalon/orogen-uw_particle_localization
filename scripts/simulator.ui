@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Simulator</class>
+ <widget class="QWidget" name="Simulator">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>954</width>
+    <height>636</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Simulator Gui</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QWidget" name="widget_2" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="SonarDisplay" name="sonar_top">
+        <property name="toolTip">
+         <string>ImageView</string>
+        </property>
+        <property name="whatsThis">
+         <string>Widget for displaying sonar data.</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="SonarDisplay" name="sonar_rear">
+        <property name="toolTip">
+         <string>ImageView</string>
+        </property>
+        <property name="whatsThis">
+         <string>Widget for displaying sonar data.</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="widget" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="OrientationView" name="orientation">
+        <property name="toolTip">
+         <string>OrientationView</string>
+        </property>
+        <property name="whatsThis">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="VirtualJoystick" name="joystick1">
+        <property name="toolTip">
+         <string>Widget that emulates a joystick</string>
+        </property>
+        <property name="whatsThis">
+         <string>widgte that emulates a joystick</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="VirtualJoystick" name="joystick2">
+        <property name="toolTip">
+         <string>Widget that emulates a joystick</string>
+        </property>
+        <property name="whatsThis">
+         <string>widgte that emulates a joystick</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QVTKWidget</class>
+   <extends>QWidget</extends>
+   <header>QVTKWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MultiWidget</class>
+   <extends>QWidget</extends>
+   <header>multi_view/MultiWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>OrientationView</class>
+   <extends>MultiWidget</extends>
+   <header>rock_widget_collection/orientation.h</header>
+  </customwidget>
+  <customwidget>
+   <class>VirtualJoystick</class>
+   <extends>QWidget</extends>
+   <header>image_view_widget/VirtualJoystick.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SonarDisplay</class>
+   <extends>QVTKWidget</extends>
+   <header>vtk/sonar_display/SonarDisplay.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

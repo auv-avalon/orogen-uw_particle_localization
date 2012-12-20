@@ -16,6 +16,7 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
 {
     first_perception_received = false;
     PoseParticle::pose = &vehicle_pose;
+    utm_origin = std::make_pair(-1,-1);
 }
 
 ParticleLocalization::~ParticleLocalization()
@@ -26,24 +27,33 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 {
     UwVehicleParameter p;
 
-    p.Length = 1.4;
-    p.Radius = 0.15;
-    p.Mass = 65;
+    p.Length = filter_config.param_length;
+    p.Radius = filter_config.param_radius;
+    p.Mass = filter_config.param_mass;
 
-    p.ThrusterCoefficient << 0.000, 0.000, -0.005, -0.005, 0.005, -0.005;
-    p.ThrusterVoltage = 25.4;
-
+    p.ThrusterCoefficient << filter_config.param_thrusterCoefficient[0], filter_config.param_thrusterCoefficient[1], filter_config.param_thrusterCoefficient[2],
+		  filter_config.param_thrusterCoefficient[3], filter_config.param_thrusterCoefficient[4], filter_config.param_thrusterCoefficient[5];
+    p.ThrusterVoltage = filter_config.param_thrusterVoltage;
+    
+    p.TCM << filter_config.param_TCM[0] , filter_config.param_TCM[1] , filter_config.param_TCM[2],
+	      filter_config.param_TCM[3] , filter_config.param_TCM[4] , filter_config.param_TCM[5],
+	      filter_config.param_TCM[6] , filter_config.param_TCM[7] , filter_config.param_TCM[8],
+	      filter_config.param_TCM[9] , filter_config.param_TCM[10] , filter_config.param_TCM[11],
+	      filter_config.param_TCM[12] , filter_config.param_TCM[13] , filter_config.param_TCM[14],
+	      filter_config.param_TCM[15] , filter_config.param_TCM[16] , filter_config.param_TCM[17];
+    /*
     p.TCM << 0.0, 0.0, 1.0, // 0.0, -0.92, 0.0, // HEAVE
              0.0, 0.0, 1.0, //0.0, 0.205, 0.0, // HEAVE
              1.0, 0.0, 0.0, //0.0, 0.0, -0.17, // SURGE
              1.0, 0.0, 0.0, //0.0, 0.0, 0.17, // SURGE
              0.0, 1.0, 0.0, //0.0, 0.0, -0.81, // SWAY
              0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
-
-    p.DampingX << -4.5418, 4.9855;//6.836, 0.761;
-    p.DampingY << 58.28, 1.599;
-    p.DampingZ << 0.0, -23.8;
-    p.floating = true;
+    */
+             
+    p.DampingX << filter_config.param_dampingX[0] , filter_config.param_dampingX[1];
+    p.DampingY << filter_config.param_dampingY[0] , filter_config.param_dampingY[1];;
+    p.DampingZ << filter_config.param_dampingZ[0] , filter_config.param_dampingZ[1];
+    p.floating = filter_config.param_floating;
 
     return p;
 }
@@ -194,6 +204,47 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
     return effective_sample_size;
 }
 
+double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, const NodeMap& m, double importance)
+{	
+    if(utm_origin.first==-1){
+	utm_origin = std::make_pair(z.position[0], z.position[1]);
+    }
+    
+    //Converts the utm-coordinate to our world coordinate system
+    std::pair<double, double> pose;
+    pose.first = cos(filter_config.utm_relative_angle)*(z.position[0]-utm_origin.first)
+	  - sin(filter_config.utm_relative_angle)*(z.position[1]-utm_origin.second)
+	  + filter_config.init_position[0];
+    pose.second = cos(filter_config.utm_relative_angle)*(z.position[1]-utm_origin.second)
+	  + sin(filter_config.utm_relative_angle)*(z.position[0]-utm_origin.first)
+	  + filter_config.init_position[1];    
+    
+    //Sets the covarianz matrix of the rbs
+    base::samples::RigidBodyState newRBS = z;
+    base::Matrix3d cov = base::Matrix3d::Zero();
+    cov << filter_config.gps_covarianz, 0, 0,
+	0, filter_config.gps_covarianz, 0,
+	0, 0, filter_config.gps_covarianz;
+    newRBS.cov_position = cov;
+    
+    newRBS.position[0]=pose.first;
+    newRBS.position[1]=pose.second;
+    
+    //Creates new particle at the gps-position
+    interspersal(newRBS, m, filter_config.gps_interspersal_ratio);
+	  
+    
+    double effective_sample_size = observe(pose, m, importance);   
+    
+    best_sonar_measurement.time = z.time;
+    
+    if(best_sonar_measurement.status == OKAY)
+      addHistory(best_sonar_measurement);
+    
+    best_sonar_measurement.confidence = -1.0;
+    
+    return effective_sample_size;
+}  
 
 double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, const NodeMap& M)
 {
@@ -255,11 +306,39 @@ double ParticleLocalization::perception(const PoseParticle& X, const controlData
         distance = M.getNearestDistance("root.pipeline", AbsZ, X.p_position);
 
     double probability = gaussian1d(0.0, filter_config.pipeline_covariance, distance.get<1>());
-
+    
     first_perception_received = true;
 
     return probability;
 }
+
+
+double ParticleLocalization::perception(const PoseParticle& X, const std::pair<double,double>& Z, const NodeMap& M)
+{
+    Eigen::Matrix<double,2,1> pos;
+    pos << X.p_position[0] , X.p_position[1];
+    Eigen::Matrix<double,2,2> covar;
+    covar << filter_config.gps_covarianz, 0, 0, filter_config.gps_covarianz;
+    Eigen::Matrix<double,2,1> gps; 
+    gps << Z.first, Z.second;    
+    
+    //check if this particle is part of the world
+    if(!M.belongsToWorld(X.p_position)) {
+        debug(Z, 0.0, NOT_IN_WORLD); 
+        return 0.0;
+    }
+    
+    //double propability = calc_gaussian(pos, covar, gps);
+    
+    double diff=std::sqrt(std::pow(X.p_position[0]-Z.first, 2.0) + std::pow(X.p_position[1]-Z.second, 2.0));
+    double propability = gaussian1d(0, filter_config.gps_covarianz, diff);
+    
+    debug(Z,propability,OKAY);
+    
+    first_perception_received = true;
+    
+    return propability;
+}  
 
 void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
 {
@@ -340,6 +419,19 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& desire, 
     }
 }
 
+void ParticleLocalization::debug(std::pair<double, double> pos, double conf, PointStatus status)
+{
+    if(best_sonar_measurement.confidence < conf){
+	uw_localization::PointInfo info;
+	info.distance = 0.0;
+	info.desire_point = base::Vector3d(0.0,0.0,0.0);
+	info.real_point = base::Vector3d(0.0,0.0,0.0);
+	info.location = base::Vector3d(pos.first,pos.second,0.0);
+	info.confidence = conf;
+	info.status = status;
+    }  
+  
+}  
 
 void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState& pose)
 {

@@ -38,7 +38,8 @@ class ParticleLocalization : public ParticleFilter<PoseParticle, NodeMap>,
   public Dynamic<PoseParticle, base::actuators::Status>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
-  public Perception<PoseParticle, controlData::Pipeline, NodeMap>
+  public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
+  public Perception<PoseParticle, std::pair<double,double>, NodeMap>  
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -63,13 +64,34 @@ public:
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
   virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, const NodeMap& m);
+  
+    
+ /**
+ * Calculates the propability of a particle using a received gps-position
+ * @param X: a Particle
+ * @param T: the perception as a gps-position
+ * @param M: the nodemap
+ * @return the propability of the particle
+ */ 
+  virtual double perception(const PoseParticle& x, const std::pair<double,double>& z, const NodeMap& m);
+
   virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio);
 
   double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
+  
+  /**
+   * Receives a perception as a gps-position and updates the current particle-set
+   * @param z: Perception as an utm-coordinate
+   * @param m: nodemap of the enviroment, where the perception takes place
+   * @param importance: importace factor of the perception
+   * @return: the effectiv sample size (the average square weight)
+   */
+  double observeAndDebug(const base::samples::RigidBodyState& z, const NodeMap& m, double importance = 1.0);
 
   void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
-
+  void debug(std::pair<double, double> pos, double conf, PointStatus status);
+  
   void addHistory(const PointInfo& status);
 
   bool hasStats() const;
@@ -98,6 +120,9 @@ private:
 
   std::list<double> perception_history;
   double perception_history_sum;
+  
+  //the origin of the coordinate system as utm-coordinate
+  std::pair<double,double> utm_origin;
 
   /** observers */
   DebugWriter<uw_localization::PointInfo>* sonar_debug;

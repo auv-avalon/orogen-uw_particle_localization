@@ -35,6 +35,10 @@ struct FilterConfig {
 
     base::Vector3d init_position;
     base::Vector3d init_variance;
+    
+    double utm_relative_angle;
+    double gps_covarianz;
+    double gps_interspersal_ratio;
 
     // Sensor uncertainty
     double sonar_maximum_distance;
@@ -42,7 +46,19 @@ struct FilterConfig {
     double sonar_covariance;
     double pipeline_covariance;
 
-    Eigen::Matrix3d static_motion_covariance;
+    Eigen::Matrix3d static_motion_covariance;    
+    
+    //Motion model Properties
+    double param_length;
+    double param_radius;
+    double param_mass;
+    std::vector<double> param_thrusterCoefficient;
+    double param_thrusterVoltage;
+    std::vector<double> param_TCM;
+    std::vector<double> param_dampingX;
+    std::vector<double> param_dampingY;
+    std::vector<double> param_dampingZ;
+    bool param_floating;
 };
 
 

@@ -48,6 +48,10 @@ bool Task::startHook()
      config.sonar_covariance = _sonar_covariance.value();
      config.pipeline_covariance = _pipeline_covariance.value();
      config.pure_random_motion = _pure_random_motion.value();
+     
+     config.utm_relative_angle = _utm_relative_angle.value();
+     config.gps_covarianz = _gps_covarianz.value();
+     config.gps_interspersal_ratio = _gps_interspersal_ratio.value();
 
      if(!_init_position.value().empty() && !_init_variance.value().empty()) {
          config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
@@ -61,6 +65,7 @@ bool Task::startHook()
 
      number_sonar_perceptions = 0;
      number_rejected_samples = 0;
+     number_gps_perceptions = 0;
 
      std::cout << "Setup Static motion covariance" << std::endl;
 
@@ -81,7 +86,57 @@ bool Task::startHook()
 
          _static_motion_covariance.set(value);
      }
+      
+    config.param_length = _param_length.value();
+    config.param_radius = _param_radius.value();;
+    config.param_mass = _param_mass.value();
+    
+    if(_param_thrusterCoefficient.value().size()!=6){
+	double values[] = {0.000, 0.000, -0.005, -0.005, 0.005, -0.005}; 
+	config.param_thrusterCoefficient = std::vector<double>(values, values + sizeof(values)/sizeof(double)) ;
+    }else{
+	config.param_thrusterCoefficient = _param_thrusterCoefficient.value();
+    }
+      
+    
+    config.param_thrusterVoltage = _param_thrusterVoltage.value();
+    
+    if(_param_TCM.value().size() != 18){
+      double values[] = { 0.0, 0.0, 1.0,
+			    0.0, 0.0, 1.0,
+			    1.0, 0.0, 0.0,
+			    1.0, 0.0, 0,0,
+			    0.0, 1.0, 0.0,
+			    0.0, 1.0, 0.0};
+	config.param_TCM = std::vector<double>(values, values + sizeof(values)/sizeof(double));		    
+    }else{
+      config.param_TCM = _param_TCM.value();
+    }
+    
+    if(_param_dampingX.value().size()!=2){
+      double values[] = {-4.5418, 4.9855};
+      config.param_dampingX = std::vector<double>(values, values + sizeof(values)/sizeof(double));;
+    }else{
+      config.param_dampingX = _param_dampingX.value();
+    }
+    
+    if(_param_dampingY.value().size()!=2){
+      double values[] =  {58.28, 1.599};
+      config.param_dampingY = std::vector<double>(values, values + sizeof(values)/sizeof(double));
+    }else{
+      config.param_dampingY = _param_dampingY.value();
+    }
+    
+    if(_param_dampingZ.value().size()!=2){
+      double values[] = {0.0, -23.8};
+      config.param_dampingZ = std::vector<double>(values, values + sizeof(values)/sizeof(double));
+    }else{
+      config.param_dampingZ = _param_dampingZ.value();
+    }
 
+    config.param_floating = _param_floating.value(); 
+      
+      
      localizer = new ParticleLocalization(config);
      localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
      
@@ -103,8 +158,8 @@ void Task::updateHook()
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
 
-     if(!pose.time.isNull()) 
-        _pose_samples.write(pose);
+     //if(!pose.time.isNull()) 
+        _pose_samples.write(pose);     
 
      if(!motion.time.isNull())
        _dead_reckoning_samples.write(motion);
@@ -192,6 +247,18 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators:
     localizer->update_dead_reckoning(status);
 }
 
+void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
+    
+  double Neff = localizer->observeAndDebug(rbs,*map,_gps_importance.value());
+  
+  number_gps_perceptions++;
+  
+  if(number_gps_perceptions >= _minimum_perceptions.value()) {
+        localizer->resample();
+        number_gps_perceptions = 0;
+    }
+  
+}  
 
 void Task::stopHook()
 {
