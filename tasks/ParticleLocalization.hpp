@@ -18,8 +18,10 @@
 #include <uw_localization/maps/node_map.hpp>
 #include <uw_localization/types/info.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
+#include <uwv_dynamic_model/uwv_dynamic_model.h>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
+
 
 namespace uw_localization {
 
@@ -48,6 +50,7 @@ public:
   UwVehicleParameter VehicleParameter() const;
 
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
+  virtual void initializeDynamicModel(UwVehicleParameter p);
 
   virtual base::Position position(const PoseParticle& X) const { return X.p_position; }
   virtual base::Vector3d velocity(const PoseParticle& X) const { return X.p_velocity; }
@@ -111,6 +114,8 @@ public:
 private:
   FilterConfig filter_config;
   UwMotionModel motion_model;
+  underwaterVehicle::DynamicModel* dynamic_model;
+  underwaterVehicle::Parameters dynamic_model_params;
   base::samples::RigidBodyState vehicle_pose;
   base::samples::RigidBodyState motion_pose;
 

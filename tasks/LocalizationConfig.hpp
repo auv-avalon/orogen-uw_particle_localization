@@ -46,7 +46,9 @@ struct FilterConfig {
     double sonar_covariance;
     double pipeline_covariance;
 
-    Eigen::Matrix3d static_motion_covariance;    
+    Eigen::Matrix3d static_motion_covariance;  
+    
+    bool useMap;
     
     //Motion model Properties
     double param_length;
@@ -59,6 +61,8 @@ struct FilterConfig {
     std::vector<double> param_dampingY;
     std::vector<double> param_dampingZ;
     bool param_floating;
+    
+    bool advanced_motion_model;
 };
 
 

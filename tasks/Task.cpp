@@ -35,12 +35,19 @@ bool Task::startHook()
 {
      if (! TaskBase::startHook())
          return false;
-
-     
-     std::cout << "Setup NodeMap" << std::endl;
-     map = new NodeMap(_yaml_map.value());
-     
+      
      FilterConfig config;
+     
+     if(_yaml_map.value().empty()){
+       std::cout << "No map used" << std::endl;
+       config.useMap = false;
+     }else{  
+      std::cout << "Setup NodeMap" << std::endl;
+      map = new NodeMap(_yaml_map.value());
+      config.useMap = true;
+     } 
+     
+     
      config.particle_number = _particle_number.value();
      config.perception_history_number = _perception_history_number.value();
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
@@ -91,8 +98,12 @@ bool Task::startHook()
     config.param_radius = _param_radius.value();;
     config.param_mass = _param_mass.value();
     
-    if(_param_thrusterCoefficient.value().size()!=6){
-	double values[] = {0.000, 0.000, -0.005, -0.005, 0.005, -0.005}; 
+    if(_param_thrusterCoefficient.value().size() < 6){
+	std::cout << "No valid thruster coefficients assigned. Use standart coefficients" << std::endl;  
+	//config.param_thrusterCoefficient.clear();
+	//config.param_thrusterCoefficient.resize(6,0.005);
+	
+	double values[] = {0.000, 0.000, -0.005, -0.005, 0.005, -0.005};
 	config.param_thrusterCoefficient = std::vector<double>(values, values + sizeof(values)/sizeof(double)) ;
     }else{
 	config.param_thrusterCoefficient = _param_thrusterCoefficient.value();
@@ -101,26 +112,29 @@ bool Task::startHook()
     
     config.param_thrusterVoltage = _param_thrusterVoltage.value();
     
-    if(_param_TCM.value().size() != 18){
-      double values[] = { 0.0, 0.0, 1.0,
-			    0.0, 0.0, 1.0,
-			    1.0, 0.0, 0.0,
-			    1.0, 0.0, 0,0,
-			    0.0, 1.0, 0.0,
-			    0.0, 1.0, 0.0};
+    if(_param_TCM.value().size() < 36){
+      std::cout << "No valid TCM assigned. Use standard TCM" << std::endl;
+      double values[] = { 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+			    0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
+			    1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+			    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+			    -0.92, 0.205, 0.0, 0.0, 0.0, 0.0,
+			    0.0, 0.0, -0.17, 0.17, -0.81, 0.04};
 	config.param_TCM = std::vector<double>(values, values + sizeof(values)/sizeof(double));		    
     }else{
       config.param_TCM = _param_TCM.value();
     }
     
-    if(_param_dampingX.value().size()!=2){
+    if(_param_dampingX.value().size()<2){
+      std::cout << "No valid x-damping coefficients assigned. Use standard coefficients" << std::endl;
       double values[] = {-4.5418, 4.9855};
       config.param_dampingX = std::vector<double>(values, values + sizeof(values)/sizeof(double));;
     }else{
       config.param_dampingX = _param_dampingX.value();
     }
     
-    if(_param_dampingY.value().size()!=2){
+    if(_param_dampingY.value().size()<2){
+      std::cout << "No valid y-damping coefficients assigned. Use standard coefficients" << std::endl;
       double values[] =  {58.28, 1.599};
       config.param_dampingY = std::vector<double>(values, values + sizeof(values)/sizeof(double));
     }else{
@@ -128,6 +142,7 @@ bool Task::startHook()
     }
     
     if(_param_dampingZ.value().size()!=2){
+      std::cout << "No valid z-damping coefficients assigned. Use standard coefficients" << std::endl;
       double values[] = {0.0, -23.8};
       config.param_dampingZ = std::vector<double>(values, values + sizeof(values)/sizeof(double));
     }else{
@@ -135,7 +150,8 @@ bool Task::startHook()
     }
 
     config.param_floating = _param_floating.value(); 
-      
+    
+    config.advanced_motion_model = _advanced_motion_model.value();
       
      localizer = new ParticleLocalization(config);
      localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
@@ -149,12 +165,16 @@ void Task::updateHook()
 {
      TaskBase::updateHook();
    
-     if(_debug.value())
+     if(_debug.value() && !_yaml_map.value().empty())
        _environment.write(map->getEnvironment());
      
      base::samples::RigidBodyState pose = localizer->estimate();
      base::samples::RigidBodyState motion = localizer->dead_reckoning();
-
+  
+     pose.velocity[0]=0.0;
+     pose.velocity[1]=0.0;
+     pose.angular_velocity[2]=0.0;
+     
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
 

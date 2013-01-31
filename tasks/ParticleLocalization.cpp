@@ -1,5 +1,6 @@
 #include "ParticleLocalization.hpp"
 #include <base/pose.h>
+//#include <stdexcept>
 
 using namespace machine_learning;
 
@@ -20,7 +21,10 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
 }
 
 ParticleLocalization::~ParticleLocalization()
-{}
+{ 
+  if(filter_config.advanced_motion_model)
+    delete dynamic_model;
+}
 
 
 UwVehicleParameter ParticleLocalization::VehicleParameter() const
@@ -35,12 +39,13 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 		  filter_config.param_thrusterCoefficient[3], filter_config.param_thrusterCoefficient[4], filter_config.param_thrusterCoefficient[5];
     p.ThrusterVoltage = filter_config.param_thrusterVoltage;
     
-    p.TCM << filter_config.param_TCM[0] , filter_config.param_TCM[1] , filter_config.param_TCM[2],
-	      filter_config.param_TCM[3] , filter_config.param_TCM[4] , filter_config.param_TCM[5],
-	      filter_config.param_TCM[6] , filter_config.param_TCM[7] , filter_config.param_TCM[8],
-	      filter_config.param_TCM[9] , filter_config.param_TCM[10] , filter_config.param_TCM[11],
-	      filter_config.param_TCM[12] , filter_config.param_TCM[13] , filter_config.param_TCM[14],
-	      filter_config.param_TCM[15] , filter_config.param_TCM[16] , filter_config.param_TCM[17];
+    p.TCM = MatrixTCM::Zero();    
+    for(int i=0; i<3;i++){
+      for(int j=0; j<6;j++){
+	p.TCM(j,i) = filter_config.param_TCM[i*6+j];
+      }
+    }     
+
     /*
     p.TCM << 0.0, 0.0, 1.0, // 0.0, -0.92, 0.0, // HEAVE
              0.0, 0.0, 1.0, //0.0, 0.205, 0.0, // HEAVE
@@ -54,7 +59,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
     p.DampingY << filter_config.param_dampingY[0] , filter_config.param_dampingY[1];;
     p.DampingZ << filter_config.param_dampingZ[0] , filter_config.param_dampingZ[1];
     p.floating = filter_config.param_floating;
-
+        
     return p;
 }
 
@@ -82,10 +87,181 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     generation++;
 
     motion_pose.position = pos;
+    motion_pose.velocity << 0.0,0.0,0.0;
+    motion_pose.angular_velocity << 0.0,0.0,0.0;
+    
+    if(filter_config.advanced_motion_model)
+      initializeDynamicModel(VehicleParameter());
 }
 
+void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
+  dynamic_model = new underwaterVehicle::DynamicModel();
+  
+  underwaterVehicle::Parameters params;
+  
+  params.uwv_mass = p.Mass;
+  params.uwv_volume = M_PI*std::pow(p.Radius,2.0)*p.Length;
+  params.uwv_float =true;
+  
+  params.distance_body2centerofmass = Vector3d();
+  params.distance_body2centerofmass << 0.0,0.0,0.0;
+  params.distance_body2centerofbuoyancy = Vector3d();
+  params.distance_body2centerofbuoyancy << 0.0,0.0,0.0;
+  params.distance_body2centerofgravity = Vector3d();
+  params.distance_body2centerofgravity << 0.0,0.0,0.0;
+  
+  params.waterDensity = kWaterDensity;
+  params.gravity = kGravity;
+  
+  params.thruster_coefficient_pwm.surge.negative.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.surge.positive.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.sway.negative.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.sway.positive.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.heave.negative.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.heave.positive.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.roll.negative.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.roll.positive.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.pitch.negative.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.pitch.positive.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.yaw.negative.coefficient_a=0.005;
+  params.thruster_coefficient_pwm.yaw.positive.coefficient_a=0.005;
+  
+  params.thruster_coefficient_pwm.surge.negative.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.surge.positive.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.sway.negative.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.sway.positive.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.heave.negative.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.heave.positive.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.roll.negative.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.roll.positive.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.pitch.negative.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.pitch.positive.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.yaw.negative.coefficient_b=0.0;
+  params.thruster_coefficient_pwm.yaw.positive.coefficient_b=0.0;
+  
+  params.thrusterVoltage = p.ThrusterVoltage;
+  
+  params.maxSurgePWM = 1.0;
+  params.minSurgePWM = 0.0;
+  params.maxSwayPWM = 1.0;
+  params.minSwayPWM = 0.0;
+  params.maxHeavePWM = 1.0;
+  params.minHeavePWM = 0.0;
+  params.maxRollPWM = 1.0;
+  params.minRollPWM = 0.0;
+  params.maxPitchPWM = 1.0;
+  params.minPitchPWM = 0.0;
+  params.maxYawPWM = 1.0;
+  params.minYawPWM = 0.0;
+  
+  //double values[] = {7.48,0,0,0,0,0,  0,16.29,0,0,0,0,  0,0,16.29,0,0,0,  0,0,0,0.61,0,0,  0,0,0,0,1.67,0,  0,0,0,0,0,1.67};
+  //params.mass_matrix = std::vector<double>(values, values + sizeof(values)/sizeof(double));
+  
+  params.mass_matrix.clear();
+  params.mass_matrix.resize(36,0.0);
+  
+  //Setting index (1,1) = inertia mass + added mass
+  //inertia mass = mass; added mass = 0.1 * mass
+  params.mass_matrix[0] = filter_config.param_mass + 0.1 * filter_config.param_mass; 
+  
+  //Setting index (2,2)
+  //inertia mass = mass; added mass = waterdensity * PI * radius^2 * length 
+  params.mass_matrix[7] = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
+  
+  //Setting index (3,3)
+  //inertia mass = mass; added mass = waterdensity * PI * radius^2 * length 
+  params.mass_matrix[14] = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
+  
+  //Setting index (4,4) -> Roll
+  //inertia mass = mass; added mass = 0 
+  params.mass_matrix[21] = filter_config.param_mass;
+  
+  //Setting index (5,5) -> Pitch
+  //inertia mass = mass; added mass = 1/12 * pi * waterdensity * radius^2 * length^3
+  params.mass_matrix[28] =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0); 
 
+    //Setting index (6,6) -> Yaw
+  //inertia mass = mass; added mass = 1/12 * pi * waterdensity * radius^2 * length^3
+  params.mass_matrix[35] =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0);
+  
+  
+  for(int i=0;i<6;i++){
+      params.massCoefficient[i].positive=params.mass_matrix[i*6+i];
+      params.massCoefficient[i].negative=params.mass_matrix[i*6+i];
+      //params.massCoefficient[i].positive=params.mass_matrix[i*6+1]*0.001;
+      //params.massCoefficient[i].negative=params.mass_matrix[i*6+1]*0.001;
+  }  
 
+  //Damping Coefficients
+  params.linDampCoeff[0].positive=filter_config.param_dampingX[0];
+  params.linDampCoeff[1].positive=filter_config.param_dampingY[0];
+  params.linDampCoeff[2].positive=filter_config.param_dampingZ[0];
+  params.quadDampCoeff[0].positive=filter_config.param_dampingX[1];
+  params.quadDampCoeff[1].positive=filter_config.param_dampingY[1];
+  params.quadDampCoeff[2].positive=filter_config.param_dampingZ[1];
+  
+  params.linDampCoeff[0].negative=filter_config.param_dampingX[0];
+  params.linDampCoeff[1].negative=filter_config.param_dampingY[0];
+  params.linDampCoeff[2].negative=filter_config.param_dampingZ[0];
+  params.quadDampCoeff[0].negative=filter_config.param_dampingX[1];
+  params.quadDampCoeff[1].negative=filter_config.param_dampingY[1];
+  params.quadDampCoeff[2].negative=filter_config.param_dampingZ[1];
+  
+  //Setting yaw-,roll- and pitch-damping to 0, to reduce complexity
+  for(int i=3; i<6; i++){
+    params.linDampCoeff[i].positive=0.0;
+    params.quadDampCoeff[i].positive=0.0;
+    params.linDampCoeff[i].negative=0.0;
+    params.quadDampCoeff[i].negative=0.0;
+  }  
+  
+    
+  //Initialize Thruster mapping
+  params.thrusters.resize(6);
+  params.thrusters.thruster_mapped_names.clear();
+  
+  for(int i=0; i<6; i++){
+      if(filter_config.param_TCM[i] > 0.0)
+	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::SURGE);
+      else if(filter_config.param_TCM[6+i] > 0.0)
+	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::SWAY);
+      else if(filter_config.param_TCM[12+i] > 0.0)
+	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::HEAVE);
+      else
+	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::UNINITIALISED);
+  }    
+  
+  params.thruster_control_matrix.clear();
+  params.thruster_control_matrix.resize(36,0.0);
+  //Filling thruster controll matrix
+  //Change coefficients from line-wise to col-wise
+  for(int i=0; i<6; i++){
+    for(int j=0; j<6; j++){
+      params.thruster_control_matrix[i*6+j] = filter_config.param_TCM[j*6+i];
+    }
+  }
+  
+  
+  params.sim_per_cycle = 5;
+  params.plant_order = 12; //3 directions, 3 orientation angles, 3 linear velocities, 3 angular velocities
+  params.ctrl_order = 6; //5 thruster inputs
+  params.samplingtime = 0.1;  
+  
+  //Setting inital position
+  params.initial_condition[0] = filter_config.init_position[0];
+  params.initial_condition[1] = filter_config.init_position[1];
+  params.initial_condition[2] = filter_config.init_position[2];
+  
+  //Initial orientation and speed is 0
+  for(int i=3;i<12;i++)
+    params.initial_condition[i] = 0.0;
+  
+  params.initial_time = 0.0;
+  
+  dynamic_model->init_param(params);
+  dynamic_model_params=params;
+  
+}
 
 void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U)
 {
@@ -124,15 +300,30 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 
         if(filter_config.pure_random_motion) {
             u_velocity = base::Vector3d(0.0, 0.0, 0.0);
-        }  else {
-            Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
+        }  else if(filter_config.advanced_motion_model){
+	  	  
+	  
+	  underwaterVehicle::ThrusterMapping input_thruster_data;
+	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
+	  input_thruster_data.thruster_value.resize(5);
+	  for(unsigned int i=0;i<Ut.states.size();i++){
+	    input_thruster_data.thruster_value[i] = Ut.states[i].pwm;
+	  } 
+	    	  
+	  dynamic_model->setPosition(X.p_position);
+	  dynamic_model->setVelocity(X.p_velocity);	  
+	  dynamic_model->setPWMLevels(input_thruster_data);	
+	  
+	  u_velocity = dynamic_model->getLinearVelocity();
+	}else{  
+          Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
                X.p_position.x(), X.p_position.y(), X.p_position.z();
 
             Vector6d U = motion_model.transition(Xt, dt, Ut);
 
-            u_velocity = U.block<3, 1>(0, 0);
+            u_velocity = U.block<3, 1>(0, 0);	   
+	}   
 
-        }
 
         v_noisy = u_velocity + StaticSpeedNoise();
         
@@ -150,18 +341,41 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
     
     X.timestamp = Ut.time;
 }
+ 
 
 void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& Ut)
 {
     if( !motion_pose.time.isNull() ) {
         Vector6d Xt;
+	base::Vector3d u_t1;
+	double dt = (Ut.time - motion_pose.time).toSeconds();
+	
+	if(filter_config.advanced_motion_model){
+	  	    
+	  underwaterVehicle::ThrusterMapping input_thruster_data;
+	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
+	  input_thruster_data.resize(6);
+	  for(unsigned int i=0;i<Ut.states.size();i++){
+	    input_thruster_data.thruster_value[i] = Ut.states[i].pwm;
+	  }
+	  input_thruster_data.thruster_mapped_names = dynamic_model_params.thrusters.thruster_mapped_names;	  
+	  
+	  std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
+	  dynamic_model->setPosition(motion_pose.position);
+	  dynamic_model->setVelocity(motion_pose.velocity);	  
+	  
+	  dynamic_model->setPWMLevels(input_thruster_data);	   
+	  
+	  u_t1 = dynamic_model->getLinearVelocity();	  
+	  
+	}else{
+	  
+	  Xt.block<3,1>(0,0) = motion_pose.velocity;
+	  Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
 
-        double dt = (Ut.time - motion_pose.time).toSeconds();
-        Xt.block<3,1>(0,0) = motion_pose.velocity;
-        Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
-
-        Vector6d U = motion_model.transition(Xt, dt, Ut);
-        base::Vector3d u_t1 = U.block<3,1>(0,0);
+	  Vector6d U = motion_model.transition(Xt, dt, Ut);
+	  u_t1 = U.block<3,1>(0,0);	   
+	}
 
         base::Vector3d v_avg = (motion_pose.velocity + u_t1) / 2.0;
 
@@ -231,8 +445,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
     newRBS.position[1]=pose.second;
     
     //Creates new particle at the gps-position
-    interspersal(newRBS, m, filter_config.gps_interspersal_ratio);
-	  
+    interspersal(newRBS, m, filter_config.gps_interspersal_ratio);	  
     
     double effective_sample_size = observe(pose, m, importance);   
     
@@ -323,7 +536,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const std::pair<d
     gps << Z.first, Z.second;    
     
     //check if this particle is part of the world
-    if(!M.belongsToWorld(X.p_position)) {
+    if(filter_config.useMap && !M.belongsToWorld(X.p_position)) {
         debug(Z, 0.0, NOT_IN_WORLD); 
         return 0.0;
     }

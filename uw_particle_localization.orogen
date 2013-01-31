@@ -2,6 +2,7 @@ name "uw_particle_localization"
 
 using_library "uw_localization"
 using_library "machine_learning"
+using_library "uwv_dynamic_model"
 
 import_types_from "base"
 import_types_from "tasks/Types.hpp"
@@ -138,8 +139,11 @@ task_context "Task" do
     property("gps_importance" , "double", 1.0).
 	doc("sets importance ratio for gps perception updates")
 	
-    property("gps_interspersal_ratio" , "double", 0.01)
+    property("gps_interspersal_ratio" , "double", 0.01).
 	doc("ratio for generating new particle after each gps_sample")
+	
+    property("advanced_motion_model" , "bool" , false).
+	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
 	
     #---Motion model parameter---
     
@@ -149,29 +153,31 @@ task_context "Task" do
     property("param_radius" , "double" , 0.15).
 	doc("radius of avalon")
 
-    property("param_mass" , "double" , 65).
+    property("param_mass" , "double" , 65.0).
 	doc("mass of avalon")
 	
     property("param_thrusterCoefficient" , "/std/vector<double>" ).
 	doc("Truster Coefficents")
 	
-    property("param_thrusterVoltage" ,"double" , 25.4)
+    property("param_thrusterVoltage" ,"double" , 25.4).
 	doc("Thruster Volatage")
 
     property("param_TCM" , "/std/vector<double>" ).
 	doc("Thruster Coefficient Matrix, which sets the direction of the thruster force")
     
     property("param_dampingX" , "/std/vector<double>").
-	doc("The damping coefficients in x direction")
+	doc("The damping coefficients in x direction").
+	doc("First Coefficient is the linear factor, the second is the square factor")
 	
     property("param_dampingY" , "/std/vector<double>" ).
-	doc("The damping coefficients in y direction")
+	doc("The damping coefficients in y direction").
+	doc("First Coefficient is the linear factor, the second the is the square factor")
 	
     property("param_dampingZ" , "/std/vector<double>" ).
 	doc("The damping coefficients in z direction")
 	
     property("param_floating" , "bool" , true).
-	doc(" ")        
+	doc("true, if density of avalon = density of water")        
         
    # ----------------------------------------------------------------------
    # stream aligner
