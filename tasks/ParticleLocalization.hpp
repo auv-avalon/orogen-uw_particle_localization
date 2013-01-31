@@ -17,7 +17,7 @@
 #include <uw_localization/model/uw_motion_model.hpp>
 #include <uw_localization/maps/node_map.hpp>
 #include <uw_localization/types/info.hpp>
-#include <offshore_pipeline_detector/pipeline.h>
+//#include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
@@ -40,7 +40,7 @@ class ParticleLocalization : public ParticleFilter<PoseParticle, NodeMap>,
   public Dynamic<PoseParticle, base::actuators::Status>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
-  public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
+  //public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
   public Perception<PoseParticle, std::pair<double,double>, NodeMap>  
 {
 public:
@@ -66,7 +66,7 @@ public:
   virtual const base::Time& getTimestamp(const base::actuators::Status& u);
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
-  virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, const NodeMap& m);
+  //virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, const NodeMap& m);
   
     
  /**

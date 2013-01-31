@@ -301,7 +301,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
         if(filter_config.pure_random_motion) {
             u_velocity = base::Vector3d(0.0, 0.0, 0.0);
         }  else if(filter_config.advanced_motion_model){
-	  	  
+	  /*	  
 	  
 	  underwaterVehicle::ThrusterMapping input_thruster_data;
 	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
@@ -314,7 +314,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 	  dynamic_model->setVelocity(X.p_velocity);	  
 	  dynamic_model->setPWMLevels(input_thruster_data);	
 	  
-	  u_velocity = dynamic_model->getLinearVelocity();
+	  u_velocity = dynamic_model->getLinearVelocity();*/
 	}else{  
           Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
                X.p_position.x(), X.p_position.y(), X.p_position.z();
@@ -351,7 +351,7 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	double dt = (Ut.time - motion_pose.time).toSeconds();
 	
 	if(filter_config.advanced_motion_model){
-	  	    
+	  /*	    
 	  underwaterVehicle::ThrusterMapping input_thruster_data;
 	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
 	  input_thruster_data.resize(6);
@@ -367,7 +367,7 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	  dynamic_model->setPWMLevels(input_thruster_data);	   
 	  
 	  u_t1 = dynamic_model->getLinearVelocity();	  
-	  
+	  */
 	}else{
 	  
 	  Xt.block<3,1>(0,0) = motion_pose.velocity;
@@ -503,7 +503,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     return probability;
 }
 
-
+/*
 double ParticleLocalization::perception(const PoseParticle& X, const controlData::Pipeline& Z, const NodeMap& M) 
 {
     double yaw = base::getYaw(vehicle_pose.orientation);
@@ -523,7 +523,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const controlData
     first_perception_received = true;
 
     return probability;
-}
+}*/
 
 
 double ParticleLocalization::perception(const PoseParticle& X, const std::pair<double,double>& Z, const NodeMap& M)

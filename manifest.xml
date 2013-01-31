@@ -8,8 +8,7 @@
   <logo>http://</logo>
 
   <depend package="avalon/uw_localization" />
-  <depend package="drivers/orogen/aggregator" />
-  <depend package="image_processing/orogen/offshore_pipeline_detector" />
+  <depend package="drivers/orogen/aggregator" />  
   <depend package="dagon/uwv_dynamic_model" />
   <tags>needs_opt</tags>
 </package>

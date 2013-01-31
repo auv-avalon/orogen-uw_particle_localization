@@ -210,7 +210,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
     }
 }
 
-
+/*
 void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline) 
 {
     last_perception = ts;
@@ -225,7 +225,7 @@ void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pip
         default:
             break;
     }
-}
+}*/
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
