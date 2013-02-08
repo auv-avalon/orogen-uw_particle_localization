@@ -20,6 +20,8 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
 
 Task::~Task()
 {
+  //delete localizer;
+  //delete map;
 }
 
 
@@ -74,7 +76,7 @@ bool Task::startHook()
      number_rejected_samples = 0;
      number_gps_perceptions = 0;
 
-     std::cout << "Setup Static motion covariance" << std::endl;
+     std::cout << "Setup static motion covariance" << std::endl;
 
      if(_static_motion_covariance.value().size() > 0) {
          config.static_motion_covariance = convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value());
@@ -171,9 +173,9 @@ void Task::updateHook()
      base::samples::RigidBodyState pose = localizer->estimate();
      base::samples::RigidBodyState motion = localizer->dead_reckoning();
   
-     pose.velocity[0]=0.0;
-     pose.velocity[1]=0.0;
-     pose.angular_velocity[2]=0.0;
+     //pose.velocity[0]=0.0;
+     //pose.velocity[1]=0.0;
+     //pose.angular_velocity[2]=0.0;
      
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
@@ -210,7 +212,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
     }
 }
 
-/*
+
 void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline) 
 {
     last_perception = ts;
@@ -225,7 +227,7 @@ void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pip
         default:
             break;
     }
-}*/
+}
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {

@@ -10,5 +10,6 @@
   <depend package="avalon/uw_localization" />
   <depend package="drivers/orogen/aggregator" />  
   <depend package="dagon/uwv_dynamic_model" />
+  <depend package="image_processing/offshore_pipeline_detector" />
   <tags>needs_opt</tags>
 </package>

@@ -6,7 +6,7 @@ using_library "uwv_dynamic_model"
 
 import_types_from "base"
 import_types_from "tasks/Types.hpp"
-#import_types_from "offshore_pipeline_detector"
+import_types_from "offshore_pipeline_detector"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
 import_types_from "uw_localization/types/map.hpp"
@@ -54,9 +54,9 @@ task_context "Task" do
    input_port('thruster_samples', '/base/actuators/Status').
         doc('status input for thrusters')
 
-   #input_port('pipeline_samples', '/controlData::Pipeline').
-   #     doc("visual pipeline samples from bottom_camera when pipeline detected").
-   #     needs_reliable_connection
+   input_port('pipeline_samples', '/controlData::Pipeline').
+        doc("visual pipeline samples from bottom_camera when pipeline detected").
+        needs_reliable_connection
 
    input_port("pose_update", "/base/samples/RigidBodyState").
         doc("position samples from another localization").
@@ -145,7 +145,7 @@ task_context "Task" do
     property("advanced_motion_model" , "bool" , false).
 	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
 	
-    #---Motion model parameter---
+    #---Motion model parameter----------------------------------------------------------------
     
     property("param_length" , "double" , 1.4).
 	doc("length of avalon")
@@ -188,7 +188,7 @@ task_context "Task" do
        align_port "orientation_samples", 0.01
        align_port "speed_samples", 0.01
        align_port "thruster_samples", 0.01
-       #align_port "pipeline_samples", 0.1
+       align_port "pipeline_samples", 0.1
        align_port "pose_update", 0.1
        align_port "gps_pose_samples", 0.1 
    end
@@ -197,7 +197,7 @@ task_context "Task" do
    port_driven :orientation_samples
    port_driven :thruster_samples
    port_driven :speed_samples
-  #port_driven :pipeline_samples
+   port_driven :pipeline_samples
    port_driven :pose_update
    port_driven :gps_pose_samples
 end

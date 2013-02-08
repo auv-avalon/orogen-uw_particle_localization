@@ -55,9 +55,9 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
              0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
     */
              
-    p.DampingX << filter_config.param_dampingX[0] , filter_config.param_dampingX[1];
-    p.DampingY << filter_config.param_dampingY[0] , filter_config.param_dampingY[1];;
-    p.DampingZ << filter_config.param_dampingZ[0] , filter_config.param_dampingZ[1];
+    p.DampingX << filter_config.param_dampingX[1] , filter_config.param_dampingX[0];
+    p.DampingY << filter_config.param_dampingY[1] , filter_config.param_dampingY[0];;
+    p.DampingZ << filter_config.param_dampingZ[1] , filter_config.param_dampingZ[0];
     p.floating = filter_config.param_floating;
         
     return p;
@@ -95,7 +95,8 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
 }
 
 void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
-  dynamic_model = new underwaterVehicle::DynamicModel();
+  dynamic_model = new underwaterVehicle::DynamicModel(0.1,5,0.0);
+  //dynamic_model = new underwaterVehicle::DynamicModel();
   
   underwaterVehicle::Parameters params;
   
@@ -158,8 +159,8 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   //params.mass_matrix = std::vector<double>(values, values + sizeof(values)/sizeof(double));
   
   params.mass_matrix.clear();
-  params.mass_matrix.resize(36,0.0);
-  
+  params.mass_matrix.resize(36,0.0);  
+    
   //Setting index (1,1) = inertia mass + added mass
   //inertia mass = mass; added mass = 0.1 * mass
   params.mass_matrix[0] = filter_config.param_mass + 0.1 * filter_config.param_mass; 
@@ -184,7 +185,7 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   //inertia mass = mass; added mass = 1/12 * pi * waterdensity * radius^2 * length^3
   params.mass_matrix[35] =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0);
   
-  
+   filter_config.param_mass = p.Mass; 
   for(int i=0;i<6;i++){
       params.massCoefficient[i].positive=params.mass_matrix[i*6+i];
       params.massCoefficient[i].negative=params.mass_matrix[i*6+i];
@@ -244,7 +245,7 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   
   params.sim_per_cycle = 5;
   params.plant_order = 12; //3 directions, 3 orientation angles, 3 linear velocities, 3 angular velocities
-  params.ctrl_order = 6; //5 thruster inputs
+  params.ctrl_order = 6; //6 thruster inputs
   params.samplingtime = 0.1;  
   
   //Setting inital position
@@ -300,9 +301,9 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 
         if(filter_config.pure_random_motion) {
             u_velocity = base::Vector3d(0.0, 0.0, 0.0);
-        }  else if(filter_config.advanced_motion_model){
-	  /*	  
-	  
+        }else if(filter_config.advanced_motion_model){
+	  	  
+	  std::cout << "PVelocity: " << X.p_velocity[0] << " " << X.p_velocity[1] << std::endl;
 	  underwaterVehicle::ThrusterMapping input_thruster_data;
 	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
 	  input_thruster_data.thruster_value.resize(5);
@@ -311,10 +312,12 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 	  } 
 	    	  
 	  dynamic_model->setPosition(X.p_position);
-	  dynamic_model->setVelocity(X.p_velocity);	  
+	  dynamic_model->setLinearVelocity(X.p_velocity);
+	  dynamic_model->setSamplingtime(dt);
 	  dynamic_model->setPWMLevels(input_thruster_data);	
 	  
-	  u_velocity = dynamic_model->getLinearVelocity();*/
+	  u_velocity = dynamic_model->getLinearVelocity();
+	  
 	}else{  
           Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
                X.p_position.x(), X.p_position.y(), X.p_position.z();
@@ -351,23 +354,24 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	double dt = (Ut.time - motion_pose.time).toSeconds();
 	
 	if(filter_config.advanced_motion_model){
-	  /*	    
+	  	    
 	  underwaterVehicle::ThrusterMapping input_thruster_data;
 	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
 	  input_thruster_data.resize(6);
 	  for(unsigned int i=0;i<Ut.states.size();i++){
-	    input_thruster_data.thruster_value[i] = Ut.states[i].pwm;
+	    input_thruster_data.thruster_value[i] = Ut.states[i].pwm * 255.0;
 	  }
 	  input_thruster_data.thruster_mapped_names = dynamic_model_params.thrusters.thruster_mapped_names;	  
 	  
-	  std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
+	  //std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
 	  dynamic_model->setPosition(motion_pose.position);
-	  dynamic_model->setVelocity(motion_pose.velocity);	  
+	  dynamic_model->setLinearVelocity(motion_pose.velocity);
+	  dynamic_model->setSamplingtime(dt);
 	  
 	  dynamic_model->setPWMLevels(input_thruster_data);	   
 	  
 	  u_t1 = dynamic_model->getLinearVelocity();	  
-	  */
+	  //std::cout << "new Velocity: " << u_t1[0] << " " << u_t1[1] << std::endl ;
 	}else{
 	  
 	  Xt.block<3,1>(0,0) = motion_pose.velocity;
@@ -503,7 +507,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     return probability;
 }
 
-/*
+
 double ParticleLocalization::perception(const PoseParticle& X, const controlData::Pipeline& Z, const NodeMap& M) 
 {
     double yaw = base::getYaw(vehicle_pose.orientation);
@@ -523,7 +527,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const controlData
     first_perception_received = true;
 
     return probability;
-}*/
+}
 
 
 double ParticleLocalization::perception(const PoseParticle& X, const std::pair<double,double>& Z, const NodeMap& M)

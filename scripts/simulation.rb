@@ -3,17 +3,17 @@ require 'vizkit'
 include Orocos
 Orocos.initialize
 
-view3d = Vizkit.default_loader.create_widget 'vizkit::Vizkit3DWidget'
-gt = view3d.createPlugin("RigidBodyStateVisualization")
-ep = view3d.createPlugin("RigidBodyStateVisualization")
-traj = view3d.createPlugin("TrajectoryVisualization")
-laserviz = view3d.createPlugin 'uw_localization_laserscan', 'LaserScanVisualization'
-viz = view3d.createPlugin("uw_localization_particle", "ParticleVisualization")
-landmark = view3d.createPlugin("uw_localization_mixedmap", "MixedMapVisualization")
-sonarbeamviz = view3d.createPlugin("sonarbeam","SonarBeamVisualization")
-view3d.show
+# view3d = Vizkit.default_loader.create_widget 'vizkit::Vizkit3DWidget'
+# gt = view3d.createPlugin("RigidBodyStateVisualization")
+# ep = view3d.createPlugin("RigidBodyStateVisualization")
+# traj = view3d.createPlugin("TrajectoryVisualization")
+# laserviz = view3d.createPlugin 'uw_localization_laserscan', 'LaserScanVisualization'
+# viz = view3d.createPlugin("uw_localization_particle", "ParticleVisualization")
+# landmark = view3d.createPlugin("uw_localization_mixedmap", "MixedMapVisualization")
+# sonarbeamviz = view3d.createPlugin("sonarbeam","SonarBeamVisualization")
+# view3d.show
 
-Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_estimator", :wait => 999 do
+Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_estimator::Task"=> "sonar_feature_estimator", :wait => 999 do
     sim = TaskContext.get 'avalon_simulation'
     sonar = TaskContext.get 'sonar'
     state = TaskContext.get 'state_estimator'
@@ -42,7 +42,7 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
 
 
     pos.init_position = [0.0, 0.0, 0.0]
-    pos.init_covariance = [17.0, 0.0, 0.0,
+    pos.init_variance = [17.0, 0.0, 0.0,
                            0.0, 5.0, 0.0,
                            0.0, 0.0, 1.0]
 
@@ -51,13 +51,13 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
     pos.particle_number = 100
     pos.minimum_perceptions = 5
     pos.effective_sample_size_threshold = 70
-    pos.particle_interspersal_ratio = 0.0
+    pos.hough_interspersal_ratio = 0.0
     pos.sonar_maximum_distance = 20.0
     pos.sonar_covariance = 3.0
 
-    pos.perception_ratio = 1.0
-    pos.noise_ratio = 0.0
-    pos.max_distance_ratio = 0.0
+    #pos.perception_ratio = 1.0
+    #pos.noise_ratio = 0.0
+    #pos.max_distance_ratio = 0.0
 
     pos.yaml_map = File.join("..", "maps", "studiobad.yml")
 

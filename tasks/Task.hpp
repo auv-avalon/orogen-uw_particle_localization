@@ -49,7 +49,7 @@ namespace uw_particle_localization {
         virtual void speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
         virtual void thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& rbs);
         virtual void pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-        //virtual void pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline);
+        virtual void pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline);
 	virtual void gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
 
         uw_localization::ParticleLocalization* localizer;

@@ -26,7 +26,7 @@ Orocos.run "uw_particle_localization_test" ,:wait => 10000, :valgrind => false, 
     localication.hough_interspersal_ratio = 0.1
     localication.sonar_maximum_distance = 12.0
     localication.sonar_covariance = 4.0
-    localication.yaml_map = File.join("nurc.yml")
+    localication.yaml_map = File.join("home/fabio/avalon/avalon/orogen/uw_particle_localization/scripts/nurc.yml")
     localication.gps_covarianz = 2.0
     
     
