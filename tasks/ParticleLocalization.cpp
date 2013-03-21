@@ -66,7 +66,8 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 
 
 void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& var, double yaw, double yaw_cov)
-{
+{  
+ 
     UniformRealRandom pos_x = Random::uniform_real(pos.x() - var.x() * 0.5, pos.x() + var.x() * 0.5 );
     UniformRealRandom pos_y = Random::uniform_real(pos.y() - var.y() * 0.5, pos.y() + var.y() * 0.5 );
     UniformRealRandom pos_z = Random::uniform_real(pos.z() - var.z() * 0.5, pos.z() + var.z() * 0.5 );
@@ -286,6 +287,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
 
     X.p_velocity = v_noisy;
     X.timestamp = U.time;
+    X.p_velocity[2] = vehicle_pose.velocity[2];
     X.p_position.z() = vehicle_pose.position.z();
 }
 
@@ -388,7 +390,8 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
     } 
 
     motion_pose.time = Ut.time;
-
+    motion_pose.velocity[2] = vehicle_pose.velocity[2];
+    motion_pose.angular_velocity = vehicle_pose.angular_velocity;
     motion_pose.orientation = vehicle_pose.orientation;
     motion_pose.position.z() = vehicle_pose.position.z();
 }
@@ -667,9 +670,11 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
     vehicle_pose.cov_orientation = orientation.cov_orientation;
     vehicle_pose.position = orientation.position;
     vehicle_pose.angular_velocity = orientation.angular_velocity;
+    vehicle_pose.velocity[2] = orientation.velocity[2];
 }
 
+void ParticleLocalization::setThrusterVoltage(double voltage){
+  motion_model.setThrusterVoltage(voltage); 
+}
 
-
-  
 }

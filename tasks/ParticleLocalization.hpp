@@ -110,6 +110,9 @@ public:
   void setSonarDebug(DebugWriter<uw_localization::PointInfo>* debug) {
       sonar_debug = debug;
   }
+  
+  void setThrusterVoltage(double voltage);    
+  
 
 private:
   FilterConfig filter_config;

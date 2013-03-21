@@ -82,8 +82,7 @@ bool Task::startHook()
          config.static_motion_covariance = convertProperty<Eigen::Matrix3d>(_static_motion_covariance.value());
      } else {
          std::cout << "No static motion covariance assigned. Use standard matrix" << std::endl;
-         Eigen::Matrix3d id = Eigen::Matrix3d::Identity();
-         id(2,2) = 0.0;
+         Eigen::Matrix3d id = Eigen::Matrix3d::Identity();         
          config.static_motion_covariance = id;
          
          std::vector<double> value;
@@ -172,7 +171,7 @@ void Task::updateHook()
      
      base::samples::RigidBodyState pose = localizer->estimate();
      base::samples::RigidBodyState motion = localizer->dead_reckoning();
-  
+     pose.angular_velocity = motion.angular_velocity;
      //pose.velocity[0]=0.0;
      //pose.velocity[1]=0.0;
      //pose.angular_velocity[2]=0.0;
@@ -185,6 +184,17 @@ void Task::updateHook()
 
      if(!motion.time.isNull())
        _dead_reckoning_samples.write(motion);
+     
+     battery_management::batteryInformation batteryInfo;
+     while(_battery_status.read(batteryInfo)==RTT::NewData){
+       double voltage = 0.0;
+       
+       for(int i =0; i<8; i++){
+	 voltage += batteryInfo.cellVoltage[i];
+       }
+       localizer->setThrusterVoltage(voltage);
+       
+     }  
 }
 
 
