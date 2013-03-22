@@ -67,10 +67,18 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 
 void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& var, double yaw, double yaw_cov)
 {  
- 
-    UniformRealRandom pos_x = Random::uniform_real(pos.x() - var.x() * 0.5, pos.x() + var.x() * 0.5 );
-    UniformRealRandom pos_y = Random::uniform_real(pos.y() - var.y() * 0.5, pos.y() + var.y() * 0.5 );
-    UniformRealRandom pos_z = Random::uniform_real(pos.z() - var.z() * 0.5, pos.z() + var.z() * 0.5 );
+    
+    Eigen::Vector3d var1 = var;
+    
+    //This fixes a boost-bug in uniform_real, which causes a loop, when min=max
+    for(int i=0; i<3; i++){
+      if(var1[i] <= 0.0)
+	var1[i] = 0.0001;
+    }  
+  
+    UniformRealRandom pos_x = Random::uniform_real(pos.x() - var1.x() * 0.5, pos.x() + var1.x() * 0.5 );
+    UniformRealRandom pos_y = Random::uniform_real(pos.y() - var1.y() * 0.5, pos.y() + var1.y() * 0.5 );
+    UniformRealRandom pos_z = Random::uniform_real(pos.z() - var1.z() * 0.5, pos.z() + var1.z() * 0.5 );
 
     particles.clear();
     perception_history.clear();
@@ -90,6 +98,10 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     motion_pose.position = pos;
     motion_pose.velocity << 0.0,0.0,0.0;
     motion_pose.angular_velocity << 0.0,0.0,0.0;
+    
+    vehicle_pose.position = pos;
+    vehicle_pose.velocity << 0.0, 0.0, 0.0;
+    vehicle_pose.angular_velocity << 0.0, 0.0 , 0.0;
     
     if(filter_config.advanced_motion_model)
       initializeDynamicModel(VehicleParameter());
@@ -303,9 +315,8 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 
         if(filter_config.pure_random_motion) {
             u_velocity = base::Vector3d(0.0, 0.0, 0.0);
-        }else if(filter_config.advanced_motion_model){
-	  	  
-	  std::cout << "PVelocity: " << X.p_velocity[0] << " " << X.p_velocity[1] << std::endl;
+        }else if(filter_config.advanced_motion_model){	  	  
+
 	  underwaterVehicle::ThrusterMapping input_thruster_data;
 	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
 	  input_thruster_data.thruster_value.resize(5);
@@ -338,10 +349,12 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
             v_noisy.x() = -0.55;
 
         base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
-
-        X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
-        X.p_velocity = v_noisy;
-        X.p_position.z() = vehicle_pose.position.z();
+	
+	if(vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
+	  X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+	  X.p_velocity = v_noisy;
+	  X.p_position.z() = vehicle_pose.position.z();
+	}
     } 
     
     X.timestamp = Ut.time;
@@ -384,9 +397,15 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	}
 
         base::Vector3d v_avg = (motion_pose.velocity + u_t1) / 2.0;
-
-        motion_pose.position = motion_pose.position + vehicle_pose.orientation * (v_avg * dt);
-        motion_pose.velocity = u_t1;
+        
+	if((!base::isUnset<double>(u_t1[0])) && (!base::isUnset<double>(u_t1[1])) && (!base::isUnset<double>(u_t1[2]))
+	  && vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
+	  motion_pose.position = motion_pose.position + vehicle_pose.orientation * (v_avg * dt);
+	  motion_pose.velocity = u_t1;
+	}else{
+	  std::cout << "Error in motion_model. Velocity or orientation is unset." << std::endl;
+	}  
+	
     } 
 
     motion_pose.time = Ut.time;

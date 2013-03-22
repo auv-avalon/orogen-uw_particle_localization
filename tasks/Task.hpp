@@ -35,6 +35,7 @@ namespace uw_particle_localization {
         int hough_sid;
         int gt_sid;
         double current_depth;
+	 bool orientation_sample_recieved;
 
         std::vector<double> weights;
         std::list<base::samples::RigidBodyState> buffer;

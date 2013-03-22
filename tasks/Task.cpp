@@ -41,8 +41,8 @@ bool Task::startHook()
      FilterConfig config;
      
      if(_yaml_map.value().empty()){
-       std::cout << "No map used" << std::endl;
-       config.useMap = false;
+       std::cout << "ERROR: No yaml-map given" << std::endl;
+       return false;
      }else{  
       std::cout << "Setup NodeMap" << std::endl;
       map = new NodeMap(_yaml_map.value());
@@ -153,6 +153,8 @@ bool Task::startHook()
     config.param_floating = _param_floating.value(); 
     
     config.advanced_motion_model = _advanced_motion_model.value();
+    
+    orientation_sample_recieved = false;
       
      localizer = new ParticleLocalization(config);
      localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
@@ -240,7 +242,8 @@ void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pip
 }
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
-{
+{   
+    orientation_sample_recieved = true;
     localizer->setCurrentOrientation(rbs);
     current_depth = rbs.position.z();
 
@@ -274,9 +277,14 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 
 
 void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& status)
-{
+{   
+  if(orientation_sample_recieved){
     localizer->update(status);
     localizer->update_dead_reckoning(status);
+  }else{
+    std::cout << "No initial orientation-sample recieved" << std::endl;
+  }  
+    
 }
 
 void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
