@@ -111,7 +111,16 @@ public:
       sonar_debug = debug;
   }
   
-  void setThrusterVoltage(double voltage);    
+  void setThrusterVoltage(double voltage);
+  
+  /**
+   * Calculates the angle-difference between the sonar_beam and the nearest corner of the pool
+   * @sonar_orientation: the orientation angle of the sonar (yaw)
+   * @position: the position of the auv
+   * @m: node-map of the pool
+   * @return: an absolute angle-difference in radian
+   */
+  double angleDiffToCorner(double sonar_orientation, base::Vector3d position, Environment* env);
   
 
 private:
@@ -121,6 +130,7 @@ private:
   underwaterVehicle::Parameters dynamic_model_params;
   base::samples::RigidBodyState vehicle_pose;
   base::samples::RigidBodyState motion_pose;
+  base::Time lastActuatorTime;
 
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
 

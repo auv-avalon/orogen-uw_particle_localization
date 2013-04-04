@@ -149,6 +149,20 @@ task_context "Task" do
     property("advanced_motion_model" , "bool" , false).
 	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
 	
+	
+   #Covarianz-----------------------------
+   
+   property("sonar_vertical_angle", "double" , 0.52).
+	doc("vertical opening angle of the sonar in radian")
+	
+   property("sonar_covariance_reflection_factor" , "double" , 1.2).
+	doc("Factor for the sonar covariance.").
+	doc("This factor is used, when the sonar-distance is in an range, at which a refelction from the water surface is possible")
+	
+   property("sonar_covariance_corner_factor", "double" , 2.0).
+	doc("Factor for the sonar covariance.").
+	doc("This factor is used to size up the covariance, when the sonar leads up to a corner")
+	
     #---Motion model parameter----------------------------------------------------------------
     
     property("param_length" , "double" , 1.4).

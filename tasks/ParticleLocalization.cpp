@@ -98,10 +98,15 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     motion_pose.position = pos;
     motion_pose.velocity << 0.0,0.0,0.0;
     motion_pose.angular_velocity << 0.0,0.0,0.0;
+    motion_pose.time = base::Time::now();
     
     vehicle_pose.position = pos;
     vehicle_pose.velocity << 0.0, 0.0, 0.0;
     vehicle_pose.angular_velocity << 0.0, 0.0 , 0.0;
+    vehicle_pose.time = base::Time::now();
+    
+    best_sonar_measurement.confidence = 0.0;
+    lastActuatorTime = base::Time();
     
     if(filter_config.advanced_motion_model)
       initializeDynamicModel(VehicleParameter());
@@ -306,10 +311,10 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
 void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Status& Ut)
 {
     Vector6d Xt;
-
+    
     if( !X.timestamp.isNull() ) {
         double dt = (Ut.time - X.timestamp).toSeconds();
-
+	
         base::Vector3d v_noisy;
         base::Vector3d u_velocity;
 
@@ -363,10 +368,10 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 
 void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& Ut)
 {
-    if( !motion_pose.time.isNull() ) {
+    if( !lastActuatorTime.isNull() ) {
         Vector6d Xt;
 	base::Vector3d u_t1;
-	double dt = (Ut.time - motion_pose.time).toSeconds();
+	double dt = (Ut.time - lastActuatorTime).toSeconds();
 	
 	if(filter_config.advanced_motion_model){
 	  	    
@@ -391,7 +396,7 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	  
 	  Xt.block<3,1>(0,0) = motion_pose.velocity;
 	  Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
-
+	  
 	  Vector6d U = motion_model.transition(Xt, dt, Ut);
 	  u_t1 = U.block<3,1>(0,0);	   
 	}
@@ -401,18 +406,21 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	if((!base::isUnset<double>(u_t1[0])) && (!base::isUnset<double>(u_t1[1])) && (!base::isUnset<double>(u_t1[2]))
 	  && vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
 	  motion_pose.position = motion_pose.position + vehicle_pose.orientation * (v_avg * dt);
-	  motion_pose.velocity = u_t1;
+	  motion_pose.velocity = u_t1;	 
+	
 	}else{
 	  std::cout << "Error in motion_model. Velocity or orientation is unset." << std::endl;
 	}  
 	
     } 
-
-    motion_pose.time = Ut.time;
+    
+    lastActuatorTime = Ut.time;
+    motion_pose.time = base::Time::now();
     motion_pose.velocity[2] = vehicle_pose.velocity[2];
     motion_pose.angular_velocity = vehicle_pose.angular_velocity;
     motion_pose.orientation = vehicle_pose.orientation;
     motion_pose.position.z() = vehicle_pose.position.z();
+        
 }
 
 
@@ -481,9 +489,12 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
       addHistory(best_sonar_measurement);
     
     best_sonar_measurement.confidence = -1.0;
+    timestamp = base::Time::now();
     
     return effective_sample_size;
 }  
+
+
 
 double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, const NodeMap& M)
 {
@@ -519,8 +530,17 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.p_position;
 
     boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
+    
+    double covar = filter_config.sonar_covariance;
+    
+    if(distance.get<1>() > vehicle_pose.position[2]/sin(filter_config.sonar_vertical_angle/2.0))
+      covar = covar * filter_config.sonar_covariance_reflection_factor;
+    
 
-    double probability = gaussian1d(0.0, filter_config.sonar_covariance, distance.get<1>());
+    if(angleDiffToCorner(angle+yaw, X.p_position, filter_config.env) < 0.1)
+      covar = covar * filter_config.sonar_covariance_corner_factor;
+    
+    double probability = gaussian1d(0.0, covar, distance.get<1>());
     
     debug(z_distance, distance.get<2>(), AbsZ, X.p_position, probability);
 
@@ -528,7 +548,6 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
     return probability;
 }
-
 
 double ParticleLocalization::perception(const PoseParticle& X, const controlData::Pipeline& Z, const NodeMap& M) 
 {
@@ -695,5 +714,28 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
 void ParticleLocalization::setThrusterVoltage(double voltage){
   motion_model.setThrusterVoltage(voltage); 
 }
+
+
+double ParticleLocalization::angleDiffToCorner(double sonar_orientation, base::Vector3d position, Environment* env){
+  //Environment env = m.getEnvironment();
+  double minAngleDiff = M_PI/2.0;
+  
+  for (std::vector<Plane>::iterator it = env->planes.begin() ; it != env->planes.end(); it++){
+      double angle = atan2(it->position[1] - position[1], it->position[0] - position[0]);
+      double angleDiff = fabs(sonar_orientation - angle) < M_PI ? fabs(sonar_orientation - angle) : (2.0*M_PI)-fabs(sonar_orientation - angle); 
+      
+      if(angleDiff < minAngleDiff)
+	minAngleDiff = angleDiff;
+      
+      angle = atan2((it->position + it->span_horizontal)[1] - position[0],
+		    (it->position + it->span_horizontal)[0] - position[0]);
+      angleDiff = fabs(sonar_orientation - angle) < M_PI ? fabs(sonar_orientation - angle) : (2.0*M_PI)-fabs(sonar_orientation - angle);
+      
+      if(angleDiff < minAngleDiff)
+	minAngleDiff = angleDiff;    
+  }  
+  
+  return minAngleDiff;
+}  
 
 }

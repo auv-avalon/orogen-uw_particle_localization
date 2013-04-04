@@ -56,7 +56,8 @@ namespace uw_particle_localization {
 
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;
-
+	uw_localization::Environment env;
+	
         void write(const uw_localization::PointInfo& sample);
 
 

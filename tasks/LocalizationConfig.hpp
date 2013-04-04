@@ -45,6 +45,10 @@ struct FilterConfig {
     double sonar_minimum_distance;
     double sonar_covariance;
     double pipeline_covariance;
+    
+    double sonar_vertical_angle;
+    double sonar_covariance_reflection_factor;
+    double sonar_covariance_corner_factor;
 
     Eigen::Matrix3d static_motion_covariance;  
     
@@ -63,6 +67,7 @@ struct FilterConfig {
     bool param_floating;
     
     bool advanced_motion_model;
+    Environment* env;
 };
 
 

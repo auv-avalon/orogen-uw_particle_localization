@@ -46,6 +46,8 @@ bool Task::startHook()
      }else{  
       std::cout << "Setup NodeMap" << std::endl;
       map = new NodeMap(_yaml_map.value());
+      env = map->getEnvironment();
+      config.env = &env;
       config.useMap = true;
      } 
      
@@ -57,6 +59,10 @@ bool Task::startHook()
      config.sonar_covariance = _sonar_covariance.value();
      config.pipeline_covariance = _pipeline_covariance.value();
      config.pure_random_motion = _pure_random_motion.value();
+     
+     config.sonar_vertical_angle = _sonar_vertical_angle.value();
+     config.sonar_covariance_reflection_factor = _sonar_covariance_reflection_factor.value();
+     config.sonar_covariance_corner_factor = _sonar_covariance_corner_factor.value();
      
      config.utm_relative_angle = _utm_relative_angle.value();
      config.gps_covarianz = _gps_covarianz.value();
@@ -279,7 +285,8 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& status)
 {   
   if(orientation_sample_recieved){
-    localizer->update(status);
+    
+    localizer->update(status);    
     localizer->update_dead_reckoning(status);
   }else{
     std::cout << "No initial orientation-sample recieved" << std::endl;
