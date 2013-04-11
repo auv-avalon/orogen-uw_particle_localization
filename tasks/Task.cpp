@@ -187,7 +187,9 @@ void Task::updateHook()
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
 
-     //if(!pose.time.isNull()) 
+     //if(!pose.time.isNull())
+	pose.position[2] = current_depth;
+	pose.velocity[2] = motion.velocity[2];
         _pose_samples.write(pose);     
 
      if(!motion.time.isNull())

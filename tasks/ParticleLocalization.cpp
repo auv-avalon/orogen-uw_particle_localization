@@ -357,11 +357,11 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 	
 	if(vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
 	  X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
-	  X.p_velocity = v_noisy;
-	  X.p_position.z() = vehicle_pose.position.z();
+	  X.p_velocity = v_noisy;	  
 	}
-    } 
+    }
     
+    X.p_position.z() = vehicle_pose.position.z();
     X.timestamp = Ut.time;
 }
  
