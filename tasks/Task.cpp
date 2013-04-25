@@ -105,15 +105,34 @@ bool Task::startHook()
     config.param_radius = _param_radius.value();;
     config.param_mass = _param_mass.value();
     
-    if(_param_thrusterCoefficient.value().size() < 6){
+    if(_param_thrusterCoefficient.value().size() < 18){
 	std::cout << "No valid thruster coefficients assigned. Use standart coefficients" << std::endl;  
 	//config.param_thrusterCoefficient.clear();
 	//config.param_thrusterCoefficient.resize(6,0.005);
 	
 	double values[] = {0.000, 0.000, -0.005, -0.005, 0.005, -0.005};
 	config.param_thrusterCoefficient = std::vector<double>(values, values + sizeof(values)/sizeof(double)) ;
+	
+	config.param_linearThrusterCoefficient.clear();
+	config.param_linearThrusterCoefficient.insert(config.param_linearThrusterCoefficient.begin(), 6, 0.0);
+	
+	config.param_squareThrusterCoefficient.clear();
+	config.param_squareThrusterCoefficient.insert(config.param_squareThrusterCoefficient.begin(), 6, 0.0);
+	
     }else{
 	config.param_thrusterCoefficient = _param_thrusterCoefficient.value();
+	
+	config.param_thrusterCoefficient.clear();
+	config.param_thrusterCoefficient.insert( config.param_thrusterCoefficient.begin(), 
+						_param_thrusterCoefficient.value().begin(), _param_thrusterCoefficient.value().begin() + 6);
+	
+	config.param_linearThrusterCoefficient.clear();
+	config.param_linearThrusterCoefficient.insert( config.param_linearThrusterCoefficient.begin(),
+						      _param_thrusterCoefficient.value().begin() + 6, _param_thrusterCoefficient.value().begin() + 12);
+	
+	config.param_squareThrusterCoefficient.clear();
+	config.param_squareThrusterCoefficient.insert( config.param_squareThrusterCoefficient.begin(),
+						      _param_thrusterCoefficient.value().begin() + 12, _param_thrusterCoefficient.value().end());
     }
       
     
@@ -162,9 +181,10 @@ bool Task::startHook()
     
     orientation_sample_recieved = false;
       
+     //delete localizer;
      localizer = new ParticleLocalization(config);
      localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
-     
+          
      localizer->setSonarDebug(this);
 
      return true;

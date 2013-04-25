@@ -37,6 +37,14 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
 
     p.ThrusterCoefficient << filter_config.param_thrusterCoefficient[0], filter_config.param_thrusterCoefficient[1], filter_config.param_thrusterCoefficient[2],
 		  filter_config.param_thrusterCoefficient[3], filter_config.param_thrusterCoefficient[4], filter_config.param_thrusterCoefficient[5];
+		  
+    p.LinearThrusterCoefficient << filter_config.param_linearThrusterCoefficient[0], filter_config.param_linearThrusterCoefficient[1],
+				    filter_config.param_linearThrusterCoefficient[2],  filter_config.param_linearThrusterCoefficient[3],
+				    filter_config.param_linearThrusterCoefficient[4], filter_config.param_linearThrusterCoefficient[5];
+		  
+    p.SquareThrusterCoefficient << filter_config.param_squareThrusterCoefficient[0], filter_config.param_squareThrusterCoefficient[1],
+				    filter_config.param_squareThrusterCoefficient[2],  filter_config.param_squareThrusterCoefficient[3],
+				    filter_config.param_squareThrusterCoefficient[4],  filter_config.param_squareThrusterCoefficient[5];
     p.ThrusterVoltage = filter_config.param_thrusterVoltage;
     
     p.TCM = MatrixTCM::Zero();    
@@ -172,6 +180,10 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   params.minPitchPWM = 0.0;
   params.maxYawPWM = 1.0;
   params.minYawPWM = 0.0;
+  
+  params.thruster_coefficients_pwm = filter_config.param_thrusterCoefficient;
+  params.linear_thruster_coefficients_pwm = filter_config.param_linearThrusterCoefficient;
+  params.square_thruster_coefficients_pwm = filter_config.param_squareThrusterCoefficient;
   
   //double values[] = {7.48,0,0,0,0,0,  0,16.29,0,0,0,0,  0,0,16.29,0,0,0,  0,0,0,0.61,0,0,  0,0,0,0,1.67,0,  0,0,0,0,0,1.67};
   //params.mass_matrix = std::vector<double>(values, values + sizeof(values)/sizeof(double));
@@ -712,7 +724,10 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
 }
 
 void ParticleLocalization::setThrusterVoltage(double voltage){
-  motion_model.setThrusterVoltage(voltage); 
+  if(filter_config.advanced_motion_model)
+    dynamic_model->setThrusterVoltage(voltage);
+  else
+    motion_model.setThrusterVoltage(voltage); 
 }
 
 

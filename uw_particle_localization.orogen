@@ -175,7 +175,10 @@ task_context "Task" do
 	doc("mass of avalon")
 	
     property("param_thrusterCoefficient" , "/std/vector<double>" ).
-	doc("Truster Coefficents")
+	doc("Truster Coefficents, given as an row-wise 3x6 Matrix").
+	doc("First row: constant factor").
+	doc("Second row: linear factor").
+	doc("Third row: square factor")
 	
     property("param_thrusterVoltage" ,"double" , 25.4).
 	doc("Thruster Volatage")

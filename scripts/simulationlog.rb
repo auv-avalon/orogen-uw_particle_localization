@@ -3,7 +3,7 @@ include Orocos
 
 Orocos.initialize
 
-log = Orocos::Log::Replay.open("AvalonSimulation.1.log")
+log = Orocos::Log::Replay.open("AvalonSimulation.0.log")
 
 #Orocos.run "AvalonSimulation" ,:wait => 10000, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
 Orocos.run "uw_particle_localization_test", "sonar_feature_estimator::Task"=> "sonar_feature_estimator",:wait => 10000, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
@@ -34,15 +34,23 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator::Task"=> "s
     pos.hough_interspersal_ratio = 0.1
     pos.sonar_maximum_distance = 12.0
     pos.sonar_covariance = 4.0
-    pos.yaml_map = File.join("nurc.yml")
+    pos.yaml_map = File.join("/home/fabio/avalon/supervision/maps/studiobad.yml")
     pos.advanced_motion_model = true
-    pos.param_TCM = [1.0,1.0,0.0,0.0,0.0,0.0,
-                     0.0,0.0,1.0,1.0,0.0,0.0,
+    pos.param_TCM = [0.0,0.0,1.0,1.0,0.0,0.0,
                      0.0,0.0,0.0,0.0,1.0,1.0,
+                     1.0,1.0,0.0,0.0,0.0,0.0,
                      0.0,0.0,0.0,0.0,0.0,0.0,
                      0.0,0.0,0.0,0.0,0.0,0.0,
                      0.0,0.0,0.0,0.0,0.0,0.0]
-    pos.param_thrusterCoefficient = [0.005, 0.005,0.005,0.005,0.005,0.005,]
+    pos.param_thrusterCoefficient = [0.005, -0.005,-0.005,-0.005,0.005,-0.005,
+				      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0] 
+    pos.param_thrusterVoltage = 22.225
+    pos.param_dampingX = [8.203187564, 0.04959]
+    pos.param_dampingY = [24.94216, 0.042393]
+    pos.param_dampingZ = [0.0, 0.0]
+    pos.param_floating = true 
+    
     #pos.perception_ratio = 1.0
     #pos.noise_ratio = 0.0
     #pos.max_distance_ratio = 0.0
@@ -67,8 +75,8 @@ Orocos.run "uw_particle_localization_test", "sonar_feature_estimator::Task"=> "s
     pos.configure
     pos.start
 
-    Vizkit.display feature
-    Vizkit.display pos
+    #Vizkit.display feature
+    #Vizkit.display pos
     Vizkit.control log
     #Vizkit.display actuators
     #Vizkit.display simulation

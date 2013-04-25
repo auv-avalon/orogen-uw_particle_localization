@@ -59,6 +59,8 @@ struct FilterConfig {
     double param_radius;
     double param_mass;
     std::vector<double> param_thrusterCoefficient;
+    std::vector<double> param_linearThrusterCoefficient;
+    std::vector<double> param_squareThrusterCoefficient;
     double param_thrusterVoltage;
     std::vector<double> param_TCM;
     std::vector<double> param_dampingX;
