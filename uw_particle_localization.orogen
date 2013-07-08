@@ -9,7 +9,7 @@ import_types_from "tasks/Types.hpp"
 import_types_from "offshore_pipeline_detector"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
-import_types_from "uw_localization/types/map.hpp"
+#import_types_from "uw_localization/types/map.hpp"
 import_types_from "uw_localization/types/environment.hpp"
 import_types_from "battery_management"
 
