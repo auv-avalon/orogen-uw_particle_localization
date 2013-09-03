@@ -140,46 +140,7 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   params.waterDensity = kWaterDensity;
   params.gravity = kGravity;
   
-  params.thruster_coefficient_pwm.surge.negative.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.surge.positive.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.sway.negative.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.sway.positive.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.heave.negative.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.heave.positive.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.roll.negative.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.roll.positive.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.pitch.negative.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.pitch.positive.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.yaw.negative.coefficient_a=0.005;
-  params.thruster_coefficient_pwm.yaw.positive.coefficient_a=0.005;
-  
-  params.thruster_coefficient_pwm.surge.negative.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.surge.positive.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.sway.negative.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.sway.positive.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.heave.negative.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.heave.positive.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.roll.negative.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.roll.positive.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.pitch.negative.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.pitch.positive.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.yaw.negative.coefficient_b=0.0;
-  params.thruster_coefficient_pwm.yaw.positive.coefficient_b=0.0;
-  
   params.thrusterVoltage = p.ThrusterVoltage;
-  
-  params.maxSurgePWM = 1.0;
-  params.minSurgePWM = 0.0;
-  params.maxSwayPWM = 1.0;
-  params.minSwayPWM = 0.0;
-  params.maxHeavePWM = 1.0;
-  params.minHeavePWM = 0.0;
-  params.maxRollPWM = 1.0;
-  params.minRollPWM = 0.0;
-  params.maxPitchPWM = 1.0;
-  params.minPitchPWM = 0.0;
-  params.maxYawPWM = 1.0;
-  params.minYawPWM = 0.0;
   
   params.thruster_coefficients_pwm = filter_config.param_thrusterCoefficient;
   params.linear_thruster_coefficients_pwm = filter_config.param_linearThrusterCoefficient;
@@ -188,63 +149,56 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   //double values[] = {7.48,0,0,0,0,0,  0,16.29,0,0,0,0,  0,0,16.29,0,0,0,  0,0,0,0.61,0,0,  0,0,0,0,1.67,0,  0,0,0,0,0,1.67};
   //params.mass_matrix = std::vector<double>(values, values + sizeof(values)/sizeof(double));
   
-  params.mass_matrix.clear();
-  params.mass_matrix.resize(36,0.0);  
+  base::Matrix6d mass_matrix = base::Matrix6d::Zero(); 
     
   //Setting index (1,1) = inertia mass + added mass
   //inertia mass = mass; added mass = 0.1 * mass
-  params.mass_matrix[0] = filter_config.param_mass + 0.1 * filter_config.param_mass; 
+  mass_matrix(0,0) = filter_config.param_mass + 0.1 * filter_config.param_mass; 
   
   //Setting index (2,2)
   //inertia mass = mass; added mass = waterdensity * PI * radius^2 * length 
-  params.mass_matrix[7] = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
+  mass_matrix(1,1) = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
   
   //Setting index (3,3)
   //inertia mass = mass; added mass = waterdensity * PI * radius^2 * length 
-  params.mass_matrix[14] = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
+  mass_matrix(2,2) = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
   
   //Setting index (4,4) -> Roll
   //inertia mass = mass; added mass = 0 
-  params.mass_matrix[21] = filter_config.param_mass;
+  mass_matrix(3,3) = filter_config.param_mass;
   
   //Setting index (5,5) -> Pitch
   //inertia mass = mass; added mass = 1/12 * pi * waterdensity * radius^2 * length^3
-  params.mass_matrix[28] =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0); 
+  mass_matrix(4,4) =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0); 
 
     //Setting index (6,6) -> Yaw
   //inertia mass = mass; added mass = 1/12 * pi * waterdensity * radius^2 * length^3
-  params.mass_matrix[35] =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0);
+  mass_matrix(5,5) =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0);
   
-   filter_config.param_mass = p.Mass; 
-  for(int i=0;i<6;i++){
-      params.massCoefficient[i].positive=params.mass_matrix[i*6+i];
-      params.massCoefficient[i].negative=params.mass_matrix[i*6+i];
-      //params.massCoefficient[i].positive=params.mass_matrix[i*6+1]*0.001;
-      //params.massCoefficient[i].negative=params.mass_matrix[i*6+1]*0.001;
-  }  
+  filter_config.param_mass = p.Mass; 
+  params.massMatrix = mass_matrix;
+  params.massMatrixNeg = mass_matrix;
 
   //Damping Coefficients
-  params.linDampCoeff[0].positive=filter_config.param_dampingX[0];
-  params.linDampCoeff[1].positive=filter_config.param_dampingY[0];
-  params.linDampCoeff[2].positive=filter_config.param_dampingZ[0];
-  params.quadDampCoeff[0].positive=filter_config.param_dampingX[1];
-  params.quadDampCoeff[1].positive=filter_config.param_dampingY[1];
-  params.quadDampCoeff[2].positive=filter_config.param_dampingZ[1];
+  params.linDampMatrix = base::Matrix6d::Zero();
+  params.linDampMatrixNeg = base::Matrix6d::Zero();
+  params.quadDampMatrix = base::Matrix6d::Zero();
+  params.quadDampMatrixNeg = base::Matrix6d::Zero();
   
-  params.linDampCoeff[0].negative=filter_config.param_dampingX[0];
-  params.linDampCoeff[1].negative=filter_config.param_dampingY[0];
-  params.linDampCoeff[2].negative=filter_config.param_dampingZ[0];
-  params.quadDampCoeff[0].negative=filter_config.param_dampingX[1];
-  params.quadDampCoeff[1].negative=filter_config.param_dampingY[1];
-  params.quadDampCoeff[2].negative=filter_config.param_dampingZ[1];
+  params.linDampMatrix(0,0)=filter_config.param_dampingX[0];
+  params.linDampMatrix(1,1)=filter_config.param_dampingY[0];
+  params.linDampMatrix(2,2)=filter_config.param_dampingZ[0];
+  params.quadDampMatrix(0,0)=filter_config.param_dampingX[1];
+  params.quadDampMatrix(1,1)=filter_config.param_dampingY[1];
+  params.quadDampMatrix(2,2)=filter_config.param_dampingZ[1];
   
-  //Setting yaw-,roll- and pitch-damping to 0, to reduce complexity
-  for(int i=3; i<6; i++){
-    params.linDampCoeff[i].positive=0.0;
-    params.quadDampCoeff[i].positive=0.0;
-    params.linDampCoeff[i].negative=0.0;
-    params.quadDampCoeff[i].negative=0.0;
-  }  
+  params.linDampMatrixNeg(0,0)=filter_config.param_dampingX[0];
+  params.linDampMatrixNeg(1,1)=filter_config.param_dampingY[0];
+  params.linDampMatrixNeg(2,2)=filter_config.param_dampingZ[0];
+  params.quadDampMatrixNeg(0,0)=filter_config.param_dampingX[1];
+  params.quadDampMatrixNeg(1,1)=filter_config.param_dampingY[1];
+  params.quadDampMatrixNeg(2,2)=filter_config.param_dampingZ[1];
+  
   
     
   //Initialize Thruster mapping
@@ -391,7 +345,7 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	  //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
 	  input_thruster_data.resize(6);
 	  for(unsigned int i=0;i<Ut.states.size();i++){
-	    input_thruster_data.thruster_value[i] = Ut.states[i].pwm * 255.0;
+	    input_thruster_data.thruster_value[i] = Ut.states[i].pwm;
 	  }
 	  input_thruster_data.thruster_mapped_names = dynamic_model_params.thrusters.thruster_mapped_names;	  
 	  
