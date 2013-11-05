@@ -104,6 +104,8 @@ bool Task::startHook()
     config.param_length = _param_length.value();
     config.param_radius = _param_radius.value();;
     config.param_mass = _param_mass.value();
+    config.param_centerOfGravity = _param_centerOfGravity.value();
+    config.param_centerOfBuoyancy = _param_centerOfBuoyancy.value();
     
     if(_param_thrusterCoefficient.value().size() < 18){
 	std::cout << "No valid thruster coefficients assigned. Use standart coefficients" << std::endl;  
@@ -151,29 +153,21 @@ bool Task::startHook()
       config.param_TCM = _param_TCM.value();
     }
     
-    if(_param_dampingX.value().size()<2){
-      std::cout << "No valid x-damping coefficients assigned. Use standard coefficients" << std::endl;
-      double values[] = {-4.5418, 4.9855};
-      config.param_dampingX = std::vector<double>(values, values + sizeof(values)/sizeof(double));;
-    }else{
-      config.param_dampingX = _param_dampingX.value();
+    
+    if(_param_linDamp.get().rows() != 6 && _param_linDamp.get().cols() != 6 &&
+      _param_linDampNeg.get().rows() != 6 && _param_linDampNeg.get().cols() != 6 &&
+      _param_sqDamp.get().rows() != 6 && _param_sqDamp.get().cols() != 6 &&
+      _param_sqDampNeg.get().rows() != 6 && _param_sqDampNeg.get().cols() != 6){
+      
+	std::cout << "Error: All damping matrix need to have 6 dimensions";
+	return false;
     }
     
-    if(_param_dampingY.value().size()<2){
-      std::cout << "No valid y-damping coefficients assigned. Use standard coefficients" << std::endl;
-      double values[] =  {58.28, 1.599};
-      config.param_dampingY = std::vector<double>(values, values + sizeof(values)/sizeof(double));
-    }else{
-      config.param_dampingY = _param_dampingY.value();
-    }
-    
-    if(_param_dampingZ.value().size()!=2){
-      std::cout << "No valid z-damping coefficients assigned. Use standard coefficients" << std::endl;
-      double values[] = {0.0, -23.8};
-      config.param_dampingZ = std::vector<double>(values, values + sizeof(values)/sizeof(double));
-    }else{
-      config.param_dampingZ = _param_dampingZ.value();
-    }
+    //Dirty, converting dynamic matrix to static matrix
+    config.param_linDamp = _param_linDamp.get().block<6,6>(0,0);
+    config.param_sqDamp = _param_sqDamp.get().block<6,6>(0,0);
+    config.param_linDampNeg = _param_linDampNeg.get().block<6,6>(0,0);
+    config.param_sqDampNeg = _param_sqDampNeg.get().block<6,6>(0,0);
 
     config.param_floating = _param_floating.value(); 
     
@@ -199,6 +193,7 @@ void Task::updateHook()
      
      base::samples::RigidBodyState pose = localizer->estimate();
      base::samples::RigidBodyState motion = localizer->dead_reckoning();
+     base::samples::RigidBodyState full_motion = localizer->full_dead_reckoning();
      pose.angular_velocity = motion.angular_velocity;
      //pose.velocity[0]=0.0;
      //pose.velocity[1]=0.0;
@@ -214,6 +209,9 @@ void Task::updateHook()
 
      if(!motion.time.isNull())
        _dead_reckoning_samples.write(motion);
+     
+     if(!full_motion.time.isNull() && _advanced_motion_model)
+       _full_dead_reckoning.write(full_motion);
      
      battery_management::batteryInformation batteryInfo;
      while(_battery_status.read(batteryInfo)==RTT::NewData){
@@ -306,14 +304,26 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 
 void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& status)
 {   
-  if(orientation_sample_recieved){
-    
+  if(orientation_sample_recieved){    
     localizer->update(status);    
     localizer->update_dead_reckoning(status);
   }else{
     std::cout << "No initial orientation-sample recieved" << std::endl;
   }  
     
+}
+
+void Task::thruster_commandsCallback(const base::Time& ts, const base::actuators::Command& rbs){
+  base::actuators::Status status;
+  status.time = rbs.time;
+  status.resize(rbs.mode.size());
+  
+  for(int i=0; i < rbs.mode.size(); i++){
+     status.states[i].pwm = rbs.target[i]; 
+  }
+  
+  thruster_samplesCallback(ts, status);
+  
 }
 
 void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){

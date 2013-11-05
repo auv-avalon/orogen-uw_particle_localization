@@ -26,6 +26,9 @@ task_context "Task" do
 
    output_port("dead_reckoning_samples", "/base/samples/RigidBodyState").
         doc("poses measured only by motion model")
+        
+   output_port("full_dead_reckoning", "/base/samples/RigidBodyState").
+	doc("poes measured only by motion model, in al 6 degrees of freedom. Only available with the advanced motion model")
 
    output_port("particles", "/uw_localization/ParticleSet").
         doc("current particle set used in this filter")
@@ -54,6 +57,9 @@ task_context "Task" do
 
    input_port('thruster_samples', '/base/actuators/Status').
         doc('status input for thrusters')
+      
+   input_port('thruster_commands', '/base/actuators/Command').
+	doc('command input for thrusters. alternative port of thruster_samples')
 
    input_port('pipeline_samples', '/controlData::Pipeline').
         doc("visual pipeline samples from bottom_camera when pipeline detected").
@@ -186,17 +192,14 @@ task_context "Task" do
     property("param_TCM" , "/std/vector<double>" ).
 	doc("Thruster Coefficient Matrix, which sets the direction of the thruster force")
     
-    property("param_dampingX" , "/std/vector<double>").
-	doc("The damping coefficients in x direction").
-	doc("First Coefficient is the linear factor, the second is the square factor")
-	
-    property("param_dampingY" , "/std/vector<double>" ).
-	doc("The damping coefficients in y direction").
-	doc("First Coefficient is the linear factor, the second the is the square factor")
-	
-    property("param_dampingZ" , "/std/vector<double>" ).
-	doc("The damping coefficients in z direction")
-	
+    property("param_linDamp" , "base/MatrixXd")
+    property("param_sqDamp" , "base/MatrixXd")
+    property("param_linDampNeg" , "base/MatrixXd")
+    property("param_sqDampNeg" , "base/MatrixXd")
+    
+    property("param_centerOfGravity", "base/Vector3d")
+    property("param_centerOfBuoyancy", "base/Vector3d")
+    
     property("param_floating" , "bool" , true).
 	doc("true, if density of avalon = density of water")        
         
@@ -209,6 +212,7 @@ task_context "Task" do
        align_port "orientation_samples", 0.01
        align_port "speed_samples", 0.01
        align_port "thruster_samples", 0.01
+       align_port "thruster_commands", 0.01
        align_port "pipeline_samples", 0.1
        align_port "pose_update", 0.1
        align_port "gps_pose_samples", 0.1 
@@ -217,6 +221,7 @@ task_context "Task" do
    port_driven :laser_samples
    port_driven :orientation_samples
    port_driven :thruster_samples
+   port_driven :thruster_commands
    port_driven :speed_samples
    port_driven :pipeline_samples
    port_driven :pose_update

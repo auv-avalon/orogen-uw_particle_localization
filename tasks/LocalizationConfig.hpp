@@ -63,9 +63,12 @@ struct FilterConfig {
     std::vector<double> param_squareThrusterCoefficient;
     double param_thrusterVoltage;
     std::vector<double> param_TCM;
-    std::vector<double> param_dampingX;
-    std::vector<double> param_dampingY;
-    std::vector<double> param_dampingZ;
+    base::Matrix6d param_linDamp;
+    base::Matrix6d param_sqDamp;
+    base::Matrix6d param_linDampNeg;
+    base::Matrix6d param_sqDampNeg;
+    base::Vector3d param_centerOfGravity;
+    base::Vector3d param_centerOfBuoyancy;
     bool param_floating;
     
     bool advanced_motion_model;

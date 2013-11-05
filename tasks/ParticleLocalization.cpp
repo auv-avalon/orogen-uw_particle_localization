@@ -63,9 +63,9 @@ UwVehicleParameter ParticleLocalization::VehicleParameter() const
              0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
     */
              
-    p.DampingX << filter_config.param_dampingX[1] , filter_config.param_dampingX[0];
-    p.DampingY << filter_config.param_dampingY[1] , filter_config.param_dampingY[0];;
-    p.DampingZ << filter_config.param_dampingZ[1] , filter_config.param_dampingZ[0];
+    p.DampingX << filter_config.param_sqDamp(0,0) , filter_config.param_linDamp(0,0);
+    p.DampingY << filter_config.param_sqDamp(1,1) , filter_config.param_linDamp(1,1);
+    p.DampingZ << filter_config.param_sqDamp(2,2) , filter_config.param_linDamp(2,2);
     p.floating = filter_config.param_floating;
         
     return p;
@@ -108,6 +108,11 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     motion_pose.angular_velocity << 0.0,0.0,0.0;
     motion_pose.time = base::Time::now();
     
+    full_motion_pose.position = pos;
+    full_motion_pose.velocity << 0.0, 0.0, 0.0;
+    full_motion_pose.angular_velocity << 0.0, 0.0, 0.0;
+    full_motion_pose.time = base::Time::now();
+    
     vehicle_pose.position = pos;
     vehicle_pose.velocity << 0.0, 0.0, 0.0;
     vehicle_pose.angular_velocity << 0.0, 0.0 , 0.0;
@@ -130,12 +135,8 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   params.uwv_volume = M_PI*std::pow(p.Radius,2.0)*p.Length;
   params.uwv_float =true;
   
-  params.distance_body2centerofmass = Vector3d();
-  params.distance_body2centerofmass << 0.0,0.0,0.0;
-  params.distance_body2centerofbuoyancy = Vector3d();
-  params.distance_body2centerofbuoyancy << 0.0,0.0,0.0;
-  params.distance_body2centerofgravity = Vector3d();
-  params.distance_body2centerofgravity << 0.0,0.0,0.0;
+  params.distance_body2centerofbuoyancy = filter_config.param_centerOfBuoyancy;
+  params.distance_body2centerofgravity = filter_config.param_centerOfGravity;
   
   params.waterDensity = kWaterDensity;
   params.gravity = kGravity;
@@ -185,21 +186,10 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   params.quadDampMatrix = base::Matrix6d::Zero();
   params.quadDampMatrixNeg = base::Matrix6d::Zero();
   
-  params.linDampMatrix(0,0)=filter_config.param_dampingX[0];
-  params.linDampMatrix(1,1)=filter_config.param_dampingY[0];
-  params.linDampMatrix(2,2)=filter_config.param_dampingZ[0];
-  params.quadDampMatrix(0,0)=filter_config.param_dampingX[1];
-  params.quadDampMatrix(1,1)=filter_config.param_dampingY[1];
-  params.quadDampMatrix(2,2)=filter_config.param_dampingZ[1];
-  
-  params.linDampMatrixNeg(0,0)=filter_config.param_dampingX[0];
-  params.linDampMatrixNeg(1,1)=filter_config.param_dampingY[0];
-  params.linDampMatrixNeg(2,2)=filter_config.param_dampingZ[0];
-  params.quadDampMatrixNeg(0,0)=filter_config.param_dampingX[1];
-  params.quadDampMatrixNeg(1,1)=filter_config.param_dampingY[1];
-  params.quadDampMatrixNeg(2,2)=filter_config.param_dampingZ[1];
-  
-  
+  params.linDampMatrix = filter_config.param_linDamp;
+  params.linDampMatrixNeg = filter_config.param_linDampNeg;
+  params.quadDampMatrix = filter_config.param_sqDamp;
+  params.quadDampMatrixNeg = filter_config.param_sqDampNeg;  
     
   //Initialize Thruster mapping
   params.thrusters.resize(6);
@@ -352,11 +342,29 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	  //std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
 	  dynamic_model->setPosition(motion_pose.position);
 	  dynamic_model->setLinearVelocity(motion_pose.velocity);
+	  dynamic_model->setAngularVelocity(base::Vector3d::Zero());
+	  dynamic_model->setOrientation(vehicle_pose.orientation);
 	  dynamic_model->setSamplingtime(dt);
 	  
 	  dynamic_model->setPWMLevels(input_thruster_data);	   
 	  
-	  u_t1 = dynamic_model->getLinearVelocity();	  
+	  u_t1 = dynamic_model->getLinearVelocity();	
+	  
+	  //Full dead reckoning
+	  dynamic_model->setPosition(full_motion_pose.position);
+	  dynamic_model->setLinearVelocity(full_motion_pose.velocity);
+	  dynamic_model->setAngularVelocity(full_motion_pose.angular_velocity);
+	  dynamic_model->setOrientation(full_motion_pose.orientation);
+	  
+	  dynamic_model->setPWMLevels(input_thruster_data);
+	  
+	  full_motion_pose.position = dynamic_model->getPosition();
+	  full_motion_pose.velocity = dynamic_model->getLinearVelocity();
+	  full_motion_pose.angular_velocity = dynamic_model->getAngularVelocity();
+	  full_motion_pose.orientation = dynamic_model->getOrientation_in_Quat();
+	  full_motion_pose.time = Ut.time;
+	  
+	  
 	  //std::cout << "new Velocity: " << u_t1[0] << " " << u_t1[1] << std::endl ;
 	}else{
 	  
@@ -376,6 +384,8 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	
 	}else{
 	  std::cout << "Error in motion_model. Velocity or orientation is unset." << std::endl;
+	  if(!vehicle_pose.hasValidOrientation())
+	    std::cout << "Invalid orientation" << std::endl;
 	}  
 	
     } 

@@ -104,6 +104,7 @@ public:
 
   void update_dead_reckoning(const base::actuators::Status& u);
   const base::samples::RigidBodyState& dead_reckoning() const { return motion_pose; }
+  const base::samples::RigidBodyState& full_dead_reckoning() const { return full_motion_pose;}
 
   void teleportParticles(const base::samples::RigidBodyState& position);
 
@@ -130,6 +131,7 @@ private:
   underwaterVehicle::Parameters dynamic_model_params;
   base::samples::RigidBodyState vehicle_pose;
   base::samples::RigidBodyState motion_pose;
+  base::samples::RigidBodyState full_motion_pose;
   base::Time lastActuatorTime;
 
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
