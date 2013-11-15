@@ -133,7 +133,7 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   
   params.uwv_mass = p.Mass;
   params.uwv_volume = M_PI*std::pow(p.Radius,2.0)*p.Length;
-  params.uwv_float =true;
+  params.uwv_float =filter_config.param_floating;
   
   params.distance_body2centerofbuoyancy = filter_config.param_centerOfBuoyancy;
   params.distance_body2centerofgravity = filter_config.param_centerOfGravity;
@@ -506,6 +506,13 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.p_position;
 
     boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
+    boost::tuple<Node*, double, Eigen::Vector3d> distance_box = M.getNearestDistance("root.box",
+				  Eigen::Vector3d(0.0, filter_config.sonar_vertical_angle/2.0, yaw + angle), X.p_position);
+				  
+    if(distance.get<1>() < distance_box.get<1>() - z_distance){
+      distance_box.get<1>() = distance_box.get<1>() - z_distance;
+      distance = distance_box;
+    }
     
     double covar = filter_config.sonar_covariance;
     
