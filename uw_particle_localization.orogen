@@ -5,6 +5,7 @@ using_library "machine_learning"
 using_library "uwv_dynamic_model"
 
 import_types_from "base"
+import_types_from "avalon_base/feature.h"
 import_types_from "tasks/Types.hpp"
 import_types_from "offshore_pipeline_detector"
 import_types_from "uw_localization/types/particle.hpp"
@@ -75,6 +76,9 @@ task_context "Task" do
    
    input_port("battery_status", "/battery_management/batteryInformation").
 	doc("Status of the batteries for use in the motion model")
+	
+   input_port("buoy_samples", "/avalon/feature/Buoy").
+	doc("buoy sample of the buoy-detection")
    
    # ----------------------------------------------------------------------
    # properties
@@ -121,6 +125,9 @@ task_context "Task" do
 
    property("pipeline_covariance", "double", 1.0).
         doc("sets pipeline covariance for defining measurement uncertainty")
+        
+   property("buoy_covariance", "double", 1.0).
+	doc("set buoy detetction covariance for defining measurement uncertainty")
 
    property("pure_random_motion", "bool", false).
         doc("ignore velocity in speed samples for dynamic update")
@@ -133,16 +140,43 @@ task_context "Task" do
 
    property("pipeline_importance", "double", 0.5).
         doc("sets importance ratio for pipeline perception updates")
+        
+   property("buoy_importance", "double", 0.5).
+	doc("sets importance ratio for buoy detection updates")
 
    property("perception_history_number", "int", 8).
         doc("set history size for determing uncertainty_degree of best measurement samples")
 
    property("init_sample_rejection", "int", 100).
         doc("dont use the first n sonar samples for state estimation")
+        
+   #Sensor-transformation------------------------------------------------------------------
+   
+   
+   
+   property("sonar_position", "base/Vector3d").
+	doc("transformation of the sonar, with respect to the origin of avalon")
+	
+   property("pipeline_position", "base/Vector3d").
+	doc("transformation of the pipeline-camera, with respect to the origin of avalon")
+	
+   property("gps_position", "base/Vector3d").
+	doc("transformation of the gps sensor, with respect to the origin of avalon")
+	
+  property("buoy_cam_position", "base/Vector3d").
+	doc("transformation of the buoy detection cam, with respect to the origin of avalon")
+	
+  property("buoy_cam_rotation", "base/Vector3d").
+	doc("Rotation of the buoy detection cam in the body frame")
+	
+   
+   #GPS-settings------------------------------------------------------------------------------
+   
+   
    
    property("utm_relative_angle", "double", 0).
 	doc("gives the angle difference between the coordinate-system and the utm-north") 
-   
+      
    property("gps_covarianz", "double", 1.0).
 	doc("sets gps covariance for defining measurement uncertainty")
 	
@@ -150,13 +184,11 @@ task_context "Task" do
 	doc("sets importance ratio for gps perception updates")
 	
     property("gps_interspersal_ratio" , "double", 0.01).
-	doc("ratio for generating new particle after each gps_sample")
+	doc("ratio for generating new particle after each gps_sample")	
 	
-    property("advanced_motion_model" , "bool" , false).
-	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
-	
-	
-   #Covarianz-----------------------------
+   #Covarianz modification---------------------------------------------------------------------
+   
+   
    
    property("sonar_vertical_angle", "double" , 0.52).
 	doc("vertical opening angle of the sonar in radian")
@@ -170,6 +202,13 @@ task_context "Task" do
 	doc("This factor is used to size up the covariance, when the sonar leads up to a corner")
 	
     #---Motion model parameter----------------------------------------------------------------
+    
+    
+    
+    
+    property("advanced_motion_model" , "bool" , false).
+	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
+    
     
     property("param_length" , "double" , 1.4).
 	doc("length of avalon")
@@ -215,7 +254,8 @@ task_context "Task" do
        align_port "thruster_commands", 0.01
        align_port "pipeline_samples", 0.1
        align_port "pose_update", 0.1
-       align_port "gps_pose_samples", 0.1 
+       align_port "gps_pose_samples", 0.1
+       align_port "buoy_samples", 0.1
    end
  
    port_driven :laser_samples
@@ -226,6 +266,7 @@ task_context "Task" do
    port_driven :pipeline_samples
    port_driven :pose_update
    port_driven :gps_pose_samples
+   port_driven :buoy_samples
 end
 
 

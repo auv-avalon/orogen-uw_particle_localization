@@ -54,6 +54,7 @@ namespace uw_particle_localization {
         virtual void pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
         virtual void pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline);
 	virtual void gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+	virtual void buoy_samplesCallback(const base::Time&, const avalon::feature::Buoy&);
 
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;

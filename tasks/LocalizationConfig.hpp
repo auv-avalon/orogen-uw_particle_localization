@@ -45,12 +45,21 @@ struct FilterConfig {
     double sonar_minimum_distance;
     double sonar_covariance;
     double pipeline_covariance;
+    double buoy_covariance;
     
     double sonar_vertical_angle;
     double sonar_covariance_reflection_factor;
     double sonar_covariance_corner_factor;
 
-    Eigen::Matrix3d static_motion_covariance;  
+    Eigen::Matrix3d static_motion_covariance;
+    
+    //Sensor transformations
+    Eigen::Translation3d sonarToAvalon;
+    Eigen::Vector3d pipelineToAvalon;
+    Eigen::Vector3d gpsToAvalon;
+    
+    Eigen::Vector3d buoyCamPosition;
+    Eigen::Quaternion<double> buoyCamRotation;
     
     bool useMap;
     

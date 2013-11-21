@@ -159,7 +159,7 @@ bool Task::startHook()
       _param_sqDamp.get().rows() != 6 && _param_sqDamp.get().cols() != 6 &&
       _param_sqDampNeg.get().rows() != 6 && _param_sqDampNeg.get().cols() != 6){
       
-	std::cout << "Error: All damping matrix need to have 6 dimensions";
+	std::cout << "Error: All damping matrix need to have 6 dimensions!" << std::endl;
 	return false;
     }
     
@@ -173,8 +173,15 @@ bool Task::startHook()
     
     config.advanced_motion_model = _advanced_motion_model.value();
     
+    config.sonarToAvalon = Eigen::Translation3d(_sonar_position.get());
+    config.pipelineToAvalon = _pipeline_position.get();
+    config.gpsToAvalon = _gps_position.get();
+    
+    config.buoyCamPosition = _buoy_cam_position.get();
+    config.buoyCamRotation = eulerToQuaternion( _buoy_cam_rotation.get());
+    
     orientation_sample_recieved = false;
-      
+          
      //delete localizer;
      localizer = new ParticleLocalization(config);
      localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
@@ -335,9 +342,16 @@ void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::R
   if(number_gps_perceptions >= _minimum_perceptions.value()) {
         localizer->resample();
         number_gps_perceptions = 0;
-    }
+    }  
+}
+
+
+void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buoy& buoy){
+  last_perception = ts;
   
-}  
+  double effective_sample_size = localizer->observe(buoy, *map, _buoy_importance.value());
+  
+} 
 
 void Task::stopHook()
 {

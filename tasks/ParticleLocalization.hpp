@@ -19,6 +19,7 @@
 #include <uw_localization/types/info.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
+#include <avalon_base/feature.h>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
 
@@ -41,7 +42,8 @@ class ParticleLocalization : public ParticleFilter<PoseParticle, NodeMap>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
   public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
-  public Perception<PoseParticle, std::pair<double,double>, NodeMap>  
+  public Perception<PoseParticle, std::pair<double,double>, NodeMap>,
+  public Perception<PoseParticle, avalon::feature::Buoy, NodeMap>  
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -67,6 +69,7 @@ public:
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
   virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, const NodeMap& m);
+  virtual double perception(const PoseParticle& x, const avalon::feature::Buoy& z, const NodeMap& m);  
   
     
  /**

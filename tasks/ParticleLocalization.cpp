@@ -500,7 +500,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     // check current measurement with map
     Eigen::AngleAxis<double> sonar_yaw(angle, Eigen::Vector3d::UnitZ()); 
     Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
-    Eigen::Affine3d SonarToAvalon(Eigen::Translation3d(-0.5, 0.0, 0.0));
+    Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);
 
     Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(z_distance, 0.0, 0.0);
     Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.p_position;
@@ -517,8 +517,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     double covar = filter_config.sonar_covariance;
     
     if(distance.get<1>() > vehicle_pose.position[2]/sin(filter_config.sonar_vertical_angle/2.0))
-      covar = covar * filter_config.sonar_covariance_reflection_factor;
-    
+      covar = covar * filter_config.sonar_covariance_reflection_factor;    
 
     if(angleDiffToCorner(angle+yaw, X.p_position, filter_config.env) < 0.1)
       covar = covar * filter_config.sonar_covariance_corner_factor;
@@ -537,14 +536,15 @@ double ParticleLocalization::perception(const PoseParticle& X, const controlData
     double yaw = base::getYaw(vehicle_pose.orientation);
     Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
 
-    Eigen::Vector3d RelZ(-0.7, 0.0, -2.0);
-    Eigen::Vector3d AbsZ = (abs_yaw * RelZ) + X.p_position;
+    Eigen::Vector3d AbsZ = (abs_yaw * filter_config.pipelineToAvalon) + X.p_position;
 
     boost::tuple<Node*, double, Eigen::Vector3d> distance;
-    if(Z.inspection_state == controlData::END_OF_PIPE)
+    if(Z.inspection_state == controlData::END_OF_PIPE){
         distance = M.getNearestDistance("root.end_of_pipe", AbsZ, X.p_position);
-    else
+	
+    }else if(Z.inspection_state == controlData::FOUND_PIPE || Z.inspection_state == controlData::FOLLOW_PIPE || Z.inspection_state){
         distance = M.getNearestDistance("root.pipeline", AbsZ, X.p_position);
+    }
 
     double probability = gaussian1d(0.0, filter_config.pipeline_covariance, distance.get<1>());
     
@@ -572,15 +572,31 @@ double ParticleLocalization::perception(const PoseParticle& X, const std::pair<d
     //double propability = calc_gaussian(pos, covar, gps);
     
     double diff=std::sqrt(std::pow(X.p_position[0]-Z.first, 2.0) + std::pow(X.p_position[1]-Z.second, 2.0));
-    double propability = gaussian1d(0, filter_config.gps_covarianz, diff);
+    double probability = gaussian1d(0, filter_config.gps_covarianz, diff);
     
-    debug(Z,propability,OKAY);
+    debug(Z,probability,OKAY);
     
     first_perception_received = true;
     
-    return propability;
-}  
+    return probability;
+}
 
+double ParticleLocalization::perception(const PoseParticle& X, const avalon::feature::Buoy& Z, const NodeMap& M){
+  
+  Eigen::Vector3d cameraInWorld = X.p_position + (vehicle_pose.orientation * filter_config.buoyCamPosition);
+  Eigen::Vector3d buoyToCam =  vehicle_pose.orientation * (filter_config.buoyCamRotation * Z.world_coord);
+  Eigen::Vector3d buoyInWorld = cameraInWorld + buoyToCam;
+  
+  double distance = M.getNearestDistance("root.buoy", buoyInWorld, X.p_position).get<1>();
+  
+  double probability = gaussian1d(0.0, filter_config.buoy_covariance, distance);
+  
+  first_perception_received = true;
+  
+  return probability;
+}
+  
+  
 void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
 {
     if(perception_history.size() >= filter_config.perception_history_number) {
