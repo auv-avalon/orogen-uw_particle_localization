@@ -221,6 +221,7 @@ void Task::updateHook()
        _full_dead_reckoning.write(full_motion);
      
      battery_management::batteryInformation batteryInfo;
+     /* //TODO RE-Add
      while(_battery_status.read(batteryInfo)==RTT::NewData){
        double voltage = 0.0;
        
@@ -230,6 +231,7 @@ void Task::updateHook()
        localizer->setThrusterVoltage(voltage);
        
      }  
+     */
 }
 
 

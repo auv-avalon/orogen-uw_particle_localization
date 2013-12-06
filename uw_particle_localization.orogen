@@ -12,7 +12,7 @@ import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
 #import_types_from "uw_localization/types/map.hpp"
 import_types_from "uw_localization/types/environment.hpp"
-import_types_from "battery_management"
+#import_types_from "battery_management"
 
 task_context "Task" do
    # ----------------------------------------------------------------------
@@ -74,8 +74,8 @@ task_context "Task" do
 	doc("Position Information estimated by GPS").
 	needs_reliable_connection
    
-   input_port("battery_status", "/battery_management/batteryInformation").
-	doc("Status of the batteries for use in the motion model")
+#   input_port("battery_status", "/battery_management/batteryInformation").
+#	doc("Status of the batteries for use in the motion model")
 	
    input_port("buoy_samples", "/avalon/feature/Buoy").
 	doc("buoy sample of the buoy-detection")
