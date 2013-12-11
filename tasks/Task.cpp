@@ -25,6 +25,17 @@ Task::Task(std::string const& name)
   _param_centerOfBuoyancy.set(v);
   _param_centerOfGravity.set(v);
   
+  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline;
+  v_sonar << -0.5, 0.0, 0.0;
+  _sonar_position.set(v_sonar);
+  v_gps.setZero();
+  _gps_position.set(v_gps);
+  v_buoy_cam << 0.7, 0.0, 0.0;
+  _buoy_cam_position.set(v_buoy_cam);
+  v_buoy_rotation.setZero();
+  _buoy_cam_rotation.set(v_buoy_rotation);
+  v_pipeline << -0.7, 0.0, -2.0;
+  _pipeline_position.set(v_pipeline);  
 }
 
 Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
