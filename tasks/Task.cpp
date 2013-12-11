@@ -13,7 +13,7 @@ Task::Task(std::string const& name)
     : TaskBase(name)
 {
 
-  Eigen::Matrix3d m;
+  base::Matrix6d m;
   m.setZero();
   _param_sqDamp.set(m);
   _param_sqDampNeg.set(m);
@@ -44,18 +44,31 @@ Task::Task(std::string const& name)
 Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
     : TaskBase(name, engine)
 {
-    Eigen::Matrix3d m;
-    m.setZero();
-    _param_sqDamp.set(m);
-    _param_sqDampNeg.set(m);
-    m(0,0) = 8.203187564;
-    m(1,1) = 24.94216;
-    _param_linDamp.set(m);
-    _param_linDampNeg.set(m);
-    Eigen::Vector3d v;
-    v.setZero();
-    _param_centerOfGravity.set(v);
-    _param_centerOfBuoyancy.set(v);
+  base::Matrix6d m;
+  m.setZero();
+  _param_sqDamp.set(m);
+  _param_sqDampNeg.set(m);
+  m(0,0) = 8.203187564;
+  m(1,1) = 24.94216;
+  _param_linDamp.set(m);
+  _param_linDampNeg.set(m);
+  
+  Eigen::Vector3d v;
+  v.setZero();
+  _param_centerOfBuoyancy.set(v);
+  _param_centerOfGravity.set(v);
+  
+  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline;
+  v_sonar << -0.5, 0.0, 0.0;
+  _sonar_position.set(v_sonar);
+  v_gps.setZero();
+  _gps_position.set(v_gps);
+  v_buoy_cam << 0.7, 0.0, 0.0;
+  _buoy_cam_position.set(v_buoy_cam);
+  v_buoy_rotation.setZero();
+  _buoy_cam_rotation.set(v_buoy_rotation);
+  v_pipeline << -0.7, 0.0, -2.0;
+  _pipeline_position.set(v_pipeline);  
 }
 
 Task::~Task()
@@ -182,9 +195,9 @@ bool Task::startHook()
     
     if(_param_TCM.value().size() < 36){
       std::cout << "No valid TCM assigned. Use standard TCM" << std::endl;
-      double values[] = { 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-			    0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
-			    1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+      double values[] = { 0.0, 0.0, -1.0, -1.0, 0.0, 0.0,
+			    0.0, 0.0, 0.0, 0.0, 1.0, -1.0,
+			    1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
 			    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 			    -0.92, 0.205, 0.0, 0.0, 0.0, 0.0,
 			    0.0, 0.0, -0.17, 0.17, -0.81, 0.04};
@@ -192,16 +205,29 @@ bool Task::startHook()
     }else{
       config.param_TCM = _param_TCM.value();
     }
-    
-    
-    if(_param_linDamp.get().rows() != 6 && _param_linDamp.get().cols() != 6 &&
-      _param_linDampNeg.get().rows() != 6 && _param_linDampNeg.get().cols() != 6 &&
-      _param_sqDamp.get().rows() != 6 && _param_sqDamp.get().cols() != 6 &&
-      _param_sqDampNeg.get().rows() != 6 && _param_sqDampNeg.get().cols() != 6){
+
+    if(_param_linDamp.get().rows() != 6 && _param_linDamp.get().cols() != 6){
       
-	std::cout << "Error: All damping matrix need to have 6 dimensions!" << std::endl;
+	std::cout << "Error: linDamp-Matrix should be 6D. Real dimensions: " << _param_linDamp.get().rows() << " , " << _param_linDamp.get().cols() << std::endl;
 	return false;
     }
+    if(_param_linDampNeg.get().rows() != 6 && _param_linDampNeg.get().cols() != 6){
+      
+	std::cout << "Error: linDampNeg-Matrix should be 6D. Real dimensions: " << _param_linDampNeg.get().rows() << " , " << _param_linDampNeg.get().cols() << std::endl;
+	return false;
+    }
+    if(_param_sqDamp.get().rows() != 6 && _param_sqDamp.get().cols() != 6){
+      
+	std::cout << "Error: sqDamp-Matrix should be 6D. Real dimensions: " << _param_sqDamp.get().rows() << " , " << _param_sqDamp.get().cols() << std::endl;
+	return false;
+    }
+    if(_param_sqDampNeg.get().rows() != 6 && _param_sqDampNeg.get().cols() != 6){
+      
+	std::cout << "Error: sqDampNeg-Matrix should be 6D. Real dimensions: " << _param_sqDampNeg.get().rows() << " , " << _param_sqDampNeg.get().cols() << std::endl;
+	return false;
+    } 
+    
+
     
     //Dirty, converting dynamic matrix to static matrix
     config.param_linDamp = _param_linDamp.get().block<6,6>(0,0);
