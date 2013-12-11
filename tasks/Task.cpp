@@ -4,6 +4,7 @@
 #include "ParticleLocalization.hpp"
 #include "Fir.hpp"
 #include <aggregator/StreamAligner.hpp>
+#include <Eigen/Core>
 
 using namespace uw_particle_localization;
 using namespace uw_localization;
@@ -11,6 +12,7 @@ using namespace uw_localization;
 Task::Task(std::string const& name)
     : TaskBase(name)
 {
+
   Eigen::Matrix3d m;
   m.setZero();
   _param_sqDamp.set(m);
@@ -36,11 +38,24 @@ Task::Task(std::string const& name)
   _buoy_cam_rotation.set(v_buoy_rotation);
   v_pipeline << -0.7, 0.0, -2.0;
   _pipeline_position.set(v_pipeline);  
+
 }
 
 Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
     : TaskBase(name, engine)
 {
+    Eigen::Matrix3d m;
+    m.setZero();
+    _param_sqDamp.set(m);
+    _param_sqDampNeg.set(m);
+    m(0,0) = 8.203187564;
+    m(1,1) = 24.94216;
+    _param_linDamp.set(m);
+    _param_linDampNeg.set(m);
+    Eigen::Vector3d v;
+    v.setZero();
+    _param_centerOfGravity.set(v);
+    _param_centerOfBuoyancy.set(v);
 }
 
 Task::~Task()
