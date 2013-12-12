@@ -286,8 +286,8 @@ void Task::updateHook()
      if(!full_motion.time.isNull() && _advanced_motion_model)
        _full_dead_reckoning.write(full_motion);
      
-     battery_management::batteryInformation batteryInfo;
      /* //TODO RE-Add
+     battery_management::batteryInformation batteryInfo;
      while(_battery_status.read(batteryInfo)==RTT::NewData){
        double voltage = 0.0;
        
