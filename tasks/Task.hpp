@@ -5,7 +5,7 @@
 
 #include "uw_particle_localization/TaskBase.hpp"
 #include <uw_localization/filters/particle_filter.hpp>
-#include <battery_management/BatteryManagementTypes.hpp>
+//#include <battery_management/BatteryManagementTypes.hpp>
 #include <vector>
 #include <list>
 
