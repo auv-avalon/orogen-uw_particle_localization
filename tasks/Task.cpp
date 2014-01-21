@@ -344,6 +344,7 @@ void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pip
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {   
+    //std::cout << "Orientation callback" << std::endl;
     orientation_sample_recieved = true;
     localizer->setCurrentOrientation(rbs);
     current_depth = rbs.position.z();
@@ -378,7 +379,8 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 
 
 void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& status)
-{   
+{  
+  //std::cout << "Thruster callback" << std::endl;
   if(orientation_sample_recieved){    
     localizer->update(status);    
     localizer->update_dead_reckoning(status);
@@ -389,6 +391,8 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators:
 }
 
 void Task::thruster_commandsCallback(const base::Time& ts, const base::actuators::Command& rbs){
+  //std::cout << "Thruster command callback" << std::endl;
+  
   base::actuators::Status status;
   status.time = rbs.time;
   status.resize(rbs.mode.size());
