@@ -28,16 +28,9 @@ namespace uw_particle_localization {
         base::Time last_perception;
         base::Time start_time;
 
-        int laser_sid;
-        int orientation_sid;
-        int speed_sid;
-        int thruster_sid;
-        int hough_sid;
-        int gt_sid;
         double current_depth;
 	 bool orientation_sample_recieved;
 
-        std::vector<double> weights;
         std::list<base::samples::RigidBodyState> buffer;
 
         unsigned number_sonar_perceptions;

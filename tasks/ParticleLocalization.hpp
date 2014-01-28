@@ -79,7 +79,7 @@ public:
  * @param M: the nodemap
  * @return the propability of the particle
  */ 
-  virtual double perception(const PoseParticle& x, const std::pair<double,double>& z, const NodeMap& m);
+  virtual double perception(const PoseParticle& x, const base::Vector3d& z, const NodeMap& m);
 
   virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio);
 
@@ -96,7 +96,7 @@ public:
 
   void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
-  void debug(std::pair<double, double> pos, double conf, PointStatus status);
+  void debug(const base::Vector3d& pos, double conf, PointStatus status);
   
   void addHistory(const PointInfo& status);
 
@@ -145,7 +145,7 @@ private:
   double perception_history_sum;
   
   //the origin of the coordinate system as utm-coordinate
-  std::pair<double,double> utm_origin;
+  base::Vector3d utm_origin;
 
   /** observers */
   DebugWriter<uw_localization::PointInfo>* sonar_debug;

@@ -17,7 +17,8 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
 {
     first_perception_received = false;
     PoseParticle::pose = &vehicle_pose;
-    utm_origin = std::make_pair(-1,-1);
+    utm_origin = base::Vector3d::Zero();
+    utm_origin[0] = -1;
 }
 
 ParticleLocalization::~ParticleLocalization()
@@ -308,15 +309,10 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 	    }   
 	
 	  v_noisy = u_velocity + StaticSpeedNoise();
-	  
-	  if(v_noisy.x() > 0.55)
-	      v_noisy.x() = 0.55;
-	  else if(v_noisy.x() < -0.55)
-	      v_noisy.x() = -0.55;
 
 	  base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 	  
-	  if(vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
+	  if(vehicle_pose.hasValidOrientation() && !std::isnan(v_avg[0]) && !std::isnan(v_avg[1])){
 	    X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
 	    X.p_velocity = v_noisy;	  
 	  }
@@ -411,7 +407,8 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
     motion_pose.angular_velocity = vehicle_pose.angular_velocity;
     motion_pose.orientation = vehicle_pose.orientation;
     motion_pose.position.z() = vehicle_pose.position.z();
-        
+    
+    vehicle_pose.velocity = motion_pose.velocity;
 }
 
 
@@ -445,17 +442,17 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
 
 double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, const NodeMap& m, double importance)
 {	
-    if(utm_origin.first==-1){
-	utm_origin = std::make_pair(z.position[0], z.position[1]);
+    if(utm_origin[0]==-1){
+	utm_origin << z.position[0], z.position[1], 0.0;
     }
     
     //Converts the utm-coordinate to our world coordinate system
-    std::pair<double, double> pose;
-    pose.first = cos(filter_config.utm_relative_angle)*(z.position[0]-utm_origin.first)
-	  - sin(filter_config.utm_relative_angle)*(z.position[1]-utm_origin.second)
+    base::Vector3d pose;
+    pose[0] = cos(filter_config.utm_relative_angle)*(z.position[0]-utm_origin[0])
+	  - sin(filter_config.utm_relative_angle)*(z.position[1]-utm_origin[1])
 	  + filter_config.init_position[0];
-    pose.second = cos(filter_config.utm_relative_angle)*(z.position[1]-utm_origin.second)
-	  + sin(filter_config.utm_relative_angle)*(z.position[0]-utm_origin.first)
+    pose[1] = cos(filter_config.utm_relative_angle)*(z.position[1]-utm_origin[1])
+	  + sin(filter_config.utm_relative_angle)*(z.position[0]-utm_origin[0])
 	  + filter_config.init_position[1];    
     
     //Sets the covarianz matrix of the rbs
@@ -466,8 +463,8 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
 	0, 0, filter_config.gps_covarianz;
     newRBS.cov_position = cov;
     
-    newRBS.position[0]=pose.first;
-    newRBS.position[1]=pose.second;
+    newRBS.position[0]=pose[0];
+    newRBS.position[1]=pose[1];
     
     //Creates new particle at the gps-position
     interspersal(newRBS, m, filter_config.gps_interspersal_ratio);	  
@@ -569,14 +566,14 @@ double ParticleLocalization::perception(const PoseParticle& X, const controlData
 }
 
 
-double ParticleLocalization::perception(const PoseParticle& X, const std::pair<double,double>& Z, const NodeMap& M)
+double ParticleLocalization::perception(const PoseParticle& X, const base::Vector3d& Z, const NodeMap& M)
 {
     Eigen::Matrix<double,2,1> pos;
     pos << X.p_position[0] , X.p_position[1];
     Eigen::Matrix<double,2,2> covar;
     covar << filter_config.gps_covarianz, 0, 0, filter_config.gps_covarianz;
     Eigen::Matrix<double,2,1> gps; 
-    gps << Z.first, Z.second;    
+    gps << Z[0], Z[1];    
     
     //check if this particle is part of the world
     if(filter_config.useMap && !M.belongsToWorld(X.p_position)) {
@@ -586,7 +583,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const std::pair<d
     
     //double propability = calc_gaussian(pos, covar, gps);
     
-    double diff=std::sqrt(std::pow(X.p_position[0]-Z.first, 2.0) + std::pow(X.p_position[1]-Z.second, 2.0));
+    double diff=std::sqrt(std::pow(X.p_position[0]-Z[0], 2.0) + std::pow(X.p_position[1]-Z[1], 2.0));
     double probability = gaussian1d(0, filter_config.gps_covarianz, diff);
     
     debug(Z,probability,OKAY);
@@ -691,14 +688,14 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& desire, 
     }
 }
 
-void ParticleLocalization::debug(std::pair<double, double> pos, double conf, PointStatus status)
+void ParticleLocalization::debug(const base::Vector3d& pos, double conf, PointStatus status)
 {
     if(best_sonar_measurement.confidence < conf){
 	uw_localization::PointInfo info;
 	info.distance = 0.0;
 	info.desire_point = base::Vector3d(0.0,0.0,0.0);
 	info.real_point = base::Vector3d(0.0,0.0,0.0);
-	info.location = base::Vector3d(pos.first,pos.second,0.0);
+	info.location = base::Vector3d(pos[0],pos[1],0.0);
 	info.confidence = conf;
 	info.status = status;
     }  
@@ -718,7 +715,7 @@ void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState
 void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {
   
-    if(timestamp.toSeconds() > orientation.toSeconds()){
+    if(timestamp.toSeconds() > orientation.time.toSeconds()){
       vehicle_pose.time = timestamp;
     }else{
       vehicle_pose.time = orientation.time;
