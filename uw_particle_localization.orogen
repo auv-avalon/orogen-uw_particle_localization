@@ -55,12 +55,9 @@ task_context "Task" do
    input_port("speed_samples", "/base/samples/RigidBodyState").
         doc("current motion sample retrieved from our motion model").
         needs_reliable_connection
-
-   input_port('thruster_samples', '/base/actuators/Status').
-        doc('status input for thrusters')
-      
-   input_port('thruster_commands', '/base/actuators/Command').
-	doc('command input for thrusters. alternative port of thruster_samples')
+   
+   input_port('thruster_samples', '/base/samples/Joints')
+	doc("status input for thrusters")
 
    input_port('pipeline_samples', '/controlData::Pipeline').
         doc("visual pipeline samples from bottom_camera when pipeline detected").
@@ -248,7 +245,6 @@ task_context "Task" do
        align_port "orientation_samples", 0.01
        align_port "speed_samples", 0.01
        align_port "thruster_samples", 0.01
-       align_port "thruster_commands", 0.01
        align_port "pipeline_samples", 0.1
        align_port "pose_update", 0.1
        align_port "gps_pose_samples", 0.1
@@ -258,7 +254,6 @@ task_context "Task" do
    port_driven :laser_samples
    port_driven :orientation_samples
    port_driven :thruster_samples
-   port_driven :thruster_commands
    port_driven :speed_samples
    port_driven :pipeline_samples
    port_driven :pose_update

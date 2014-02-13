@@ -10,7 +10,7 @@
 
 #include <base/eigen.h>
 #include <base/samples/rigid_body_state.h>
-#include <base/actuators/status.h>
+#include <base/samples/Joints.hpp>
 #include <base/samples/laser_scan.h>
 #include <machine_learning/RandomNumbers.hpp>
 #include <uw_localization/filters/particle_filter.hpp>
@@ -38,7 +38,7 @@ struct PoseParticle {
 
 
 class ParticleLocalization : public ParticleFilter<PoseParticle, NodeMap>,
-  public Dynamic<PoseParticle, base::actuators::Status>,
+  public Dynamic<PoseParticle, base::samples::Joints>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
   public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
@@ -62,10 +62,10 @@ public:
   virtual void   setConfidence(PoseParticle& X, double weight) { X.main_confidence = weight; }
 
   virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u);
-  virtual void dynamic(PoseParticle& x, const base::actuators::Status& u);
+  virtual void dynamic(PoseParticle& x, const base::samples::Joints& u);
 
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
-  virtual const base::Time& getTimestamp(const base::actuators::Status& u);
+  virtual const base::Time& getTimestamp(const base::samples::Joints& u);
 
   virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
   virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, const NodeMap& m);
@@ -105,7 +105,7 @@ public:
 
   void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
 
-  void update_dead_reckoning(const base::actuators::Status& u);
+  void update_dead_reckoning(const base::samples::Joints& u);
   const base::samples::RigidBodyState& dead_reckoning() const { return motion_pose; }
   const base::samples::RigidBodyState& full_dead_reckoning() const { return full_motion_pose;}
 

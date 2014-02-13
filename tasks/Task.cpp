@@ -378,7 +378,7 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 }
 
 
-void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators::Status& status)
+void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& status)
 {  
   //std::cout << "Thruster callback" << std::endl;
   if(orientation_sample_recieved){    
@@ -388,21 +388,6 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::actuators:
     std::cout << "No initial orientation-sample recieved" << std::endl;
   }  
     
-}
-
-void Task::thruster_commandsCallback(const base::Time& ts, const base::actuators::Command& rbs){
-  //std::cout << "Thruster command callback" << std::endl;
-  
-  base::actuators::Status status;
-  status.time = rbs.time;
-  status.resize(rbs.mode.size());
-  
-  for(int i=0; i < rbs.mode.size(); i++){
-     status.states[i].pwm = rbs.target[i]; 
-  }
-  
-  thruster_samplesCallback(ts, status);
-  
 }
 
 void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){

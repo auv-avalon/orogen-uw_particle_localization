@@ -193,19 +193,7 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   params.quadDampMatrixNeg = filter_config.param_sqDampNeg;  
     
   //Initialize Thruster mapping
-  params.thrusters.resize(6);
-  params.thrusters.thruster_mapped_names.clear();
-  
-  for(int i=0; i<6; i++){
-      if(filter_config.param_TCM[i] > 0.0)
-	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::SURGE);
-      else if(filter_config.param_TCM[6+i] > 0.0)
-	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::SWAY);
-      else if(filter_config.param_TCM[12+i] > 0.0)
-	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::HEAVE);
-      else
-	params.thrusters.thruster_mapped_names.push_back(underwaterVehicle::UNINITIALISED);
-  }    
+  params.number_of_thrusters = 6;
   
   params.thruster_control_matrix.clear();
   params.thruster_control_matrix.resize(36,0.0);
@@ -248,35 +236,34 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
         u_velocity = base::Vector3d(0.0, 0.0, 0.0);
     else
         u_velocity = U.velocity;
-
-    v_noisy = u_velocity + StaticSpeedNoise();
-
-    base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
-
+    
     if( !X.timestamp.isNull() ) {
-        double dt = (U.time - X.timestamp).toSeconds();
+      double dt = (U.time - X.timestamp).toSeconds();
+      v_noisy = u_velocity + (StaticSpeedNoise() * dt);
 
-        X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+      base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
+
+      X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+      X.p_velocity = v_noisy;
     }
 
-    X.p_velocity = v_noisy;
     X.timestamp = U.time;
     X.p_velocity[2] = vehicle_pose.velocity[2];
     X.p_position.z() = vehicle_pose.position.z();
 }
 
-void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Status& Ut)
+void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Joints& Ut)
 {
     Vector6d Xt;
-    base::actuators::Status U = Ut;
+    base::Time sample_time = Ut.time;
     
-    if(U.time.isNull())
-      U.time=base::Time::now();
+    if(sample_time.isNull())
+      sample_time=base::Time::now();
     
     if( !X.timestamp.isNull() ) {
-        double dt = (U.time - X.timestamp).toSeconds();
+        double dt = (sample_time - X.timestamp).toSeconds();
 	
-	if(dt < 5.0){
+	if(dt < 5.0){ //Only use dynamic_model for small timesteps, to prevent an overflow
 	
 	  base::Vector3d v_noisy;
 	  base::Vector3d u_velocity;
@@ -285,17 +272,11 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 		u_velocity = base::Vector3d(0.0, 0.0, 0.0);
 	    }else if(filter_config.advanced_motion_model){	  	  
 
-	      underwaterVehicle::ThrusterMapping input_thruster_data;
-	      //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
-	      input_thruster_data.thruster_value.resize(5);
-	      for(unsigned int i=0;i<U.states.size();i++){
-		input_thruster_data.thruster_value[i] = U.states[i].pwm;
-	      } 
-		      
+   
 	      dynamic_model->setPosition(X.p_position);
 	      dynamic_model->setLinearVelocity(X.p_velocity);
 	      dynamic_model->setSamplingtime(dt);
-	      dynamic_model->setPWMLevels(input_thruster_data);	
+	      dynamic_model->setPWMLevels(Ut);	
 	      
 	      u_velocity = dynamic_model->getLinearVelocity();
 	      
@@ -307,48 +288,40 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::actuators::Statu
 
 		u_velocity = V.block<3, 1>(0, 0);	   
 	    }   
-	
-	  v_noisy = u_velocity + StaticSpeedNoise();
+	  
+	  //Motion noise. Noise depends on the delta-time. For a long time intervall, there is more noise
+	  v_noisy = u_velocity + (StaticSpeedNoise() * dt); 
 
 	  base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 	  
-	  if(vehicle_pose.hasValidOrientation() && !std::isnan(v_avg[0]) && !std::isnan(v_avg[1])){
+	  if(vehicle_pose.hasValidOrientation() && !std::isnan(v_avg[0]) && !std::isnan(v_avg[1]) 
+		  && base::samples::RigidBodyState::isValidValue(v_noisy) ){
 	    X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
 	    X.p_velocity = v_noisy;	  
 	  }
       }
-    }else{
-      std::cout << "Timestamp diff between trhuster samples to big" << std::endl;
     }
     
     X.p_position.z() = vehicle_pose.position.z();
-    X.timestamp = U.time;
+    X.timestamp = sample_time;
 }
  
 
-void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& Ut)
+void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut)
 {   
-    base::actuators::Status U = Ut;
-    if(U.time.isNull())
-      U.time = base::Time::now(); 
+    base::Time sample_time = Ut.time;
+    if(sample_time.isNull())
+      sample_time = base::Time::now(); 
     
     if( !lastActuatorTime.isNull() ) {
         Vector6d Xt;
 	base::Vector3d u_t1;
-	double dt = (U.time - lastActuatorTime).toSeconds();
+	double dt = (Ut.time - lastActuatorTime).toSeconds();
 	
 	if(dt < 5.0 && dt > 0.0){
 	  
 	  if(filter_config.advanced_motion_model){
 		      
-	    underwaterVehicle::ThrusterMapping input_thruster_data;
-	    //input_thruster_data.thruster_mapped_names = input_uwv_parameters.thrusters.thruster_mapped_names;
-	    input_thruster_data.resize(6);
-	    for(unsigned int i=0;i<U.states.size();i++){
-	      input_thruster_data.thruster_value[i] = U.states[i].pwm;
-	    }
-	    input_thruster_data.thruster_mapped_names = dynamic_model_params.thrusters.thruster_mapped_names;	  
-	    
 	    //std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
 	    dynamic_model->setPosition(motion_pose.position);
 	    dynamic_model->setLinearVelocity(motion_pose.velocity);
@@ -356,7 +329,7 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	    dynamic_model->setOrientation(vehicle_pose.orientation);
 	    dynamic_model->setSamplingtime(dt);
 	    
-	    dynamic_model->setPWMLevels(input_thruster_data);	   
+	    dynamic_model->setPWMLevels(Ut);	   
 	    
 	    u_t1 = dynamic_model->getLinearVelocity();	
 	    
@@ -366,13 +339,13 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	    dynamic_model->setAngularVelocity(full_motion_pose.angular_velocity);
 	    dynamic_model->setOrientation(full_motion_pose.orientation);
 	    
-	    dynamic_model->setPWMLevels(input_thruster_data);
+	    dynamic_model->setPWMLevels(Ut);
 	    
 	    full_motion_pose.position = dynamic_model->getPosition();
 	    full_motion_pose.velocity = dynamic_model->getLinearVelocity();
 	    full_motion_pose.angular_velocity = dynamic_model->getAngularVelocity();
 	    full_motion_pose.orientation = dynamic_model->getOrientation_in_Quat();
-	    full_motion_pose.time = U.time;
+	    full_motion_pose.time = Ut.time;
 	    
 	    
 	    //std::cout << "new Velocity: " << u_t1[0] << " " << u_t1[1] << std::endl ;
@@ -381,14 +354,14 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	    Xt.block<3,1>(0,0) = motion_pose.velocity;
 	    Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
 	    
-	    Vector6d V = motion_model.transition(Xt, dt, U);
+	    Vector6d V = motion_model.transition(Xt, dt, Ut);
 	    u_t1 = V.block<3,1>(0,0);	   
 	  }
 
 	  base::Vector3d v_avg = (motion_pose.velocity + u_t1) / 2.0;
 	  
-	  if((!base::isUnset<double>(u_t1[0])) && (!base::isUnset<double>(u_t1[1])) && (!base::isUnset<double>(u_t1[2]))
-	    && vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
+	  if(base::samples::RigidBodyState::isValidValue(u_t1) && vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
+	    
 	    motion_pose.position = motion_pose.position + vehicle_pose.orientation * (v_avg * dt);
 	    motion_pose.velocity = u_t1;	 
 	  
@@ -397,11 +370,13 @@ void ParticleLocalization::update_dead_reckoning(const base::actuators::Status& 
 	    if(!vehicle_pose.hasValidOrientation())
 	      std::cout << "Invalid orientation" << std::endl;
 	  }
+	}else{
+	  std::cout << "Timestampdifference between thruster-samples to big" << std::endl;
 	}
 	
     } 
     
-    lastActuatorTime = U.time;
+    lastActuatorTime = sample_time;
     motion_pose.time = base::Time::now();
     motion_pose.velocity[2] = vehicle_pose.velocity[2];
     motion_pose.angular_velocity = vehicle_pose.angular_velocity;
@@ -419,7 +394,7 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::RigidB
     return U.time;
 }
 
-const base::Time& ParticleLocalization::getTimestamp(const base::actuators::Status& U)
+const base::Time& ParticleLocalization::getTimestamp(const base::samples::Joints& U)
 {
     return U.time;
 }
