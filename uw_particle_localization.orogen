@@ -147,6 +147,8 @@ task_context "Task" do
    property("init_sample_rejection", "int", 100).
         doc("dont use the first n sonar samples for state estimation")
         
+   property("orientation_offset", "double", 0.0)
+        
    #Sensor-transformation------------------------------------------------------------------
    
    

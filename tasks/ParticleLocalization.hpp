@@ -94,7 +94,7 @@ public:
    */
   double observeAndDebug(const base::samples::RigidBodyState& z, const NodeMap& m, double importance = 1.0);
 
-  void debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
+  void debug(double distance, double desire_distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
   void debug(const base::Vector3d& pos, double conf, PointStatus status);
   

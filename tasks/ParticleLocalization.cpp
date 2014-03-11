@@ -495,12 +495,14 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
     boost::tuple<Node*, double, Eigen::Vector3d> distance_box = M.getNearestDistance("root.box",
 				  Eigen::Vector3d(0.0, filter_config.sonar_vertical_angle/2.0, yaw + angle), X.p_position);
-				  
-    if(distance.get<1>() < distance_box.get<1>() - z_distance){
+
+
+    if(distance.get<1>() > distance_box.get<1>() - z_distance){
       distance_box.get<1>() = distance_box.get<1>() - z_distance;
       distance = distance_box;
     }
-    
+
+
     double covar = filter_config.sonar_covariance;
     
     if(distance.get<1>() > vehicle_pose.position[2]/sin(filter_config.sonar_vertical_angle/2.0))
@@ -511,8 +513,9 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     
     double probability = gaussian1d(0.0, covar, distance.get<1>());
     
-    debug(z_distance, distance.get<2>(), AbsZ, X.p_position, probability);
-
+    debug(z_distance, distance.get<1>(), distance.get<2>(), AbsZ, X.p_position, probability);
+    //std::cout << distance.get<1>() << std::endl;    
+    
     first_perception_received = true;
 
     return probability;
@@ -638,6 +641,7 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& location
     if(best_sonar_measurement.confidence < conf) {
         uw_localization::PointInfo info;
         info.distance = distance;
+	info.desire_distance = 0.0;
         info.desire_point = base::Vector3d(0.0, 0.0, 0.0);
         info.real_point = base::Vector3d(0.0, 0.0, 0.0);
         info.location = location;
@@ -648,11 +652,12 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& location
     }
 }
 
-void ParticleLocalization::debug(double distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf)
+void ParticleLocalization::debug(double distance, double desire_distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf)
 {
     if(best_sonar_measurement.confidence < conf) {
         uw_localization::PointInfo info;
         info.distance = distance;
+	info.desire_distance = desire_distance;
         info.desire_point = desire;
         info.real_point = real;
         info.location = loc;
@@ -668,6 +673,7 @@ void ParticleLocalization::debug(const base::Vector3d& pos, double conf, PointSt
     if(best_sonar_measurement.confidence < conf){
 	uw_localization::PointInfo info;
 	info.distance = 0.0;
+	info.desire_distance = 0.0;
 	info.desire_point = base::Vector3d(0.0,0.0,0.0);
 	info.real_point = base::Vector3d(0.0,0.0,0.0);
 	info.location = base::Vector3d(pos[0],pos[1],0.0);
@@ -696,7 +702,7 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
       vehicle_pose.time = orientation.time;
     }
     
-    vehicle_pose.orientation = orientation.orientation;
+    vehicle_pose.orientation = Eigen::AngleAxis<double>(filter_config.yaw_offset, Eigen::Vector3d::UnitZ()) * orientation.orientation;
     vehicle_pose.cov_orientation = orientation.cov_orientation;
     vehicle_pose.position = orientation.position;
     vehicle_pose.angular_velocity = orientation.angular_velocity;

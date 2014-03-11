@@ -120,6 +120,8 @@ bool Task::startHook()
      config.utm_relative_angle = _utm_relative_angle.value();
      config.gps_covarianz = _gps_covarianz.value();
      config.gps_interspersal_ratio = _gps_interspersal_ratio.value();
+     
+     config.yaw_offset = _orientation_offset.get();
 
      if(!_init_position.value().empty() && !_init_variance.value().empty()) {
          config.init_position = convertProperty<Eigen::Vector3d>(_init_position.value());
@@ -322,6 +324,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
             && Neff < _effective_sample_size_threshold.value()) {
         localizer->resample();
         number_sonar_perceptions = 0;
+	//std::cout << "Resampling" << std::endl;
     }
 }
 

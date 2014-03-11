@@ -61,6 +61,8 @@ struct FilterConfig {
     Eigen::Vector3d buoyCamPosition;
     Eigen::Quaternion<double> buoyCamRotation;
     
+    double yaw_offset;
+    
     bool useMap;
     
     //Motion model Properties
