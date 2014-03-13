@@ -8,6 +8,7 @@
 //#include <battery_management/BatteryManagementTypes.hpp>
 #include <vector>
 #include <list>
+#include "uw_particle_localization/LocalizationConfig.hpp"
 
 namespace aggregator {
     class StreamAligner;
@@ -36,6 +37,7 @@ namespace uw_particle_localization {
         unsigned number_sonar_perceptions;
         unsigned number_rejected_samples;
 	int number_gps_perceptions;
+	uw_localization::FilterConfig config;
 
         void step(const base::samples::RigidBodyState& sample);
 

@@ -91,8 +91,7 @@ bool Task::startHook()
      if (! TaskBase::startHook())
          return false;
       
-     FilterConfig config;
-     
+ 
      if(_yaml_map.value().empty()){
        std::cout << "ERROR: No yaml-map given" << std::endl;
        return false;
@@ -102,8 +101,7 @@ bool Task::startHook()
       env = map->getEnvironment();
       config.env = &env;
       config.useMap = true;
-     } 
-     
+     }
      
      config.particle_number = _particle_number.value();
      config.perception_history_number = _perception_history_number.value();
@@ -248,6 +246,19 @@ bool Task::startHook()
     config.buoyCamPosition = _buoy_cam_position.get();
     config.buoyCamRotation = eulerToQuaternion( _buoy_cam_rotation.get());
     
+    
+    std::vector<std::string> names;
+    if(_joint_names.get().size() == 6){
+      names = _joint_names.get();
+    }else{
+      std::string name_values[] =  {std::string("right"), std::string("left"), std::string("dive"), std::string("pitch"), std::string("strave"), std::string("yaw")};
+      std::cout << "No joint names set. Using default" << std::endl;
+      names = std::vector<std::string>(name_values, name_values + sizeof(name_values) / sizeof(std::string));
+    }
+    
+    config.joint_names = names;      
+      
+    
     orientation_sample_recieved = false;
           
      //delete localizer;
@@ -383,10 +394,24 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 
 void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& status)
 {  
+  
+  base::samples::Joints j = status;
+  
+  if(status.hasNames()){
+  
+    for(int i = 0; i < status.size() && i < config.joint_names.size(); i++){
+      
+	try{
+	  j.elements[i] = status[config.joint_names[i]]; 
+	}
+	catch(...){
+	}	
+    }  
+  }
   //std::cout << "Thruster callback" << std::endl;
   if(orientation_sample_recieved){    
-    localizer->update(status);    
-    localizer->update_dead_reckoning(status);
+    localizer->update(j);    
+    localizer->update_dead_reckoning(j);
   }else{
     std::cout << "No initial orientation-sample recieved" << std::endl;
   }  

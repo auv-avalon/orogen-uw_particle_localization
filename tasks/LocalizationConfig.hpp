@@ -2,7 +2,9 @@
 #define UW_PARTICLE_LOCALIZATION_CONFIG_HPP
 
 #include <vector>
+#include <string>
 #include <boost/assert.hpp>
+#include <uw_localization/types/environment.hpp>
 
 namespace uw_localization {
 
@@ -84,6 +86,8 @@ struct FilterConfig {
     
     bool advanced_motion_model;
     Environment* env;
+    
+    std::vector<std::string> joint_names;
 };
 
 

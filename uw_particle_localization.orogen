@@ -7,6 +7,7 @@ using_library "uwv_dynamic_model"
 import_types_from "base"
 import_types_from "avalon_base/feature.h"
 import_types_from "tasks/Types.hpp"
+import_types_from "tasks/LocalizationConfig.hpp"
 import_types_from "offshore_pipeline_detector"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
@@ -236,7 +237,10 @@ task_context "Task" do
     property("param_centerOfBuoyancy", "base/Vector3d")
     
     property("param_floating" , "bool" , true).
-	doc("true, if density of avalon = density of water")        
+	doc("true, if density of avalon = density of water")
+	
+    property("joint_names" ,"std/vector<string>")
+
         
    # ----------------------------------------------------------------------
    # stream aligner
@@ -263,6 +267,38 @@ task_context "Task" do
    port_driven :buoy_samples
 end
 
+task_context "OrientationCorrection" do
+###################
+# This Task corrects orientation samples to the wanted world-frame.
+# For Correction magnetic north and 
+
+
+  property("north_offset", "double", 0.0).
+    doc("Difference between the real north and the given world-frame").
+    doc("imu - north_offset = real")
+  
+  property("buffer_size", "int", 10).
+    doc("Size of the offset_buffer")
+    
+  property("min_buffer_size" , "int", 3).
+    doc("Minimum number of offset_samples, used for offset calculation")  
+  
+  input_port("orientation_input", "base/samples/RigidBodyState").
+    doc("Orientationsamples of the orientation-estimator")
+  
+  input_port("absolute_orientation", "base/samples/RigidBodyState").
+    doc("Orientationsapmles of the imu")  
+  
+  input_port("orientation_offset", "double").
+    doc("Offsetsamples of the sonar-localization")
+  
+  output_port("orientation_output", "base/samples/RigidBodyState").
+    doc("Corrected orientation samples")
+  
+  port_driven
+end
+
+
 
 # Declares a deployment, i.e. an actual executable that contains various tasks.
 deployment "uw_particle_localization_test" do
@@ -273,4 +309,12 @@ deployment "uw_particle_localization_test" do
     # Declares it as periodic, with a period of 100ms
     task("uw_particle_localization", "Task")
 end
+
+deployment "orientation_correction_test" do
+  do_not_install
+  add_default_logger
+  
+  task("orientation_correction", "OrientationCorrection")
+end
+
 
