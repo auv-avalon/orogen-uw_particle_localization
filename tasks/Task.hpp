@@ -8,7 +8,7 @@
 //#include <battery_management/BatteryManagementTypes.hpp>
 #include <vector>
 #include <list>
-#include "uw_particle_localization/LocalizationConfig.hpp"
+#include "tasks/LocalizationConfig.hpp"
 
 namespace aggregator {
     class StreamAligner;
