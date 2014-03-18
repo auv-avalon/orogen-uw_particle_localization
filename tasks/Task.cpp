@@ -316,26 +316,44 @@ void Task::updateHook()
 
 void Task::laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan)
 {
-    last_perception = ts;
+    if(orientation_sample_recieved){
+      
+      if(current_depth < _minimum_depth.get()){
+	
+	if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _reset_timeout.get() * 2)
+	  state(NO_HOUGH);
+	else
+	  state(LOCALIZING);
+	
+	
+	last_perception = ts;
 
-    if(number_rejected_samples < static_cast<unsigned>(_init_sample_rejection.value())) {
-        number_rejected_samples++;
-        return;
+	if(number_rejected_samples < static_cast<unsigned>(_init_sample_rejection.value())) {
+	    number_rejected_samples++;
+	    return;
+	}
+
+	double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
+
+	if(localizer->hasStats()) {
+	    _stats.write(localizer->getStats());
+	}
+
+	number_sonar_perceptions++;
+
+	if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
+		&& Neff < _effective_sample_size_threshold.value()) {
+	    localizer->resample();
+	    number_sonar_perceptions = 0;
+	    //std::cout << "Resampling" << std::endl;
+	}	
+	
+      }else{
+	state(ABOVE_SURFACE);
+      }
     }
-
-    double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
-
-    if(localizer->hasStats()) {
-        _stats.write(localizer->getStats());
-    }
-
-    number_sonar_perceptions++;
-
-    if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
-            && Neff < _effective_sample_size_threshold.value()) {
-        localizer->resample();
-        number_sonar_perceptions = 0;
-	//std::cout << "Resampling" << std::endl;
+    else{
+      state(NO_ORIENTATION);
     }
 }
 
@@ -372,13 +390,14 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
                 base::getYaw(rbs.orientation), 0.0); 
         last_perception = ts;
         start_time = ts;
+	state(NO_SONAR);
     }
 }
 
 
 void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
-    last_perception = ts;
+    last_hough = ts;
 
     localizer->interspersal(rbs, *map, _hough_interspersal_ratio.value());
 
@@ -413,7 +432,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
     localizer->update(j);    
     localizer->update_dead_reckoning(j);
   }else{
-    std::cout << "No initial orientation-sample recieved" << std::endl;
+    state(NO_ORIENTATION);
   }  
     
 }

@@ -265,6 +265,9 @@ task_context "Task" do
    port_driven :pose_update
    port_driven :gps_pose_samples
    port_driven :buoy_samples
+   
+   runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH"
+   
 end
 
 task_context "OrientationCorrection" do

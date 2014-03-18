@@ -28,11 +28,10 @@ namespace uw_particle_localization {
     protected:
         base::Time last_perception;
         base::Time start_time;
+	 base::Time last_hough;
 
         double current_depth;
 	 bool orientation_sample_recieved;
-
-        std::list<base::samples::RigidBodyState> buffer;
 
         unsigned number_sonar_perceptions;
         unsigned number_rejected_samples;
