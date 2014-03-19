@@ -49,10 +49,10 @@ public:
   ParticleLocalization(const FilterConfig& config);
   virtual ~ParticleLocalization();
 
-  UwVehicleParameter VehicleParameter() const;
+  static UwVehicleParameter VehicleParameter(FilterConfig filter_config);
 
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
-  virtual void initializeDynamicModel(UwVehicleParameter p);
+  static underwaterVehicle::Parameters initializeDynamicModel(UwVehicleParameter p, FilterConfig filter_config);
 
   virtual base::Position position(const PoseParticle& X) const { return X.p_position; }
   virtual base::Vector3d velocity(const PoseParticle& X) const { return X.p_velocity; }

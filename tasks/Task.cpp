@@ -154,88 +154,8 @@ bool Task::startHook()
          _static_motion_covariance.set(value);
      }
       
-    config.param_length = _param_length.value();
-    config.param_radius = _param_radius.value();;
-    config.param_mass = _param_mass.value();
-    config.param_centerOfGravity = _param_centerOfGravity.value();
-    config.param_centerOfBuoyancy = _param_centerOfBuoyancy.value();
-    
-    if(_param_thrusterCoefficient.value().size() < 18){
-	std::cout << "No valid thruster coefficients assigned. Use standart coefficients" << std::endl;  
-	//config.param_thrusterCoefficient.clear();
-	//config.param_thrusterCoefficient.resize(6,0.005);
-	
-	double values[] = {0.000, 0.000, -0.005, -0.005, 0.005, -0.005};
-	config.param_thrusterCoefficient = std::vector<double>(values, values + sizeof(values)/sizeof(double)) ;
-	
-	config.param_linearThrusterCoefficient.clear();
-	config.param_linearThrusterCoefficient.insert(config.param_linearThrusterCoefficient.begin(), 6, 0.0);
-	
-	config.param_squareThrusterCoefficient.clear();
-	config.param_squareThrusterCoefficient.insert(config.param_squareThrusterCoefficient.begin(), 6, 0.0);
-	
-    }else{
-	config.param_thrusterCoefficient = _param_thrusterCoefficient.value();
-	
-	config.param_thrusterCoefficient.clear();
-	config.param_thrusterCoefficient.insert( config.param_thrusterCoefficient.begin(), 
-						_param_thrusterCoefficient.value().begin(), _param_thrusterCoefficient.value().begin() + 6);
-	
-	config.param_linearThrusterCoefficient.clear();
-	config.param_linearThrusterCoefficient.insert( config.param_linearThrusterCoefficient.begin(),
-						      _param_thrusterCoefficient.value().begin() + 6, _param_thrusterCoefficient.value().begin() + 12);
-	
-	config.param_squareThrusterCoefficient.clear();
-	config.param_squareThrusterCoefficient.insert( config.param_squareThrusterCoefficient.begin(),
-						      _param_thrusterCoefficient.value().begin() + 12, _param_thrusterCoefficient.value().end());
-    }
-      
-    
-    config.param_thrusterVoltage = _param_thrusterVoltage.value();
-    
-    if(_param_TCM.value().size() < 36){
-      std::cout << "No valid TCM assigned. Use standard TCM" << std::endl;
-      double values[] = { 0.0, 0.0, -1.0, -1.0, 0.0, 0.0,
-			    0.0, 0.0, 0.0, 0.0, 1.0, -1.0,
-			    1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
-			    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-			    -0.92, 0.205, 0.0, 0.0, 0.0, 0.0,
-			    0.0, 0.0, -0.17, 0.17, -0.81, 0.04};
-	config.param_TCM = std::vector<double>(values, values + sizeof(values)/sizeof(double));		    
-    }else{
-      config.param_TCM = _param_TCM.value();
-    }
-
-    if(_param_linDamp.get().rows() != 6 && _param_linDamp.get().cols() != 6){
-      
-	std::cout << "Error: linDamp-Matrix should be 6D. Real dimensions: " << _param_linDamp.get().rows() << " , " << _param_linDamp.get().cols() << std::endl;
-	return false;
-    }
-    if(_param_linDampNeg.get().rows() != 6 && _param_linDampNeg.get().cols() != 6){
-      
-	std::cout << "Error: linDampNeg-Matrix should be 6D. Real dimensions: " << _param_linDampNeg.get().rows() << " , " << _param_linDampNeg.get().cols() << std::endl;
-	return false;
-    }
-    if(_param_sqDamp.get().rows() != 6 && _param_sqDamp.get().cols() != 6){
-      
-	std::cout << "Error: sqDamp-Matrix should be 6D. Real dimensions: " << _param_sqDamp.get().rows() << " , " << _param_sqDamp.get().cols() << std::endl;
-	return false;
-    }
-    if(_param_sqDampNeg.get().rows() != 6 && _param_sqDampNeg.get().cols() != 6){
-      
-	std::cout << "Error: sqDampNeg-Matrix should be 6D. Real dimensions: " << _param_sqDampNeg.get().rows() << " , " << _param_sqDampNeg.get().cols() << std::endl;
-	return false;
-    } 
-    
-
-    
-    //Dirty, converting dynamic matrix to static matrix
-    config.param_linDamp = _param_linDamp.get().block<6,6>(0,0);
-    config.param_sqDamp = _param_sqDamp.get().block<6,6>(0,0);
-    config.param_linDampNeg = _param_linDampNeg.get().block<6,6>(0,0);
-    config.param_sqDampNeg = _param_sqDampNeg.get().block<6,6>(0,0);
-
-    config.param_floating = _param_floating.value(); 
+    if (!initMotionConfig())
+      return false;
     
     config.advanced_motion_model = _advanced_motion_model.value();
     
@@ -244,19 +164,7 @@ bool Task::startHook()
     config.gpsToAvalon = _gps_position.get();
     
     config.buoyCamPosition = _buoy_cam_position.get();
-    config.buoyCamRotation = eulerToQuaternion( _buoy_cam_rotation.get());
-    
-    
-    std::vector<std::string> names;
-    if(_joint_names.get().size() == 6){
-      names = _joint_names.get();
-    }else{
-      std::string name_values[] =  {std::string("right"), std::string("left"), std::string("dive"), std::string("pitch"), std::string("strave"), std::string("yaw")};
-      std::cout << "No joint names set. Using default" << std::endl;
-      names = std::vector<std::string>(name_values, name_values + sizeof(name_values) / sizeof(std::string));
-    }
-    
-    config.joint_names = names;      
+    config.buoyCamRotation = eulerToQuaternion( _buoy_cam_rotation.get());    
       
     
     orientation_sample_recieved = false;
@@ -484,3 +392,98 @@ void Task::write(const uw_localization::PointInfo& sample)
 //     TaskBase::cleanupHook();
 // }
 
+bool Task::initMotionConfig()
+{
+    config.param_length = _param_length.value();
+    config.param_radius = _param_radius.value();;
+    config.param_mass = _param_mass.value();
+    config.param_centerOfGravity = _param_centerOfGravity.value();
+    config.param_centerOfBuoyancy = _param_centerOfBuoyancy.value();
+    
+    if(_param_thrusterCoefficient.value().size() < 18){
+	std::cout << "No valid thruster coefficients assigned. Use standart coefficients" << std::endl;  
+	//config.param_thrusterCoefficient.clear();
+	//config.param_thrusterCoefficient.resize(6,0.005);
+	
+	double values[] = {0.000, 0.000, -0.005, -0.005, 0.005, -0.005};
+	config.param_thrusterCoefficient = std::vector<double>(values, values + sizeof(values)/sizeof(double)) ;
+	
+	config.param_linearThrusterCoefficient.clear();
+	config.param_linearThrusterCoefficient.insert(config.param_linearThrusterCoefficient.begin(), 6, 0.0);
+	
+	config.param_squareThrusterCoefficient.clear();
+	config.param_squareThrusterCoefficient.insert(config.param_squareThrusterCoefficient.begin(), 6, 0.0);
+	
+    }else{
+	config.param_thrusterCoefficient = _param_thrusterCoefficient.value();
+	
+	config.param_thrusterCoefficient.clear();
+	config.param_thrusterCoefficient.insert( config.param_thrusterCoefficient.begin(), 
+						_param_thrusterCoefficient.value().begin(), _param_thrusterCoefficient.value().begin() + 6);
+	
+	config.param_linearThrusterCoefficient.clear();
+	config.param_linearThrusterCoefficient.insert( config.param_linearThrusterCoefficient.begin(),
+						      _param_thrusterCoefficient.value().begin() + 6, _param_thrusterCoefficient.value().begin() + 12);
+	
+	config.param_squareThrusterCoefficient.clear();
+	config.param_squareThrusterCoefficient.insert( config.param_squareThrusterCoefficient.begin(),
+						      _param_thrusterCoefficient.value().begin() + 12, _param_thrusterCoefficient.value().end());
+    }
+      
+    
+    config.param_thrusterVoltage = _param_thrusterVoltage.value();
+    
+    if(_param_TCM.value().size() < 36){
+      std::cout << "No valid TCM assigned. Use standard TCM" << std::endl;
+      double values[] = { 0.0, 0.0, -1.0, -1.0, 0.0, 0.0,
+			    0.0, 0.0, 0.0, 0.0, 1.0, -1.0,
+			    1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+			    0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+			    -0.92, 0.205, 0.0, 0.0, 0.0, 0.0,
+			    0.0, 0.0, -0.17, 0.17, -0.81, 0.04};
+	config.param_TCM = std::vector<double>(values, values + sizeof(values)/sizeof(double));		    
+    }else{
+      config.param_TCM = _param_TCM.value();
+    }
+
+    if(_param_linDamp.get().rows() != 6 && _param_linDamp.get().cols() != 6){
+      
+	std::cout << "Error: linDamp-Matrix should be 6D. Real dimensions: " << _param_linDamp.get().rows() << " , " << _param_linDamp.get().cols() << std::endl;
+	return false;
+    }
+    if(_param_linDampNeg.get().rows() != 6 && _param_linDampNeg.get().cols() != 6){
+      
+	std::cout << "Error: linDampNeg-Matrix should be 6D. Real dimensions: " << _param_linDampNeg.get().rows() << " , " << _param_linDampNeg.get().cols() << std::endl;
+	return false;
+    }
+    if(_param_sqDamp.get().rows() != 6 && _param_sqDamp.get().cols() != 6){
+      
+	std::cout << "Error: sqDamp-Matrix should be 6D. Real dimensions: " << _param_sqDamp.get().rows() << " , " << _param_sqDamp.get().cols() << std::endl;
+	return false;
+    }
+    if(_param_sqDampNeg.get().rows() != 6 && _param_sqDampNeg.get().cols() != 6){
+      
+	std::cout << "Error: sqDampNeg-Matrix should be 6D. Real dimensions: " << _param_sqDampNeg.get().rows() << " , " << _param_sqDampNeg.get().cols() << std::endl;
+	return false;
+    }    
+    //Dirty, converting dynamic matrix to static matrix
+    config.param_linDamp = _param_linDamp.get().block<6,6>(0,0);
+    config.param_sqDamp = _param_sqDamp.get().block<6,6>(0,0);
+    config.param_linDampNeg = _param_linDampNeg.get().block<6,6>(0,0);
+    config.param_sqDampNeg = _param_sqDampNeg.get().block<6,6>(0,0);
+
+    config.param_floating = _param_floating.value();
+        
+    std::vector<std::string> names;
+    if(_joint_names.get().size() == 6){
+      names = _joint_names.get();
+    }else{
+      std::string name_values[] =  {std::string("right"), std::string("left"), std::string("dive"), std::string("pitch"), std::string("strave"), std::string("yaw")};
+      std::cout << "No joint names set. Using default" << std::endl;
+      names = std::vector<std::string>(name_values, name_values + sizeof(name_values) / sizeof(std::string));
+    }
+    
+    config.joint_names = names; 
+    
+    return true;
+}

@@ -15,16 +15,21 @@ import_types_from "uw_localization/types/info.hpp"
 import_types_from "uw_localization/types/environment.hpp"
 #import_types_from "battery_management"
 
+
+   
+
+
 task_context "Task" do
+  
    # ----------------------------------------------------------------------
    # output samples 
    # ----------------------------------------------------------------------
    
+   output_port("pose_samples", "/base/samples/RigidBodyState").
+	doc("poses measured by the particle filter")
+   
    output_port("environment", "/uw_localization/Environment").
         doc("current map environment")
-
-   output_port("pose_samples", "/base/samples/RigidBodyState").
-        doc("pose estimation merged with other state informations")
 
    output_port("dead_reckoning_samples", "/base/samples/RigidBodyState").
         doc("poses measured only by motion model")
@@ -49,16 +54,9 @@ task_context "Task" do
         doc("relative distance sample to an obstacle in the environment").
         needs_reliable_connection
 
-   input_port("orientation_samples", "/base/samples/RigidBodyState").
-        doc("current orientation of the vehicle").
-        needs_reliable_connection
-
    input_port("speed_samples", "/base/samples/RigidBodyState").
         doc("current motion sample retrieved from our motion model").
-        needs_reliable_connection
-   
-   input_port('thruster_samples', '/base/samples/Joints')
-	doc("status input for thrusters")
+        needs_reliable_connection   
 
    input_port('pipeline_samples', '/controlData::Pipeline').
         doc("visual pipeline samples from bottom_camera when pipeline detected").
@@ -77,6 +75,14 @@ task_context "Task" do
 	
    input_port("buoy_samples", "/avalon/feature/Buoy").
 	doc("buoy sample of the buoy-detection")
+	
+    input_port("thruster_samples", "base/samples/Joints").
+	  doc("Samples of thruster actions").
+	  needs_reliable_connection
+	  
+    input_port("orientation_samples", "/base/samples/RigidBodyState").
+	  doc("current orientation of the vehicle").
+	  needs_reliable_connection
    
    # ----------------------------------------------------------------------
    # properties
@@ -201,11 +207,10 @@ task_context "Task" do
 	doc("Factor for the sonar covariance.").
 	doc("This factor is used to size up the covariance, when the sonar leads up to a corner")
 	
-    #---Motion model parameter----------------------------------------------------------------    
-    
+#------- Dynamic model parameter
+
     property("advanced_motion_model" , "bool" , false).
-	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
-    
+	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")    
     
     property("param_length" , "double" , 1.4).
 	doc("length of avalon")
@@ -239,8 +244,10 @@ task_context "Task" do
     property("param_floating" , "bool" , true).
 	doc("true, if density of avalon = density of water")
 	
-    property("joint_names" ,"std/vector<string>")
-
+    property("joint_names" ,"std/vector<string>")	        
+        
+        
+        
         
    # ----------------------------------------------------------------------
    # stream aligner
@@ -301,9 +308,66 @@ task_context "OrientationCorrection" do
   port_driven
 end
 
+#####################
+# This Task provides a dynamic model for underwater vehicle.
+# It can be used for a deadreckoning locization approach
+######################
+task_context "MotionModel" do
+
+    output_port("pose_samples", "/base/samples/RigidBodyState")
+    
+    input_port("thruster_samples", "base/samples/Joints").
+	  doc("Samples of thruster actions")
+	  
+    input_port("orientation_samples", "/base/samples/RigidBodyState").
+	  doc("current orientation of the vehicle")
+  
+  
+    #---Motion model parameter----------------------------------------------------------------    
+    
+    property("advanced_motion_model" , "bool" , false).
+	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")    
+    
+    property("param_length" , "double" , 1.4).
+	doc("length of avalon")
+	
+    property("param_radius" , "double" , 0.15).
+	doc("radius of avalon")
+
+    property("param_mass" , "double" , 65.0).
+	doc("mass of avalon")
+	
+    property("param_thrusterCoefficient" , "/std/vector<double>" ).
+	doc("Truster Coefficents, given as an row-wise 3x6 Matrix").
+	doc("First row: constant factor").
+	doc("Second row: linear factor").
+	doc("Third row: square factor")
+	
+    property("param_thrusterVoltage" ,"double" , 25.4).
+	doc("Thruster Volatage")
+
+    property("param_TCM" , "/std/vector<double>" ).
+	doc("Thruster Coefficient Matrix, which sets the direction of the thruster force")
+    
+    property("param_linDamp" , "base/MatrixXd")
+    property("param_sqDamp" , "base/MatrixXd")
+    property("param_linDampNeg" , "base/MatrixXd")
+    property("param_sqDampNeg" , "base/MatrixXd")
+    
+    property("param_centerOfGravity", "base/Vector3d")
+    property("param_centerOfBuoyancy", "base/Vector3d")
+    
+    property("param_floating" , "bool" , true).
+	doc("true, if density of avalon = density of water")
+	
+    property("joint_names" ,"std/vector<string>")
+   
+   port_driven
+   
+end 
 
 
-# Declares a deployment, i.e. an actual executable that contains various tasks.
+#Declares a deployment, i.e. an actual executable that contains various tasks.
 deployment "uw_particle_localization_test" do
     # This is a test deployment that should not be installed
     do_not_install

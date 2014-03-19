@@ -9,8 +9,7 @@ namespace uw_localization {
 base::samples::RigidBodyState* PoseParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
-    : ParticleFilter<PoseParticle, NodeMap>(), filter_config(config), 
-    motion_model(VehicleParameter()),
+    : ParticleFilter<PoseParticle, NodeMap>(), filter_config(config),
     StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
     perception_history_sum(0.0),
     sonar_debug(0)
@@ -28,7 +27,7 @@ ParticleLocalization::~ParticleLocalization()
 }
 
 
-UwVehicleParameter ParticleLocalization::VehicleParameter() const
+UwVehicleParameter ParticleLocalization::VehicleParameter(FilterConfig filter_config)
 {
     UwVehicleParameter p;
 
@@ -122,13 +121,18 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     best_sonar_measurement.confidence = 0.0;
     lastActuatorTime = base::Time();
     
-    if(filter_config.advanced_motion_model)
-      initializeDynamicModel(VehicleParameter());
+    if(filter_config.advanced_motion_model){
+      
+      underwaterVehicle::Parameters params = initializeDynamicModel(VehicleParameter(filter_config), filter_config);
+      dynamic_model = new underwaterVehicle::DynamicModel(0.1, 5, 0.0);
+      dynamic_model->init_param(params);
+      dynamic_model_params = params;
+    }else{      
+      motion_model.init(VehicleParameter(filter_config));
+    }
 }
 
-void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
-  dynamic_model = new underwaterVehicle::DynamicModel(0.1,5,0.0);
-  //dynamic_model = new underwaterVehicle::DynamicModel();
+underwaterVehicle::Parameters ParticleLocalization::initializeDynamicModel(UwVehicleParameter p, FilterConfig filter_config){
   
   underwaterVehicle::Parameters params;
   
@@ -203,8 +207,7 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
     for(int j=0; j<6; j++){
       params.thruster_control_matrix[i*6+j] = filter_config.param_TCM[j*6+i];
     }
-  }
-  
+  }  
   
   params.sim_per_cycle = 5;
   params.plant_order = 12; //3 directions, 3 orientation angles, 3 linear velocities, 3 angular velocities
@@ -222,9 +225,7 @@ void ParticleLocalization::initializeDynamicModel(UwVehicleParameter p){
   
   params.initial_time = 0.0;
   
-  dynamic_model->init_param(params);
-  dynamic_model_params=params;
-  
+  return params;  
 }
 
 void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U)

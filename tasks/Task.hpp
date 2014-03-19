@@ -36,8 +36,7 @@ namespace uw_particle_localization {
         unsigned number_sonar_perceptions;
         unsigned number_rejected_samples;
 	int number_gps_perceptions;
-	uw_localization::FilterConfig config;
-
+	
         void step(const base::samples::RigidBodyState& sample);
 
         virtual void laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan);
@@ -52,9 +51,10 @@ namespace uw_particle_localization {
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;
 	uw_localization::Environment env;
+	uw_localization::FilterConfig config;
 	
         void write(const uw_localization::PointInfo& sample);
-
+	bool initMotionConfig();
 
     public:
         Task(std::string const& name = "uw_particle_localization::Task");
