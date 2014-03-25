@@ -2,44 +2,62 @@ require 'orocos'
 require 'vizkit'
 
 include Orocos
-Orocos.CORBA.name_service = cfg["nameserver"].to_s
+#Orocos.CORBA.name_service = cfg["nameserver"].to_s
+Orocos::CORBA.name_service.ip = "192.168.128.51"
 Orocos.initialize
 
-view3d = Vizkit.default_loader.create_widget 'vizkit::Vizkit3DWidget'
-view3d.show_grid = false
+view3d = Vizkit.default_loader.create_plugin 'vizkit3d::Vizkit3DWidget'
+#view3d.show_grid = false
 view3d.show
-gt = view3d.createPlugin("vizkit-base", "RigidBodyStateVisualization")
-ep = view3d.createPlugin("vizkit-base", "RigidBodyStateVisualization")
-mon = view3d.createPlugin("uw_localization_monitor", "MonitorVisualization")
+laser_scan  = view3d.createPlugin("base", "LaserScanVisualization")
+my_pos  = view3d.createPlugin("base", "RigidBodyStateVisualization")
+#ep = view3d.createPlugin("vizkit3d", "RigidBodyStateVisualization")
+#mon = view3d.createPlugin("uw_localization", "MonitorVisualization")
+ps = view3d.createPlugin("uw_localization", "ParticleSetVisualization")
+env = view3d.createPlugin("uw_localization", "MapVisualization")
+sonar = view3d.createPlugin("uw_localization", "SonarPointVisualization")
+sonar_beam = view3d.createPlugin("sonar", "SonarBeamVisualization")
 
 Orocos.run do
     pos = TaskContext.get 'uw_particle_localization'
-    sonar = TaskContext.get 'sonar_feature_estimator'
+    sonar_f_task = TaskContext.get 'sonar_feature_estimator'
+    sonar_task = TaskContext.get 'sonar'
     state = TaskContext.get 'state_estimator'
-    uwv = TaskContext.get 'uwv_dynamic_model'
+#    uwv = TaskContext.get 'uwv_dynamic_model'
 
-    Vizkit.display pos
-    Vizkit.display sonar
-    Vizkit.display state
-    Vizkit.display uwv
-    
+#    Vizkit.display pos
+#    Vizkit.display sonar
+#    Vizkit.display state
+ #   Vizkit.display uwv
+   
+    sonar_task.sonar_beam.connect_to do |sample,_|
+	sonar_beam.updateSonarBeam(sample)
+        sample
+    end
+
+    sonar_f_task.new_feature.connect_to do |sample,_|
+	laser_scan.updateData(sample)
+        sample
+    end 
     Vizkit.connect_port_to 'uw_particle_localization', 'environment', :pull => false, :update_frequency => 33 do |sample, _|
-        mon.updateEnvironment(sample)
+        env.updateEnv(sample)
         sample
     end
 
     Vizkit.connect_port_to 'uw_particle_localization', 'particles', :pull => false, :update_frequency => 33 do |sample, _|
-        mon.updateParticleSet(sample)
+        ps.updateParticleSet(sample)
         sample
     end
 
-    Vizkit.connect_port_to 'uw_particle_localization', 'debug_sonar', :pull => false, :update_frequency => 33 do |sample, _|
-        mon.updateParticleInfo(sample)
-        sample
-    end
+#    Vizkit.connect_port_to 'uw_particle_localization', 'debug_sonar_beam', :pull => false, :update_frequency => 33 do |sample, _|
+#        sonar.updateInfo(sample)
+#        sample
+#    end
 
     Vizkit.connect_port_to 'uw_particle_localization', 'pose_samples', :pull => false, :update_frequency => 33 do |sample, _|
-        ep.updateRigidBodyState(sample)
+        my_pos.updateData(sample)
+	sonar_beam.updateOrientation(sample)	
+	laser_scan.updatePose(sample)	
         sample
     end
 
