@@ -293,6 +293,7 @@ task_context "OrientationCorrection" do
   property("min_buffer_size" , "int", 3).
     doc("Minimum number of offset_samples, used for offset calculation")  
   
+  
   input_port("orientation_input", "base/samples/RigidBodyState").
     doc("Orientationsamples of the orientation-estimator")
   
@@ -302,15 +303,19 @@ task_context "OrientationCorrection" do
   input_port("orientation_offset", "double").
     doc("Offsetsamples of the sonar-localization")
   
+  
   output_port("orientation_output", "base/samples/RigidBodyState").
-    doc("Corrected orientation samples")
+    doc("North-Corrected orientation samples. Only the imu is used for correction")
+    
+  output_port("orientation_offset_corected", "base/samples/RigidBodyState").
+    doc("North- and Offset-corrected orientation samples")
   
   port_driven
 end
 
 #####################
 # This Task provides a dynamic model for underwater vehicle.
-# It can be used for a deadreckoning locization approach
+# It can be used for a deadreckoning localization approach
 ######################
 task_context "MotionModel" do
 

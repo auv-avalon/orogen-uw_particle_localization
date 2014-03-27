@@ -53,14 +53,17 @@ void OrientationCorrection::updateHook()
     
     while(_orientation_input.read(ori) == RTT::NewData){
       lastOrientation = ori;
+      base::samples::RigidBodyState ori_imu_corrected = ori;
       
       if(!lastIMU.time.isNull()){
+	
+	ori_imu_corrected.orientation = actNorthOffset * ori.orientation;
 	
 	if(offset_recieved){
 	  ori.orientation = actOffset * ori.orientation;
 	}
 	else{
-	  ori.orientation = actNorthOffset * ori.orientation;
+	  ori = ori_imu_corrected;
 	}	
 	
       }

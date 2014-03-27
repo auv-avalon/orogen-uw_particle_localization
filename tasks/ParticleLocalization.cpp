@@ -514,7 +514,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     
     double probability = gaussian1d(0.0, covar, distance.get<1>());
     
-    debug(z_distance, distance.get<1>(), distance.get<2>(), AbsZ, X.p_position, probability);
+    debug(z_distance, distance.get<1>(),angle + yaw  ,distance.get<2>(), AbsZ, X.p_position, probability);
     //std::cout << distance.get<1>() << std::endl;    
     
     first_perception_received = true;
@@ -645,6 +645,7 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& location
 	info.desire_distance = 0.0;
         info.desire_point = base::Vector3d(0.0, 0.0, 0.0);
         info.real_point = base::Vector3d(0.0, 0.0, 0.0);
+	info.angle = 0.0;
         info.location = location;
         info.confidence = conf;
         info.status = status;
@@ -653,7 +654,7 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& location
     }
 }
 
-void ParticleLocalization::debug(double distance, double desire_distance, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf)
+void ParticleLocalization::debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf)
 {
     if(best_sonar_measurement.confidence < conf) {
         uw_localization::PointInfo info;
@@ -661,6 +662,7 @@ void ParticleLocalization::debug(double distance, double desire_distance, const 
 	info.desire_distance = desire_distance;
         info.desire_point = desire;
         info.real_point = real;
+	info.angle = angle;
         info.location = loc;
         info.confidence = conf;
         info.status = OKAY;
@@ -675,6 +677,7 @@ void ParticleLocalization::debug(const base::Vector3d& pos, double conf, PointSt
 	uw_localization::PointInfo info;
 	info.distance = 0.0;
 	info.desire_distance = 0.0;
+	info.angle = 0.0;
 	info.desire_point = base::Vector3d(0.0,0.0,0.0);
 	info.real_point = base::Vector3d(0.0,0.0,0.0);
 	info.location = base::Vector3d(pos[0],pos[1],0.0);
