@@ -3,23 +3,39 @@ require 'vizkit'
 
 include Orocos
 #Orocos.CORBA.name_service = cfg["nameserver"].to_s
-#Orocos::CORBA.name_service.ip = localhost#"192.168.128.51"
+
+#Orocos::CORBA.name_service.ip = "192.168.128.51"
 Orocos.initialize
 
 view3d = Vizkit.default_loader.create_plugin 'vizkit3d::Vizkit3DWidget'
 view3d.show
 
+laser_scan  = view3d.createPlugin("base", "LaserScanVisualization")
 ps = view3d.createPlugin("uw_localization", "ParticleSetVisualization")
 env = view3d.createPlugin("uw_localization", "MapVisualization")
 sonar = view3d.createPlugin("uw_localization", "SonarPointVisualization")
+sonar_beam = view3d.createPlugin("sonar", "SonarBeamVisualization")
 
 Orocos.run do
     pos = TaskContext.get 'uw_particle_localization'
+    sonar_f_task = TaskContext.get 'sonar_feature_estimator'
+    sonar_task = TaskContext.get 'sonar'    
+    
     
     Vizkit.connect_port_to 'uw_particle_localization', 'environment', :pull => false, :update_frequency => 33 do |sample, _|
         env.updateEnv(sample)
         sample
     end
+   
+    sonar_task.sonar_beam.connect_to do |sample,_|
+	sonar_beam.updateSonarBeam(sample)
+        sample
+    end
+
+    sonar_f_task.new_feature.connect_to do |sample,_|
+	laser_scan.updateData(sample)
+        sample
+    end 
 
     Vizkit.connect_port_to 'uw_particle_localization', 'particles', :pull => false, :update_frequency => 33 do |sample, _|
         ps.updateParticleSet(sample)
