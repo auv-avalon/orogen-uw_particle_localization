@@ -42,6 +42,7 @@ bool OrientationCorrection::startHook()
     lastOrientation.time = base::Time::fromSeconds(0);
     lastIMU.time = base::Time::fromSeconds(0);
     offset_recieved = 0;
+    actNorthOffset = Eigen::AngleAxis<double>(0.0, Eigen::Vector3d::UnitZ());
     
     return true;
 }
@@ -53,49 +54,21 @@ void OrientationCorrection::updateHook()
     
     while(_orientation_input.read(ori) == RTT::NewData){
       lastOrientation = ori;
-      base::samples::RigidBodyState ori_imu_corrected = ori;
+      base::samples::RigidBodyState ori_corrected = ori;
       
-      if(!lastIMU.time.isNull()){
-	
-	ori_imu_corrected.orientation = actNorthOffset * ori.orientation;
+	ori_corrected.orientation = actNorthOffset * ori.orientation;
 	
 	if(offset_recieved){
 	  ori.orientation = actOffset * ori.orientation;
 	}
 	else{
-	  ori = ori_imu_corrected;
+	  ori = ori_corrected;
 	}	
 	
-      }
-	
-      _orientation_output.write(ori);
+      _orientation_output.write(ori_corrected);
+      _orientation_offset_corrected.write(ori);
     }
-    
-    base::samples::RigidBodyState imu;
-    
-    while(_absolute_orientation.read(imu) == RTT::NewData){
-      
-      if(!lastOrientation.time.isNull()){
-	lastIMU = imu;
-	
-	double north_offset = base::getYaw(lastIMU.orientation) - _north_offset.get() - base::getYaw(lastOrientation.orientation);
-	
-	while(north_offset > M_PI){
-	  north_offset -= 2.0 * M_PI;
-	}
-	
-	while(north_offset < M_PI){
-	  north_offset += 2.0 * M_PI;
-	}
-	  
-	actNorthOffset = Eigen::AngleAxis<double>(north_offset, Eigen::Vector3d::UnitZ());
-	
-      }
-      
-      lastIMU = imu;    
-      
-    }
-    
+        
     double offset;    
     while(_orientation_offset.read(offset) == RTT::NewData){
       
@@ -112,9 +85,28 @@ void OrientationCorrection::updateHook()
       else{
 	actOffset = actNorthOffset;
       }      
-    }    
+    }
+    
+    if(!lastResetRecieved.isNull() && (base::Time::now().toSeconds() - lastResetRecieved.toSeconds()) > 10.0)
+      state(RUNNING);
+    
 }
 
+
+bool OrientationCorrection::reset(double angle){
+  std::cout << "Reset Called" << std::endl;
+  if(lastOrientation.time.isNull()){
+    std::cout << "No initial Orientation recieved" << std::endl;
+    return false;
+  }
+  
+  actNorthOffset = Eigen::AngleAxis<double>( angle - base::getYaw(lastOrientation.orientation) , Eigen::Vector3d::UnitZ());
+  state(RESET);  
+  
+  lastResetRecieved = base::Time::now();
+  
+  return true;
+}
 
 double OrientationCorrection::calcMedian(boost::circular_buffer<double> buffer){
   

@@ -87,6 +87,8 @@ namespace uw_particle_localization {
          */
         void updateHook();
 	
+	virtual bool reset(double angle);
+	
     private:
 	
 	base::samples::RigidBodyState lastOrientation;
@@ -99,6 +101,7 @@ namespace uw_particle_localization {
 	double calcMedian(boost::circular_buffer<double> buffer);
 	
 	int offset_recieved;
+	base::Time lastResetRecieved;
 	
       
     };

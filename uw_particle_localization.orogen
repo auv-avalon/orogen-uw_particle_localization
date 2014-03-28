@@ -282,10 +282,10 @@ task_context "OrientationCorrection" do
 # This Task corrects orientation samples to the wanted world-frame.
 # For Correction magnetic north and 
 
+  operation("reset").
+    argument("angle", "double").
+    returns("bool")
 
-  property("north_offset", "double", 0.0).
-    doc("Difference between the real north and the given world-frame").
-    doc("imu - north_offset = real")
   
   property("buffer_size", "int", 10).
     doc("Size of the offset_buffer")
@@ -297,8 +297,6 @@ task_context "OrientationCorrection" do
   input_port("orientation_input", "base/samples/RigidBodyState").
     doc("Orientationsamples of the orientation-estimator")
   
-  input_port("absolute_orientation", "base/samples/RigidBodyState").
-    doc("Orientationsapmles of the imu")  
   
   input_port("orientation_offset", "double").
     doc("Offsetsamples of the sonar-localization")
@@ -307,8 +305,10 @@ task_context "OrientationCorrection" do
   output_port("orientation_output", "base/samples/RigidBodyState").
     doc("North-Corrected orientation samples. Only the imu is used for correction")
     
-  output_port("orientation_offset_corected", "base/samples/RigidBodyState").
+  output_port("orientation_offset_corrected", "base/samples/RigidBodyState").
     doc("North- and Offset-corrected orientation samples")
+    
+  runtime_states "RESET"
   
   port_driven
 end

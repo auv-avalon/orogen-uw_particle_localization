@@ -295,7 +295,11 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
 
     if(!last_perception.isNull() && (ts - last_perception).toSeconds() > _reset_timeout.value()) {
         localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
-                base::getYaw(rbs.orientation), 0.0); 
+                base::getYaw(rbs.orientation), 0.0);
+	std::cout << "SONAR TIMEOUT" << std::endl;
+	std::cout << "ACT Time: " << ts.toString() << std::endl;
+	std::cout << "Last time: " << last_perception.toString() << std::endl;
+	
         last_perception = ts;
         start_time = ts;
 	state(NO_SONAR);
