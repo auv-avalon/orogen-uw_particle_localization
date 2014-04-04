@@ -27,6 +27,7 @@ namespace uw_particle_localization {
 	friend class TaskBase;
     protected:
         base::Time last_perception;
+	base::Time last_motion;
         base::Time start_time;
 	 base::Time last_hough;
 

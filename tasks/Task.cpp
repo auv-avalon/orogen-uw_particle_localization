@@ -228,7 +228,9 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
       
       if(current_depth < _minimum_depth.get()){
 	
-	if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _reset_timeout.get() * 2)
+	if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get())
+	   state(NO_JOINTS);
+	else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _reset_timeout.get() * 2)
 	  state(NO_HOUGH);
 	else
 	  state(LOCALIZING);
@@ -327,7 +329,8 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
 {  
   
   base::samples::Joints j = status;
-  
+  last_motion = ts; 
+
   if(status.hasNames()){
   
     for(int i = 0; i < status.size() && i < config.joint_names.size(); i++){
