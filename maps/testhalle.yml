@@ -1,18 +1,18 @@
-metrics: [24, 20, 8]
-reference: [-12, -10, -8]
+metrics: [23, 19, 8]
+reference: [-11.5, -9.5, -8]
 root:
   wall:
-    - line_from: [-12, -10.0, 0.0]
-      line_to:   [-12,  10.0, 0.0]
+    - line_from: [-11.5, -9.5, 0.0]
+      line_to:   [-11.5,  9.5, 0.0]
       height:    -8
-    - line_from: [12, -10.0, 0.0]
-      line_to:   [12,  10.0, 0.0]
+    - line_from: [11.5, -9.5, 0.0]
+      line_to:   [11.5,  9.5, 0.0]
       height:    -8
-    - line_from: [-12, -10.0, 0.0]
-      line_to:   [ 12, -10.0, 0.0]
+    - line_from: [-11.5, -9.5, 0.0]
+      line_to:   [ 11.5, -9.5, 0.0]
       height:    -8
-    - line_from: [-12,  10.0, 0.0]
-      line_to:   [ 12,  10.0, 0.0]
+    - line_from: [-11.5,  9.5, 0.0]
+      line_to:   [ 11.5,  9.5, 0.0]
       height:    -8
 #  box:
 #    - position: [0.0, 0.0, 0.0]
