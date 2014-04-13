@@ -126,6 +126,11 @@ public:
    */
   double angleDiffToCorner(double sonar_orientation, base::Vector3d position, Environment* env);
   
+  /**
+   * Filters particles with zero-confidence
+   */
+  void filterZeros();
+  
 
 private:
   FilterConfig filter_config;
@@ -146,6 +151,9 @@ private:
   
   //the origin of the coordinate system as utm-coordinate
   base::Vector3d utm_origin;
+  
+  //Number of particles with zero confidence
+  int zeroConfidenceCount;
 
   /** observers */
   DebugWriter<uw_localization::PointInfo>* sonar_debug;

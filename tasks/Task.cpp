@@ -165,7 +165,8 @@ bool Task::startHook()
     
     config.buoyCamPosition = _buoy_cam_position.get();
     config.buoyCamRotation = eulerToQuaternion( _buoy_cam_rotation.get());    
-      
+     
+    config.filterZeros = _filter_zeros.get();
     
     orientation_sample_recieved = false;
           
@@ -265,6 +266,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
     else{
       state(NO_ORIENTATION);
     }
+
 }
 
 
@@ -286,7 +288,6 @@ void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pip
 
 void Task::orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {   
-    //std::cout << "Orientation callback" << std::endl;
     orientation_sample_recieved = true;
     localizer->setCurrentOrientation(rbs);
     current_depth = rbs.position.z();
@@ -298,9 +299,6 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
     if(!last_perception.isNull() && (ts - last_perception).toSeconds() > _reset_timeout.value()) {
         localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
                 base::getYaw(rbs.orientation), 0.0);
-	std::cout << "SONAR TIMEOUT" << std::endl;
-	std::cout << "ACT Time: " << ts.toString() << std::endl;
-	std::cout << "Last time: " << last_perception.toString() << std::endl;
 	
         last_perception = ts;
         start_time = ts;
@@ -342,7 +340,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
 	}	
     }  
   }
-  //std::cout << "Thruster callback" << std::endl;
+
   if(orientation_sample_recieved){    
     localizer->update(j);    
     localizer->update_dead_reckoning(j);

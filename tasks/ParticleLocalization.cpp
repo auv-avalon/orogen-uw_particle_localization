@@ -402,8 +402,10 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::Joints
 
 double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance)
 {
+    zeroConfidenceCount = 0;
+    
     double effective_sample_size = observe(z, m, importance);
-
+    
     best_sonar_measurement.time = z.time;
 
     sonar_debug->write(best_sonar_measurement);
@@ -412,6 +414,9 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
         addHistory(best_sonar_measurement);
 
     best_sonar_measurement.confidence = -1.0;
+    
+    if(zeroConfidenceCount > 0 && filter_config.filterZeros)
+      filterZeros();
 
     return effective_sample_size;
 }
@@ -471,7 +476,8 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
     // check if this particle is still part of the world
     if(!M.belongsToWorld(X.p_position)) {
-        debug(z_distance, X.p_position, 0.0, NOT_IN_WORLD); 
+        debug(z_distance, X.p_position, 0.0, NOT_IN_WORLD);
+        zeroConfidenceCount++;
         return 0.0;
     }
 
@@ -741,6 +747,33 @@ double ParticleLocalization::angleDiffToCorner(double sonar_orientation, base::V
   }  
   
   return minAngleDiff;
-}  
+}
+
+
+void ParticleLocalization::filterZeros(){
+    
+    base::Vector3d var = filter_config.init_variance;
+    base::Vector3d pos = filter_config.init_position;
+  
+    for(int i=0; i<3; i++){
+      if(var[i] <= 0.0)
+        var[i] = 0.0001;
+    }  
+  
+    UniformRealRandom pos_x = Random::uniform_real(pos.x() - var.x() * 0.5, pos.x() + var.x() * 0.5 );
+    UniformRealRandom pos_y = Random::uniform_real(pos.y() - var.y() * 0.5, pos.y() + var.y() * 0.5 );
+    UniformRealRandom pos_z = Random::uniform_real(pos.z() - var.z() * 0.5, pos.z() + var.z() * 0.5 );  
+  
+  
+    std::list<PoseParticle>::iterator it;
+    for(it = particles.begin(); it != particles.end(); ++it) {
+        
+      //if particle is outside the map, calculate new random position
+        if(it->main_confidence == 0.0){
+          it->p_position = base::Vector3d(pos_x(), pos_y(), pos_z());          
+        }      
+    } 
+  
+}
 
 }
