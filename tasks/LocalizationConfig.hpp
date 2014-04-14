@@ -67,6 +67,8 @@ struct FilterConfig {
     
     bool useMap;
     
+    bool filterZeros;
+    
     //Motion model Properties
     double param_length;
     double param_radius;
