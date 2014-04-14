@@ -751,7 +751,7 @@ double ParticleLocalization::angleDiffToCorner(double sonar_orientation, base::V
 
 
 void ParticleLocalization::filterZeros(){
-    
+
     base::Vector3d var = filter_config.init_variance;
     base::Vector3d pos = filter_config.init_position;
   
@@ -769,8 +769,9 @@ void ParticleLocalization::filterZeros(){
     for(it = particles.begin(); it != particles.end(); ++it) {
         
       //if particle is outside the map, calculate new random position
-        if(it->main_confidence == 0.0){
-          it->p_position = base::Vector3d(pos_x(), pos_y(), pos_z());          
+        if(it->main_confidence == 0.0 || std::isnan(it->main_confidence)){
+          it->p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
+          it->main_confidence = 1.0 / particles.size();
         }      
     } 
   
