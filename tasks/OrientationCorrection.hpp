@@ -91,18 +91,19 @@ namespace uw_particle_localization {
 	
     private:
 	
-	base::samples::RigidBodyState lastOrientation;
-	base::samples::RigidBodyState lastIMU;
-	boost::circular_buffer<double> offset_buffer;
-	
-	Eigen::AngleAxis<double> actOffset;
-	Eigen::AngleAxis<double> actNorthOffset;
-	
-	double calcMedian(boost::circular_buffer<double> buffer);
-	
-	int offset_recieved;
-	base::Time lastResetRecieved;
-	
+          base::samples::RigidBodyState lastOrientation;
+          base::samples::RigidBodyState lastIMU;
+          boost::circular_buffer<double> offset_buffer;
+          
+          Eigen::AngleAxis<double> actOffset;
+          double actOffsetVal;
+          Eigen::AngleAxis<double> actNorthOffset;
+          
+          double calcMedian(boost::circular_buffer<double> &buffer);
+          void middleOffsets(boost::circular_buffer<double> &buffer);
+          
+          int offset_recieved;
+          base::Time lastResetRecieved;	
       
     };
 }
