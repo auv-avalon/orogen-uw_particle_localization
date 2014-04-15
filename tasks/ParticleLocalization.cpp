@@ -634,7 +634,7 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
         PoseParticle pp;
         pp.p_position = Pose();
         pp.p_velocity = best.p_velocity;
-        pp.main_confidence = best.main_confidence - 0.001;
+        pp.main_confidence = best.main_confidence / 2.0;
 
         particles.push_back(pp);
     }
@@ -771,6 +771,7 @@ void ParticleLocalization::filterZeros(){
       //if particle is outside the map, calculate new random position
         if(it->main_confidence == 0.0 || std::isnan(it->main_confidence)){
           it->p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
+          it->p_velocity = base::Vector3d(0.0, 0.0, 0.0);
           it->main_confidence = 1.0 / particles.size();
         }      
     } 
