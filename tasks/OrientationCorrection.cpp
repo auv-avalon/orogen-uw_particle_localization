@@ -76,7 +76,8 @@ void OrientationCorrection::updateHook()
       
       if(offset_buffer.size() >= _min_buffer_size.get()){
 	
-	double sonar_offset = calcMedian(offset_buffer);	
+	double sonar_offset = calcMedian(offset_buffer);
+        actOffsetVal = sonar_offset;
 	actOffset = actNorthOffset * Eigen::AngleAxis<double>(sonar_offset, Eigen::Vector3d::UnitZ());
       
 	offset_recieved = 1;
@@ -108,7 +109,7 @@ bool OrientationCorrection::reset(double angle){
   return true;
 }
 
-double OrientationCorrection::calcMedian(boost::circular_buffer<double> buffer){
+double OrientationCorrection::calcMedian(boost::circular_buffer<double> &buffer){
   
   if(!buffer.empty()){
    
@@ -148,5 +149,19 @@ double OrientationCorrection::calcMedian(boost::circular_buffer<double> buffer){
   }
   
   return 0.0;  
+}
+
+void OrientationCorrection::middleOffsets(boost::circular_buffer<double> &buffer){
+  
+  if(!buffer.empty()){
+    
+    for(boost::circular_buffer<double>::iterator it = buffer.begin(); it != buffer.end(); it++){
+      
+      *it -= actOffsetVal;
+      
+    }   
+    
+  } 
+  
 }
 
