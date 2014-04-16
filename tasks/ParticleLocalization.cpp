@@ -404,7 +404,12 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
 {
     zeroConfidenceCount = 0;
     
-    double effective_sample_size = observe(z, m, importance);
+    double effective_sample_size;
+    
+    if(filter_config.use_markov)
+      effective_sample_size = observe_markov(z, m, importance);
+    else      
+      effective_sample_size = observe(z, m, importance);
     
     best_sonar_measurement.time = z.time;
 
@@ -518,9 +523,12 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     if(angleDiffToCorner(angle+yaw, X.p_position, filter_config.env) < 0.1)
       covar = covar * filter_config.sonar_covariance_corner_factor;
     
-    double probability = gaussian1d(0.0, covar, distance.get<1>());
     
-    debug(z_distance, distance.get<1>(),angle + yaw  ,distance.get<2>(), AbsZ, X.p_position, probability);
+    double dst = std::sqrt( std::pow(X.p_position.x() - distance.get<2>().x(), 2.0) 
+                             + std::pow( X.p_position.y() - distance.get<2>().y(), 2.0 ) );
+    double probability = gaussian1d(0.0, covar, dst - z_distance);
+    
+    debug(z_distance, dst ,angle + yaw  ,distance.get<2>(), AbsZ, X.p_position, probability);
     //std::cout << distance.get<1>() << std::endl;    
     
     first_perception_received = true;

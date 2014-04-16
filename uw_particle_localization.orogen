@@ -159,6 +159,11 @@ task_context "Task" do
    property("filter_zeros", "bool", true).
         doc("Filter out particles with zero confidence (e.g. particle is out of map)")
         
+   property("use_markov", "bool" , true)
+   
+   property("avg_particle_position", "bool", true).
+        doc("Calculate position by calculating the avg particle position")
+        
    #Sensor-transformation------------------------------------------------------------------
    
    
@@ -370,7 +375,7 @@ task_context "MotionModel" do
 	doc("true, if density of avalon = density of water")
 	
     property("joint_names" ,"std/vector<string>")
-   
+         
    port_driven
    
 end 

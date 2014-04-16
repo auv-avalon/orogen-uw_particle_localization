@@ -41,6 +41,9 @@ struct FilterConfig {
     double utm_relative_angle;
     double gps_covarianz;
     double gps_interspersal_ratio;
+    
+    bool use_markov;
+    bool avg_particle_position;
 
     // Sensor uncertainty
     double sonar_maximum_distance;

@@ -168,6 +168,9 @@ bool Task::startHook()
      
     config.filterZeros = _filter_zeros.get();
     
+    config.use_markov = _use_markov.get();
+    config.avg_particle_position = _avg_particle_position.get();
+    
     orientation_sample_recieved = false;
           
      //delete localizer;
@@ -186,7 +189,15 @@ void Task::updateHook()
      if(_debug.value() && !_yaml_map.value().empty())
        _environment.write(map->getEnvironment());
      
-     base::samples::RigidBodyState pose = localizer->estimate();
+     base::samples::RigidBodyState pose;
+     if(_avg_particle_position.get()){
+        pose = localizer->estimate_middle();
+     }
+     else{
+       pose = localizer->estimate();
+     }
+     
+     
      base::samples::RigidBodyState motion = localizer->dead_reckoning();
      base::samples::RigidBodyState full_motion = localizer->full_dead_reckoning();
      pose.angular_velocity = motion.angular_velocity;
