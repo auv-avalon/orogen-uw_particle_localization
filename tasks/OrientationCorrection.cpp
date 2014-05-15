@@ -69,10 +69,10 @@ void OrientationCorrection::updateHook()
       _orientation_offset_corrected.write(ori);
     }
         
-    double offset;    
+    sonar_wall_hough::PositionQuality offset;    
     while(_orientation_offset.read(offset) == RTT::NewData){
       
-      offset_buffer.push_back(offset);
+      offset_buffer.push_back(offset.orientation_drift);
       
       if(offset_buffer.size() >= _min_buffer_size.get()){
 	

@@ -509,8 +509,12 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 				  Eigen::Vector3d(0.0, filter_config.sonar_vertical_angle/2.0, yaw + angle), X.p_position);
 
 
-    if(distance.get<1>() > distance_box.get<1>() - z_distance){
+    double dst = std::sqrt( std::pow(X.p_position.x() - distance.get<2>().x(), 2.0) 
+                             + std::pow( X.p_position.y() - distance.get<2>().y(), 2.0 ) );
+    
+    if(dst > distance_box.get<1>()){
       distance_box.get<1>() = distance_box.get<1>() - z_distance;
+      dst = distance_box.get<1>();
       distance = distance_box;
     }
 
@@ -521,11 +525,8 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
       covar = covar * filter_config.sonar_covariance_reflection_factor;    
 
     if(angleDiffToCorner(angle+yaw, X.p_position, filter_config.env) < 0.1)
-      covar = covar * filter_config.sonar_covariance_corner_factor;
-    
-    
-    double dst = std::sqrt( std::pow(X.p_position.x() - distance.get<2>().x(), 2.0) 
-                             + std::pow( X.p_position.y() - distance.get<2>().y(), 2.0 ) );
+      covar = covar * filter_config.sonar_covariance_corner_factor;    
+
     double probability = gaussian1d(0.0, covar, dst - z_distance);
     
     debug(z_distance, dst ,angle + yaw  ,distance.get<2>(), AbsZ, X.p_position, probability);
@@ -648,6 +649,35 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
     }
 
     normalizeParticles();
+}
+
+void ParticleLocalization::interspersal(const NodeMap& m, double ratio)
+{
+ 
+  if(ratio > 0.0){
+    
+    reduceParticles(1.0 - ratio);
+    
+    PoseParticle best = particles.front();
+    
+    base::Vector3d limit = m.getLimitations();
+    UniformRealRandom pos_x = Random::uniform_real(-(limit.x() / 2.0) , (limit.x() / 2.0) );
+    UniformRealRandom pos_y = Random::uniform_real(-(limit.y() / 2.0) , (limit.y() / 2.0) );
+    
+    for(size_t i = particles.size(); i < filter_config.particle_number; i++){
+      PoseParticle pp;
+      pp.p_position[0] = pos_x();
+      pp.p_position[1] = pos_y();
+      pp.p_position[2] = best.p_position[2];
+      pp.main_confidence = best.main_confidence / 2.0;
+      
+      particles.push_back(pp);
+      
+    }
+    
+    normalizeParticles();    
+  }  
+  
 }
 
 

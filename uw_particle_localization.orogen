@@ -3,6 +3,7 @@ name "uw_particle_localization"
 using_library "uw_localization"
 using_library "machine_learning"
 using_library "uwv_dynamic_model"
+using_task_library "sonar_wall_hough"
 
 import_types_from "base"
 import_types_from "avalon_base/feature.h"
@@ -14,9 +15,7 @@ import_types_from "uw_localization/types/info.hpp"
 #import_types_from "uw_localization/types/map.hpp"
 import_types_from "uw_localization/types/environment.hpp"
 #import_types_from "battery_management"
-
-
-   
+import_types_from "sonar_wall_hough/tasks/DebugTypes.hpp"   
 
 
 task_context "Task" do
@@ -99,6 +98,12 @@ task_context "Task" do
 
    property("hough_interspersal_ratio", "double", 0.0).
         doc("ratio for generating new particles after each hough measurement")
+        
+   property("hough_timeout", "double", 20.0).
+        doc("Timeout ,after not recieving any hough input for x seconds")
+        
+   property("hough_timeout_interspersal", "double", 0.0)
+        doc("ratio for generating new random particles, after hough timeout")
 
    property("effective_sample_size_threshold", "double", 0.0).
 	doc("effective sample size threshold controls the resampling timing and uses values between 0.0 and 1.0 particles")
@@ -306,7 +311,7 @@ task_context "OrientationCorrection" do
     doc("Orientationsamples of the orientation-estimator")
   
   
-  input_port("orientation_offset", "double").
+  input_port("orientation_offset", "sonar_wall_hough/PositionQuality").
     doc("Offsetsamples of the sonar-localization")
   
   
@@ -385,7 +390,7 @@ end
 deployment "uw_particle_localization_test" do
     # This is a test deployment that should not be installed
     do_not_install
-    add_default_logger
+    #add_default_logger
 
     # Declares it as periodic, with a period of 100ms
     task("uw_particle_localization", "Task")
@@ -393,7 +398,7 @@ end
 
 deployment "orientation_correction_test" do
   do_not_install
-  add_default_logger
+  #add_default_logger
   
   task("orientation_correction", "OrientationCorrection")
 end

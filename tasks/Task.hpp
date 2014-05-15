@@ -30,6 +30,7 @@ namespace uw_particle_localization {
 	base::Time last_motion;
         base::Time start_time;
 	 base::Time last_hough;
+        base::Time last_hough_timeout;
 
         double current_depth;
 	 bool orientation_sample_recieved;

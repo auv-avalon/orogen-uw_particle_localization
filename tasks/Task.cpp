@@ -178,6 +178,8 @@ bool Task::startHook()
      localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
           
      localizer->setSonarDebug(this);
+     
+     last_hough_timeout = base::Time::fromMicroseconds(0);
 
      return true;
 }
@@ -242,8 +244,23 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 	
 	if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get())
 	   state(NO_JOINTS);
-	else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _reset_timeout.get() * 2)
+	else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
 	  state(NO_HOUGH);
+          
+          if(ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
+            
+            if(last_hough_timeout.isNull()){
+              last_hough_timeout = ts;
+            }
+            else if(ts.toSeconds() - last_hough_timeout.toSeconds() > _hough_timeout.get()){
+              
+              last_hough_timeout = ts;
+              localizer->interspersal(*map, _hough_timeout_interspersal.get());              
+            }        
+            
+          }          
+          
+        }
 	else
 	  state(LOCALIZING);
 	

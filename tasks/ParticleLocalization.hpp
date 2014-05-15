@@ -82,6 +82,8 @@ public:
   virtual double perception(const PoseParticle& x, const base::Vector3d& z, const NodeMap& m);
 
   virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio);
+  
+  void interspersal(const NodeMap& m, double ratio);
 
   double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
   
