@@ -512,12 +512,10 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     double dst = std::sqrt( std::pow(X.p_position.x() - distance.get<2>().x(), 2.0) 
                              + std::pow( X.p_position.y() - distance.get<2>().y(), 2.0 ) );
     
-    if(dst > distance_box.get<1>()){
-      distance_box.get<1>() = distance_box.get<1>() - z_distance;
+    if(distance.get<1>() > distance_box.get<1>()){
       dst = distance_box.get<1>();
       distance = distance_box;
     }
-
 
     double covar = filter_config.sonar_covariance;
     
