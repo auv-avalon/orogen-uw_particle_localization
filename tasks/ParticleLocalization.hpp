@@ -19,7 +19,7 @@
 #include <uw_localization/types/info.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
-#include <avalon_base/feature.h>
+#include <visual_detectors/Types.hpp>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
 

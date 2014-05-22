@@ -6,7 +6,7 @@ using_library "uwv_dynamic_model"
 using_task_library "sonar_wall_hough"
 
 import_types_from "base"
-import_types_from "avalon_base/feature.h"
+import_types_from "visual_detectors/Types.hpp"
 import_types_from "tasks/Types.hpp"
 import_types_from "tasks/LocalizationConfig.hpp"
 import_types_from "offshore_pipeline_detector"
