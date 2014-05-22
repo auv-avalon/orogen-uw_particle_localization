@@ -77,8 +77,8 @@ void OrientationCorrection::updateHook()
       if(offset_buffer.size() >= _min_buffer_size.get()){
 	
 	double sonar_offset = calcMedian(offset_buffer);
-        actOffsetVal = sonar_offset;
-	actOffset = actNorthOffset * Eigen::AngleAxis<double>(sonar_offset, Eigen::Vector3d::UnitZ());
+        actOffsetVal = -sonar_offset;
+	actOffset = actNorthOffset * Eigen::AngleAxis<double>(-sonar_offset, Eigen::Vector3d::UnitZ());
       
 	offset_recieved = 1;
 	
@@ -142,9 +142,11 @@ double OrientationCorrection::calcMedian(boost::circular_buffer<double> &buffer)
     std::list<double>::iterator jt = sorted_list.begin();
     
     //since there is no random access to lists, iterate to the middle element
-    for(int i = 0; i < sorted_list.size()/2; i++)
+    for(int i = 0; i < sorted_list.size()/2; i++){
       jt++;
-    
+      
+    }
+        
     return *jt;    
   }
   
