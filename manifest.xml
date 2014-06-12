@@ -12,7 +12,7 @@
   <depend package="dagon/uwv_dynamic_model" />
   <depend package="image_processing/orogen/offshore_pipeline_detector" />
   <depend package="auv_avalon/orogen/sonar_wall_hough" />
-  <depend package="avalon/visual_detectors" />
+  <depend package="auv_avalon/visual_detectors" />
   <!--depend package="avalon/orogen/battery_management" /-->
   <tags>needs_opt</tags>
 </package>
