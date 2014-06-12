@@ -97,7 +97,11 @@ bool Task::startHook()
        return false;
      }else{  
       std::cout << "Setup NodeMap" << std::endl;
-      map = new NodeMap(_yaml_map.value());
+      map = new NodeMap();
+      if(!map->fromYaml(_yaml_map.value())){
+        std::cerr << "ERROR: No map could be load " << _yaml_map.value().c_str() << std::endl;
+        return false;
+      }
       env = map->getEnvironment();
       config.env = &env;
       config.useMap = true;
@@ -394,7 +398,7 @@ void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::R
 void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buoy& buoy){
   last_perception = ts;
   
-  double effective_sample_size = localizer->observe(buoy, *map, _buoy_importance.value());
+  //double effective_sample_size = localizer->observe(buoy, *map, _buoy_importance.value());
   
 } 
 
