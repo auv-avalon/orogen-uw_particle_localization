@@ -9,7 +9,7 @@ namespace uw_localization {
 base::samples::RigidBodyState* PoseParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
-    : ParticleFilter<PoseParticle, NodeMap>(), filter_config(config),
+    : ParticleFilter<PoseParticle>(), filter_config(config),
     StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
     perception_history_sum(0.0),
     sonar_debug(0)
@@ -319,7 +319,7 @@ void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut
 	base::Vector3d u_t1;
 	double dt = (Ut.time - lastActuatorTime).toSeconds();
 	
-	if(dt < 5.0 && dt > 0.0){
+	if(dt < 5.0 && dt >= 0.0){
 	  
 	  if(filter_config.advanced_motion_model){
 		      
@@ -373,6 +373,7 @@ void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut
 	  }
 	}else{
 	  std::cout << "Timestampdifference between thruster-samples to big" << std::endl;
+          std::cout << "Last: " << lastActuatorTime << " actual: " << Ut.time << std::endl; 
 	}
 	
     } 
@@ -400,9 +401,10 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::Joints
     return U.time;
 }
 
-double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance)
+double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance)
 {
     zeroConfidenceCount = 0;
+    measurement_incomplete = false;
     
     double effective_sample_size;
     
@@ -423,10 +425,13 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
     if(zeroConfidenceCount > 0 && filter_config.filterZeros)
       filterZeros();
 
+    if(measurement_incomplete)
+      return INFINITY; //If we have no complete meassurement, we do not want to resample!!!
+    
     return effective_sample_size;
 }
 
-double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, const NodeMap& m, double importance)
+double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance)
 {	
     if(utm_origin[0]==-1){
 	utm_origin << z.position[0], z.position[1], 0.0;
@@ -470,7 +475,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
 
 
 
-double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, const NodeMap& M)
+double ParticleLocalization::perception(const PoseParticle& X, const base::samples::LaserScan& Z, NodeMap& M)
 {
     uw_localization::PointInfo info;
     info.time = X.timestamp;
@@ -509,17 +514,26 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 				  Eigen::Vector3d(0.0, filter_config.sonar_vertical_angle/2.0, yaw + angle), X.p_position);
 
 
-    double dst = std::sqrt( std::pow(X.p_position.x() - distance.get<2>().x(), 2.0) 
-                             + std::pow( X.p_position.y() - distance.get<2>().y(), 2.0 ) );
+    double dst = distance.get<1>();
+    double dst_box = distance_box.get<1>();
     
-    if(distance.get<1>() > distance_box.get<1>()){
-      dst = distance_box.get<1>();
+    double diff_dst = std::fabs( dst - z_distance);
+    double diff_dst_box = std::fabs( dst_box - z_distance);
+        
+    if(diff_dst > diff_dst_box){
+      dst = dst_box;
       distance = distance_box;
     }
 
+    if(dst == INFINITY){
+      measurement_incomplete = true;
+      debug(z_distance, X.p_position, X.main_confidence, MAP_INVALID);
+      return X.main_confidence;
+    }    
+    
     double covar = filter_config.sonar_covariance;
     
-    if(distance.get<1>() > vehicle_pose.position[2]/sin(filter_config.sonar_vertical_angle/2.0))
+    if(dst > vehicle_pose.position[2]/sin(filter_config.sonar_vertical_angle/2.0))
       covar = covar * filter_config.sonar_covariance_reflection_factor;    
 
     if(angleDiffToCorner(angle+yaw, X.p_position, filter_config.env) < 0.1)
@@ -535,7 +549,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
     return probability;
 }
 
-double ParticleLocalization::perception(const PoseParticle& X, const controlData::Pipeline& Z, const NodeMap& M) 
+double ParticleLocalization::perception(const PoseParticle& X, const controlData::Pipeline& Z, NodeMap& M) 
 {
     double yaw = base::getYaw(vehicle_pose.orientation);
     Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
@@ -558,7 +572,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const controlData
 }
 
 
-double ParticleLocalization::perception(const PoseParticle& X, const base::Vector3d& Z, const NodeMap& M)
+double ParticleLocalization::perception(const PoseParticle& X, const base::Vector3d& Z, NodeMap& M)
 {
     Eigen::Matrix<double,2,1> pos;
     pos << X.p_position[0] , X.p_position[1];
@@ -585,7 +599,7 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::Vecto
     return probability;
 }
 
-double ParticleLocalization::perception(const PoseParticle& X, const avalon::feature::Buoy& Z, const NodeMap& M){
+double ParticleLocalization::perception(const PoseParticle& X, const avalon::feature::Buoy& Z, NodeMap& M){
   
   Eigen::Vector3d cameraInWorld = X.p_position + (vehicle_pose.orientation * filter_config.buoyCamPosition);
   Eigen::Vector3d buoyToCam = vehicle_pose.orientation * (filter_config.buoyCamRotation * Z.world_coord);
@@ -599,7 +613,16 @@ double ParticleLocalization::perception(const PoseParticle& X, const avalon::fea
   
   return probability;
 }
+
+
+double ParticleLocalization::perception(const PoseParticle& X, const double& Z, GridMap& M){
   
+  if(first_perception_received)
+    M.setDepth(X.p_position.x(), X.p_position.y(), Z, X.main_confidence);  
+  
+  return X.main_confidence;
+  
+}  
   
 void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
 {
@@ -787,7 +810,7 @@ double ParticleLocalization::angleDiffToCorner(double sonar_orientation, base::V
 
 
 void ParticleLocalization::filterZeros(){
-
+    std::cout << "Filter zeros" << std::endl;
     base::Vector3d var = filter_config.init_variance;
     base::Vector3d pos = filter_config.init_position;
   
@@ -800,7 +823,7 @@ void ParticleLocalization::filterZeros(){
     UniformRealRandom pos_y = Random::uniform_real(pos.y() - var.y() * 0.5, pos.y() + var.y() * 0.5 );
     UniformRealRandom pos_z = Random::uniform_real(pos.z() - var.z() * 0.5, pos.z() + var.z() * 0.5 );  
   
-  
+    int count = 0;
     std::list<PoseParticle>::iterator it;
     for(it = particles.begin(); it != particles.end(); ++it) {
         
@@ -809,8 +832,10 @@ void ParticleLocalization::filterZeros(){
           it->p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
           it->p_velocity = base::Vector3d(0.0, 0.0, 0.0);
           it->main_confidence = 1.0 / particles.size();
+          count++;
         }      
-    } 
+    }
+    std::cout << "Filtered " << count << " particles" << std::endl;
   
 }
 

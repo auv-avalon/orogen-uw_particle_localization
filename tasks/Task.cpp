@@ -12,7 +12,8 @@ using namespace uw_localization;
 Task::Task(std::string const& name)
     : TaskBase(name)
 {
-
+  map = 0;
+  grid_map = 0;
   base::Matrix6d m;
   m.setZero();
   _param_sqDamp.set(m);
@@ -44,6 +45,9 @@ Task::Task(std::string const& name)
 Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
     : TaskBase(name, engine)
 {
+  
+  map = 0;
+  grid_map = 0;  
   base::Matrix6d m;
   m.setZero();
   _param_sqDamp.set(m);
@@ -103,6 +107,8 @@ bool Task::startHook()
         return false;
       }
       env = map->getEnvironment();
+      grid_map = new GridMap( base::Vector2d(-map->getTranslation().x(), -map->getTranslation().y() ),
+                              base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ), 0.5);
       config.env = &env;
       config.useMap = true;
      }
@@ -192,8 +198,17 @@ void Task::updateHook()
 {
      TaskBase::updateHook();
    
-     if(_debug.value() && !_yaml_map.value().empty())
+     if(_debug.value() && !_yaml_map.value().empty()){
        _environment.write(map->getEnvironment());
+       
+       base::samples::Pointcloud pc;;
+       pc.time = base::Time::now();
+       pc.points = grid_map->getCloud();
+      _depth_grid.write( pc); 
+       
+     }
+     
+     
      
      base::samples::RigidBodyState pose;
      if(_avg_particle_position.get()){
@@ -331,7 +346,7 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
     if(!last_perception.isNull() && (ts - last_perception).toSeconds() > _reset_timeout.value()) {
         localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
                 base::getYaw(rbs.orientation), 0.0);
-	
+	std::cout << "Initialize" << std::endl;
         last_perception = ts;
         start_time = ts;
 	state(NO_SONAR);
@@ -400,7 +415,21 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
   
   //double effective_sample_size = localizer->observe(buoy, *map, _buoy_importance.value());
   
-} 
+}
+
+void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
+  
+  if(orientation_sample_recieved){
+    //std::cout << "Echosounder callback" << std::endl;
+    
+    if(_use_markov.get())
+      localizer->observe_markov(current_depth - rbs.position[2], *grid_map, 1.0);
+    else
+      localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);   
+    
+  }
+  
+}
 
 void Task::stopHook()
 {
@@ -409,6 +438,7 @@ void Task::stopHook()
      //delete aggr;
      delete localizer;
      delete map;
+     delete grid_map;
 }
 
 

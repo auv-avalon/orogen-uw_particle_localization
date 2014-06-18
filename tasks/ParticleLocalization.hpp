@@ -16,6 +16,7 @@
 #include <uw_localization/filters/particle_filter.hpp>
 #include <uw_localization/model/uw_motion_model.hpp>
 #include <uw_localization/maps/node_map.hpp>
+#include <uw_localization/maps/grid_map.hpp>
 #include <uw_localization/types/info.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
@@ -26,24 +27,14 @@
 
 namespace uw_localization {
 
-struct PoseParticle {
-  base::Position p_position;
-  base::Vector3d p_velocity;
-  base::Time timestamp;
-
-  double main_confidence;
-
-  static base::samples::RigidBodyState* pose;
-};
-
-
-class ParticleLocalization : public ParticleFilter<PoseParticle, NodeMap>,
+class ParticleLocalization : public ParticleFilter<PoseParticle>,
   public Dynamic<PoseParticle, base::samples::Joints>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
   public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
   public Perception<PoseParticle, std::pair<double,double>, NodeMap>,
-  public Perception<PoseParticle, avalon::feature::Buoy, NodeMap>  
+  public Perception<PoseParticle, avalon::feature::Buoy, NodeMap>,
+  public Perception<PoseParticle, double, GridMap>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -67,9 +58,9 @@ public:
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::samples::Joints& u);
 
-  virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, const NodeMap& m);
-  virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, const NodeMap& m);
-  virtual double perception(const PoseParticle& x, const avalon::feature::Buoy& z, const NodeMap& m);  
+  virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, NodeMap& m);
+  virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, NodeMap& m);
+  virtual double perception(const PoseParticle& x, const avalon::feature::Buoy& z, NodeMap& m);  
   
     
  /**
@@ -79,13 +70,22 @@ public:
  * @param M: the nodemap
  * @return the propability of the particle
  */ 
-  virtual double perception(const PoseParticle& x, const base::Vector3d& z, const NodeMap& m);
+  virtual double perception(const PoseParticle& x, const base::Vector3d& z, NodeMap& m);
 
+  
+  /**
+   * Calculated the position propability using a depth sample
+   * @param x: a position particle
+   * @param z: depth sample
+   * @param M: the gridmap
+   */  
+  virtual double perception(const PoseParticle& x, const double& z, GridMap& m);
+  
   virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio);
   
   void interspersal(const NodeMap& m, double ratio);
 
-  double observeAndDebug(const base::samples::LaserScan& z, const NodeMap& m, double importance = 1.0);
+  double observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance = 1.0);
   
   /**
    * Receives a perception as a gps-position and updates the current particle-set
@@ -94,7 +94,7 @@ public:
    * @param importance: importace factor of the perception
    * @return: the effectiv sample size (the average square weight)
    */
-  double observeAndDebug(const base::samples::RigidBodyState& z, const NodeMap& m, double importance = 1.0);
+  double observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance = 1.0);
 
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
@@ -156,6 +156,9 @@ private:
   
   //Number of particles with zero confidence
   int zeroConfidenceCount;
+  
+  //True, if there are invalid measurements caused by incomplete map
+  bool measurement_incomplete;
 
   /** observers */
   DebugWriter<uw_localization::PointInfo>* sonar_debug;

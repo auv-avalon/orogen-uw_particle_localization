@@ -44,6 +44,8 @@ task_context "Task" do
 
    output_port("stats", "/uw_localization/Stats").
         doc("various values representing current localization state")
+        
+   output_port("depth_grid", "/base/samples/Pointcloud")
 
    # ----------------------------------------------------------------------
    # input samples 
@@ -82,6 +84,10 @@ task_context "Task" do
     input_port("orientation_samples", "/base/samples/RigidBodyState").
 	  doc("current orientation of the vehicle").
 	  needs_reliable_connection
+	  
+    input_port("echosounder_samples", "base/samples/RigidBodyState").
+          doc("Echosounder samples of the vehicle").
+          needs_reliable_connection
    
    # ----------------------------------------------------------------------
    # properties
@@ -170,8 +176,7 @@ task_context "Task" do
         doc("Calculate position by calculating the avg particle position")
         
    #Sensor-transformation------------------------------------------------------------------
-   
-   
+      
    
    property("sonar_position", "base/Vector3d").
 	doc("transformation of the sonar, with respect to the origin of avalon")
@@ -266,7 +271,7 @@ task_context "Task" do
    # stream aligner
    # ----------------------------------------------------------------------
    stream_aligner do
-       max_latency 2.0
+       max_latency 1.0
        align_port "laser_samples", 0.1
        align_port "orientation_samples", 0.01
        align_port "speed_samples", 0.01
@@ -275,6 +280,7 @@ task_context "Task" do
        align_port "pose_update", 0.1
        align_port "gps_pose_samples", 0.1
        align_port "buoy_samples", 0.1
+       align_port "echosounder_samples", 0.1
    end
  
    port_driven :laser_samples
@@ -285,6 +291,7 @@ task_context "Task" do
    port_driven :pose_update
    port_driven :gps_pose_samples
    port_driven :buoy_samples
+   port_driven :echosounder_samples
    
    runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS"
    
@@ -383,7 +390,7 @@ task_context "MotionModel" do
          
    port_driven
    
-end 
+end
 
 
 #Declares a deployment, i.e. an actual executable that contains various tasks.

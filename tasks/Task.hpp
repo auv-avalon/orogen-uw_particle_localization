@@ -9,6 +9,7 @@
 #include <vector>
 #include <list>
 #include "tasks/LocalizationConfig.hpp"
+#include <uw_localization/maps/grid_map.hpp>
 
 namespace aggregator {
     class StreamAligner;
@@ -17,6 +18,7 @@ namespace aggregator {
 namespace uw_localization {
     class ParticleLocalization;
     class NodeMap;
+    class GridMap;
 }
 
 namespace uw_particle_localization {
@@ -49,9 +51,11 @@ namespace uw_particle_localization {
         virtual void pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline);
 	virtual void gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
 	virtual void buoy_samplesCallback(const base::Time&, const avalon::feature::Buoy&);
+        virtual void echosounder_samplesCallback(const base::Time&, const base::samples::RigidBodyState& rbs);
 
         uw_localization::ParticleLocalization* localizer;
         uw_localization::NodeMap* map;
+        uw_localization::GridMap* grid_map;
 	uw_localization::Environment env;
 	uw_localization::FilterConfig config;
 	
