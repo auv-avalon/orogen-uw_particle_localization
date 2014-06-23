@@ -90,6 +90,7 @@ struct FilterConfig {
     bool param_floating;
     
     bool advanced_motion_model;
+    double max_velocity_drift;
     Environment* env;
     
     std::vector<std::string> joint_names;

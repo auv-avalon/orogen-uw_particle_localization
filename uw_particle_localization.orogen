@@ -4,6 +4,7 @@ using_library "uw_localization"
 using_library "machine_learning"
 using_library "uwv_dynamic_model"
 using_task_library "sonar_wall_hough"
+using_task_library "sonar_feature_estimator"
 
 import_types_from "base"
 import_types_from "visual_detectors/Types.hpp"
@@ -15,7 +16,8 @@ import_types_from "uw_localization/types/info.hpp"
 #import_types_from "uw_localization/types/map.hpp"
 import_types_from "uw_localization/types/environment.hpp"
 #import_types_from "battery_management"
-import_types_from "sonar_wall_hough/tasks/DebugTypes.hpp"   
+import_types_from "sonar_wall_hough/tasks/DebugTypes.hpp"
+import_types_from "sonar_feature_estimator/FeatureEstimationDebugTypes.hpp"
 
 
 task_context "Task" do
@@ -87,6 +89,10 @@ task_context "Task" do
 	  
     input_port("echosounder_samples", "base/samples/RigidBodyState").
           doc("Echosounder samples of the vehicle").
+          needs_reliable_connection
+          
+    input_port("obstacle_samples", "sonar_detectors/ObstacleFeatures").
+          doc("list of obstacle features, estimated by the sonar").
           needs_reliable_connection
    
    # ----------------------------------------------------------------------
@@ -228,7 +234,11 @@ task_context "Task" do
 #------- Dynamic model parameter
 
     property("advanced_motion_model" , "bool" , false).
-	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")    
+	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
+	
+    property("max_velocity_drift", "double", 1.0).
+       doc("Maximum velocity drift threshold in the dynamic-step, in m/s").
+       doc("The maximum difference between the dead reckoning velocity and the randomized particle velocity")
     
     property("param_length" , "double" , 1.4).
 	doc("length of avalon")
@@ -281,6 +291,7 @@ task_context "Task" do
        align_port "gps_pose_samples", 0.1
        align_port "buoy_samples", 0.1
        align_port "echosounder_samples", 0.1
+       align_port "obstacle_samples", 0.1
    end
  
    port_driven :laser_samples
@@ -292,6 +303,7 @@ task_context "Task" do
    port_driven :gps_pose_samples
    port_driven :buoy_samples
    port_driven :echosounder_samples
+   port_driven :obstacle_samples
    
    runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS"
    

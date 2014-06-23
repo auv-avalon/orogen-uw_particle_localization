@@ -20,6 +20,7 @@
 #include <uw_localization/types/info.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
+#include <sonar_feature_estimator/FeatureEstimationDebugTypes.hpp>
 #include <visual_detectors/Types.hpp>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
@@ -31,6 +32,7 @@ class ParticleLocalization : public ParticleFilter<PoseParticle>,
   public Dynamic<PoseParticle, base::samples::Joints>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
+  public Perception<PoseParticle, sonar_detectors::ObstacleFeatures, NodeMap>,
   public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
   public Perception<PoseParticle, std::pair<double,double>, NodeMap>,
   public Perception<PoseParticle, avalon::feature::Buoy, NodeMap>,
@@ -62,6 +64,14 @@ public:
   virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, NodeMap& m);
   virtual double perception(const PoseParticle& x, const avalon::feature::Buoy& z, NodeMap& m);  
   
+  /**
+   * Calculates the propability of a particle using a recieved list of sonar features
+   * @param X: a Particle
+   * @param Z: perception of the sonar
+   * @param M: the nodemap
+   * @return: propability of the particle
+   */
+  virtual double perception(const PoseParticle& x, const sonar_detectors::ObstacleFeatures& z, NodeMap& m);  
     
  /**
  * Calculates the propability of a particle using a received gps-position
@@ -87,6 +97,8 @@ public:
 
   double observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance = 1.0);
   
+  double observeAndDebug(const sonar_detectors::ObstacleFeatures& z, NodeMap& m, double importance = 1.0);
+  
   /**
    * Receives a perception as a gps-position and updates the current particle-set
    * @param z: Perception as an utm-coordinate
@@ -97,6 +109,7 @@ public:
   double observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance = 1.0);
 
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
+  void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf, PointStatus Status);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
   void debug(const base::Vector3d& pos, double conf, PointStatus status);
   

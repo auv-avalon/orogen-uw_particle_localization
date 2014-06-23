@@ -273,7 +273,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Joints&
 		u_velocity = base::Vector3d(0.0, 0.0, 0.0);
 	    }else if(filter_config.advanced_motion_model){	  	  
 
-   
+              //UPdate motion model
 	      dynamic_model->setPosition(X.p_position);
 	      dynamic_model->setLinearVelocity(X.p_velocity);
 	      dynamic_model->setSamplingtime(dt);
@@ -298,7 +298,20 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Joints&
 	  if(vehicle_pose.hasValidOrientation() && !std::isnan(v_avg[0]) && !std::isnan(v_avg[1]) 
 		  && base::samples::RigidBodyState::isValidValue(v_noisy) ){
 	    X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
-	    X.p_velocity = v_noisy;	  
+	    X.p_velocity = v_noisy;
+          
+          //Cut off velocity ddift
+          for(int i = 0; i < 3; i++){
+            
+            if(X.p_velocity[i] < motion_pose.velocity[i] - filter_config.max_velocity_drift)
+              X.p_velocity[i] = motion_pose.velocity[i] - filter_config.max_velocity_drift;
+            
+            if(X.p_velocity[i] > motion_pose.velocity[i] + filter_config.max_velocity_drift)
+              X.p_velocity[i] = motion_pose.velocity[i] + filter_config.max_velocity_drift;
+            
+          }        
+          
+          
 	  }
       }
     }
@@ -431,6 +444,39 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
     return effective_sample_size;
 }
 
+
+double ParticleLocalization::observeAndDebug(const sonar_detectors::ObstacleFeatures& z, NodeMap& m, double importance)
+{
+    zeroConfidenceCount = 0;
+    measurement_incomplete = false;
+    
+    double effective_sample_size;
+    
+    if(filter_config.use_markov)
+      effective_sample_size = observe_markov(z, m, importance);
+    else      
+      effective_sample_size = observe(z, m, importance);
+    
+    best_sonar_measurement.time = z.time;
+
+    sonar_debug->write(best_sonar_measurement);
+
+    if(best_sonar_measurement.status == OKAY)
+        addHistory(best_sonar_measurement);
+
+    best_sonar_measurement.confidence = -1.0;
+    
+    if(zeroConfidenceCount > 0 && filter_config.filterZeros)
+      filterZeros();
+
+    if(measurement_incomplete)
+      return INFINITY; //If we have no complete meassurement, we do not want to resample!!!
+    
+    return effective_sample_size;
+}
+
+
+
 double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance)
 {	
     if(utm_origin[0]==-1){
@@ -516,13 +562,21 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
     double dst = distance.get<1>();
     double dst_box = distance_box.get<1>();
-    
+          
     double diff_dst = std::fabs( dst - z_distance);
     double diff_dst_box = std::fabs( dst_box - z_distance);
-        
+    bool box = false;
+    
+    if(dst_box != INFINITY){
+      //std::cout << "Dst: " << dst << " - dst box: " << dst_box << std::endl;
+    }
+    
+    
     if(diff_dst > diff_dst_box){
       dst = dst_box;
       distance = distance_box;
+      box = true;
+      
     }
 
     if(dst == INFINITY){
@@ -541,13 +595,144 @@ double ParticleLocalization::perception(const PoseParticle& X, const base::sampl
 
     double probability = gaussian1d(0.0, covar, dst - z_distance);
     
-    debug(z_distance, dst ,angle + yaw  ,distance.get<2>(), AbsZ, X.p_position, probability);
+    if(box){
+      debug(z_distance, dst ,angle + yaw  ,distance.get<2>(), AbsZ, X.p_position, probability, OBSTACLE);
+    }else{    
+      debug(z_distance, dst ,angle + yaw  ,distance.get<2>(), AbsZ, X.p_position, probability);
+    }
     //std::cout << distance.get<1>() << std::endl;    
     
     first_perception_received = true;
 
     return probability;
 }
+
+double ParticleLocalization::perception(const PoseParticle& X, const sonar_detectors::ObstacleFeatures& Z, NodeMap& M){
+ 
+    //Check if particle is part of the map
+    if(!M.belongsToWorld(X.p_position)) {
+        debug(0.0, X.p_position, 0.0, NOT_IN_WORLD);
+        zeroConfidenceCount++;
+        return 0.0;
+    }  
+  
+  //Check if there are valid features
+  if(Z.features.empty()){
+   
+     double p = X.main_confidence;
+     debug(0.0, X.p_position, p, OUT_OF_RANGE);
+     return p;
+  }
+  
+    double angle = Z.angle;
+    double yaw = base::getYaw(vehicle_pose.orientation);
+    // Sonar transformations
+    Eigen::AngleAxis<double> sonar_yaw(angle, Eigen::Vector3d::UnitZ()); 
+    Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());    
+    Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);  
+  
+  
+  bool valid_range = false;
+  bool valid_map = false;
+  std::vector<double> distance_diffs;
+  std::vector<PointStatus> states;
+  std::vector< boost::tuple<Node*, double, Eigen::Vector3d> > distances;
+  std::vector<double> z_distances;
+  
+  //Calculate perception for every feature
+  for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it = Z.features.begin(); it != Z.features.end(); it++){
+    
+    //If the confidence is zero, ignore feature
+    if(it->confidence > 0.0)
+      continue;
+    
+    double z_distance = it->range / 1000.0;
+    
+    // check if current laser scan is in a valid range
+    if(z_distance == base::samples::TOO_FAR 
+            || z_distance > filter_config.sonar_maximum_distance 
+            || z_distance < filter_config.sonar_minimum_distance)
+    {
+        continue;
+    }    
+    
+    //At least, on feature is in valid range
+    valid_range = true;
+    
+    Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(z_distance, 0.0, 0.0);
+    Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.p_position;
+    
+    //Calculate perception model
+    boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
+    boost::tuple<Node*, double, Eigen::Vector3d> distance_box = M.getNearestDistance("root.box",
+                                  Eigen::Vector3d(0.0, filter_config.sonar_vertical_angle/2.0, yaw + angle), X.p_position);
+    
+    double dist_diff = std::fabs(z_distance - distance.get<1>());
+    double dist_diff_box = std::fabs(z_distance - distance_box.get<1>());
+    
+    if(distance.get<1>() == INFINITY && distance_box.get<1>() == INFINITY)
+      continue;
+    
+    //At least one feature can be modeled
+    valid_map = true;
+    
+    //Select best modeled perception
+    if(dist_diff > dist_diff_box){
+      distance_diffs.push_back(dist_diff_box);
+      states.push_back(OBSTACLE);
+      distances.push_back(distance_box);
+      z_distances.push_back(z_distance);
+    }
+    else{
+      distance_diffs.push_back(dist_diff);    
+      states.push_back(OKAY);
+      distances.push_back(distance);
+      z_distances.push_back(z_distance);
+    }
+  }
+  
+  //There were no valid features
+  if(!valid_range){
+     double p = X.main_confidence;
+     debug(0.0, X.p_position, p, OUT_OF_RANGE);
+     return p;    
+  }
+  
+  //No features could be modeled
+  if(!valid_map){
+      measurement_incomplete = true;
+      debug(0.0, X.p_position, X.main_confidence, MAP_INVALID);
+      return X.main_confidence;    
+    
+  }  
+  
+  double best_diff = INFINITY;
+  PointStatus best_state;
+  boost::tuple<Node*, double, Eigen::Vector3d> best_distance;
+  double best_z;
+  
+  //Select feature with the lowest modeled difference
+  std::vector<PointStatus>::iterator state_it = states.begin();
+  std::vector< boost::tuple<Node*, double, Eigen::Vector3d> >::iterator dist_it= distances.begin();
+  std::vector< double>::iterator it_z = z_distances.begin();
+  for(std::vector<double>::iterator it = distance_diffs.begin(); it != distance_diffs.end(); it++, state_it++, dist_it++, it_z++){
+    if(*it < best_diff){
+      best_diff = *it;
+      best_state = *state_it;
+      best_distance = *dist_it;
+      best_z = *it_z;
+    }
+    
+  }  
+  
+  //Rate the best feature
+  double probability = gaussian1d(0.0, filter_config.sonar_covariance, best_diff);
+  debug(best_z, best_distance.get<1>() ,angle + yaw  ,best_distance.get<2>(), base::Vector3d(0.0,0.0,0.0), X.p_position, probability, best_state);
+  
+ return probability; 
+}
+
+
 
 double ParticleLocalization::perception(const PoseParticle& X, const controlData::Pipeline& Z, NodeMap& M) 
 {
@@ -719,6 +904,23 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& location
     }
 }
 
+void ParticleLocalization::debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf, PointStatus status)
+{
+    if(best_sonar_measurement.confidence < conf) {
+        uw_localization::PointInfo info;
+        info.distance = distance;
+        info.desire_distance = desire_distance;
+        info.desire_point = desire;
+        info.real_point = real;
+        info.angle = angle;
+        info.location = loc;
+        info.confidence = conf;
+        info.status = status;
+
+        best_sonar_measurement = info;
+    }
+}
+
 void ParticleLocalization::debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf)
 {
     if(best_sonar_measurement.confidence < conf) {
@@ -810,7 +1012,7 @@ double ParticleLocalization::angleDiffToCorner(double sonar_orientation, base::V
 
 
 void ParticleLocalization::filterZeros(){
-    std::cout << "Filter zeros" << std::endl;
+
     base::Vector3d var = filter_config.init_variance;
     base::Vector3d pos = filter_config.init_position;
   
@@ -835,7 +1037,6 @@ void ParticleLocalization::filterZeros(){
           count++;
         }      
     }
-    std::cout << "Filtered " << count << " particles" << std::endl;
   
 }
 

@@ -168,6 +168,7 @@ bool Task::startHook()
       return false;
     
     config.advanced_motion_model = _advanced_motion_model.value();
+    config.max_velocity_drift = _max_velocity_drift.value();
     
     config.sonarToAvalon = Eigen::Translation3d(_sonar_position.get());
     config.pipelineToAvalon = _pipeline_position.get();
@@ -316,6 +317,27 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 
 }
 
+void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& features)
+{
+  
+  last_perception = ts;
+  double Neff = localizer->observeAndDebug(features, *map, _sonar_importance.value());
+  
+  number_sonar_perceptions++;
+  
+  if(localizer->hasStats()){
+     _stats.write(localizer->getStats());
+  }  
+  
+  
+  if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value())
+            && Neff < _effective_sample_size_threshold.value()){
+    localizer->resample();
+    number_sonar_perceptions = 0;
+  }
+  
+}
+
 
 void Task::pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline) 
 {
@@ -388,9 +410,10 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
     }  
   }
 
-  if(orientation_sample_recieved){    
-    localizer->update(j);    
+  if(orientation_sample_recieved){
     localizer->update_dead_reckoning(j);
+    localizer->update(j);
+    
   }else{
     state(NO_ORIENTATION);
   }  
