@@ -86,6 +86,8 @@ namespace uw_particle_localization {
          * it again. Finally, FatalError cannot be recovered.
          */
         void updateHook();
+        
+        void stopHook();
 	
 	virtual bool reset(double angle);
 	
@@ -93,14 +95,14 @@ namespace uw_particle_localization {
 	
           base::samples::RigidBodyState lastOrientation;
           base::samples::RigidBodyState lastIMU;
-          boost::circular_buffer<double> offset_buffer;
+          boost::circular_buffer<double> *offset_buffer;
           
           Eigen::AngleAxis<double> actOffset;
           double actOffsetVal;
           Eigen::AngleAxis<double> actNorthOffset;
           
-          double calcMedian(boost::circular_buffer<double> &buffer);
-          void middleOffsets(boost::circular_buffer<double> &buffer);
+          double calcMedian(boost::circular_buffer<double> *buffer);
+          void middleOffsets(boost::circular_buffer<double> *buffer);
           
           int offset_recieved;
           base::Time lastResetRecieved;	

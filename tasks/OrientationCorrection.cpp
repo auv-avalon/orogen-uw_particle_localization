@@ -7,17 +7,18 @@ using namespace uw_particle_localization;
 OrientationCorrection::OrientationCorrection(std::string const& name, TaskCore::TaskState initial_state)
     : OrientationCorrectionBase(name, initial_state)
 {
-  
+  offset_buffer = 0;
 }
 
 OrientationCorrection::OrientationCorrection(std::string const& name, RTT::ExecutionEngine* engine, TaskCore::TaskState initial_state)
     : OrientationCorrectionBase(name, engine, initial_state)
 {
-  
+  offset_buffer = 0;
 }
 
 OrientationCorrection::~OrientationCorrection()
 {
+ 
 }
 
 
@@ -37,7 +38,7 @@ bool OrientationCorrection::startHook()
     if (! OrientationCorrectionBase::startHook())
         return false;
     
-    offset_buffer.resize(_buffer_size.get());
+    offset_buffer = new boost::circular_buffer<double>(_buffer_size.get());
     
     lastOrientation.time = base::Time::fromSeconds(0);
     lastIMU.time = base::Time::fromSeconds(0);
@@ -46,6 +47,16 @@ bool OrientationCorrection::startHook()
     
     return true;
 }
+
+void OrientationCorrection::stopHook()
+{
+  OrientationCorrectionBase::stopHook();
+  
+  delete offset_buffer;
+  offset_buffer = 0;
+  
+}
+
 void OrientationCorrection::updateHook()
 {
     OrientationCorrectionBase::updateHook();
@@ -72,9 +83,9 @@ void OrientationCorrection::updateHook()
     sonar_wall_hough::PositionQuality offset;    
     while(_orientation_offset.read(offset) == RTT::NewData){
       
-      offset_buffer.push_back(offset.orientation_drift);
+      offset_buffer->push_back(offset.orientation_drift);
       
-      if(offset_buffer.size() >= _min_buffer_size.get()){
+      if(offset_buffer->size() >= _min_buffer_size.get()){
 	
 	double sonar_offset = calcMedian(offset_buffer);
         actOffsetVal = -sonar_offset;
@@ -109,14 +120,14 @@ bool OrientationCorrection::reset(double angle){
   return true;
 }
 
-double OrientationCorrection::calcMedian(boost::circular_buffer<double> &buffer){
+double OrientationCorrection::calcMedian(boost::circular_buffer<double> *buffer){
   
-  if(!buffer.empty()){
+  if(!buffer->empty()){
    
     std::list<double> sorted_list;
     
     //Sort the buffered offsets
-    for(boost::circular_buffer<double>::iterator it = buffer.begin(); it != buffer.end(); it++){
+    for(boost::circular_buffer<double>::iterator it = buffer->begin(); it != buffer->end(); it++){
       
       if(sorted_list.empty()){
 	sorted_list.push_back(*it);
@@ -153,11 +164,11 @@ double OrientationCorrection::calcMedian(boost::circular_buffer<double> &buffer)
   return 0.0;  
 }
 
-void OrientationCorrection::middleOffsets(boost::circular_buffer<double> &buffer){
+void OrientationCorrection::middleOffsets(boost::circular_buffer<double> *buffer){
   
-  if(!buffer.empty()){
+  if(!buffer->empty()){
     
-    for(boost::circular_buffer<double>::iterator it = buffer.begin(); it != buffer.end(); it++){
+    for(boost::circular_buffer<double>::iterator it = buffer->begin(); it != buffer->end(); it++){
       
       *it -= actOffsetVal;
       
