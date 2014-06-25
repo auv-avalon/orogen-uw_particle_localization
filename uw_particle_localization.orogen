@@ -181,6 +181,10 @@ task_context "Task" do
    property("avg_particle_position", "bool", true).
         doc("Calculate position by calculating the avg particle position")
         
+   property("use_best_feature_only", "bool", true).
+        doc("Only use the best modeled feature for particle rating").
+        doc("If false, feature ratings will be multiplied")
+        
    #Sensor-transformation------------------------------------------------------------------
       
    

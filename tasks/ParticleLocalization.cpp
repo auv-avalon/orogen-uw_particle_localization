@@ -1,5 +1,6 @@
 #include "ParticleLocalization.hpp"
 #include <base/pose.h>
+#include <list>
 //#include <stdexcept>
 
 using namespace machine_learning;
@@ -97,7 +98,7 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
         pp.p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
         pp.p_velocity = base::Vector3d(0.0, 0.0, 0.0);
         pp.main_confidence = 1.0 / numbers;
-        
+        pp.valid = true;
         particles.push_back(pp);
     }
 
@@ -504,7 +505,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
     newRBS.position[1]=pose[1];
     
     //Creates new particle at the gps-position
-    interspersal(newRBS, m, filter_config.gps_interspersal_ratio);	  
+    interspersal(newRBS, m, filter_config.gps_interspersal_ratio, false);	  
     
     double effective_sample_size = observe(pose, m, importance);   
     
@@ -634,16 +635,17 @@ double ParticleLocalization::perception(const PoseParticle& X, const sonar_detec
   
   bool valid_range = false;
   bool valid_map = false;
-  std::vector<double> distance_diffs;
-  std::vector<PointStatus> states;
-  std::vector< boost::tuple<Node*, double, Eigen::Vector3d> > distances;
-  std::vector<double> z_distances;
+  std::list<double> distance_diffs;
+  std::list<PointStatus> states;
+  std::list< boost::tuple<Node*, double, Eigen::Vector3d> > distances;
+  std::list<double> z_distances;
+  std::list<base::Vector3d> z_points;
   
   //Calculate perception for every feature
   for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it = Z.features.begin(); it != Z.features.end(); it++){
     
     //If the confidence is zero, ignore feature
-    if(it->confidence > 0.0)
+    if(it->confidence <= 0.0)
       continue;
     
     double z_distance = it->range / 1000.0;
@@ -681,14 +683,16 @@ double ParticleLocalization::perception(const PoseParticle& X, const sonar_detec
       distance_diffs.push_back(dist_diff_box);
       states.push_back(OBSTACLE);
       distances.push_back(distance_box);
-      z_distances.push_back(z_distance);
     }
     else{
-      distance_diffs.push_back(dist_diff);    
+      distance_diffs.push_back(dist_diff);
       states.push_back(OKAY);
       distances.push_back(distance);
+    }      
+
       z_distances.push_back(z_distance);
-    }
+      z_points.push_back(AbsZ);
+
   }
   
   //There were no valid features
@@ -710,24 +714,40 @@ double ParticleLocalization::perception(const PoseParticle& X, const sonar_detec
   PointStatus best_state;
   boost::tuple<Node*, double, Eigen::Vector3d> best_distance;
   double best_z;
+  base::Vector3d best_zPoint;
   
   //Select feature with the lowest modeled difference
-  std::vector<PointStatus>::iterator state_it = states.begin();
-  std::vector< boost::tuple<Node*, double, Eigen::Vector3d> >::iterator dist_it= distances.begin();
-  std::vector< double>::iterator it_z = z_distances.begin();
-  for(std::vector<double>::iterator it = distance_diffs.begin(); it != distance_diffs.end(); it++, state_it++, dist_it++, it_z++){
+  std::list<PointStatus>::iterator state_it = states.begin();
+  std::list< boost::tuple<Node*, double, Eigen::Vector3d> >::iterator dist_it= distances.begin();
+  std::list< double>::iterator it_z = z_distances.begin();
+  std::list<base::Vector3d>::iterator it_zpoint = z_points.begin();
+  for(std::list<double>::iterator it = distance_diffs.begin(); it != distance_diffs.end(); it++, state_it++, dist_it++, it_z++, it_zpoint++){
     if(*it < best_diff){
       best_diff = *it;
       best_state = *state_it;
       best_distance = *dist_it;
       best_z = *it_z;
+      best_zPoint = *it_zpoint;
     }
     
   }  
   
   //Rate the best feature
-  double probability = gaussian1d(0.0, filter_config.sonar_covariance, best_diff);
-  debug(best_z, best_distance.get<1>() ,angle + yaw  ,best_distance.get<2>(), base::Vector3d(0.0,0.0,0.0), X.p_position, probability, best_state);
+  double probability;
+  
+  if(filter_config.use_best_feature_only){ //Rate only the best feature
+    probability = gaussian1d(0.0, filter_config.sonar_covariance, best_diff);
+  }  
+  else{ //Rate all features, multiply probabilities
+    
+    probability = 1.0;
+    
+    for(std::list<double>::iterator it = distance_diffs.begin(); it != distance_diffs.end(); it++){
+      probability *= gaussian1d(0.0, filter_config.sonar_covariance, *it);      
+    }    
+  }
+    
+  debug(best_z, best_distance.get<1>() ,angle + yaw  ,best_distance.get<2>(), best_zPoint, X.p_position, probability, best_state);
   
  return probability; 
 }
@@ -837,53 +857,38 @@ uw_localization::Stats ParticleLocalization::getStats() const
     return stats;
 }
 
-void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m, double ratio)
+void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m, double ratio, bool random_uniform)
 {
     reduceParticles(1.0 - ratio);
 
     PoseParticle best = particles.front();
-
+    PoseParticle worst = particles.back();
+    
+    base::Vector3d limit = m.getLimitations();
     MultiNormalRandom<3> Pose = Random::multi_gaussian(p.position, p.cov_position);
+    UniformRealRandom pos_x = Random::uniform_real(-(limit.x() / 2.0) , (limit.x() / 2.0) );
+    UniformRealRandom pos_y = Random::uniform_real(-(limit.y() / 2.0) , (limit.y() / 2.0) );    
 
     for(size_t i = particles.size(); i < filter_config.particle_number; i++) {
         PoseParticle pp;
-        pp.p_position = Pose();
+        
+        if(random_uniform){
+          pp.p_position[0] = pos_x();
+          pp.p_position[1] = pos_y();
+        }
+        else{        
+          pp.p_position = Pose();
+        }
+        
         pp.p_velocity = best.p_velocity;
-        pp.main_confidence = best.main_confidence / 2.0;
-
+        pp.p_position[2] = best.p_position[2];
+        pp.main_confidence = worst.main_confidence / 10000.0; //Choose a realy small value
+        pp.valid = false;
+        
         particles.push_back(pp);
     }
 
     normalizeParticles();
-}
-
-void ParticleLocalization::interspersal(const NodeMap& m, double ratio)
-{
- 
-  if(ratio > 0.0){
-    
-    reduceParticles(1.0 - ratio);
-    
-    PoseParticle best = particles.front();
-    
-    base::Vector3d limit = m.getLimitations();
-    UniformRealRandom pos_x = Random::uniform_real(-(limit.x() / 2.0) , (limit.x() / 2.0) );
-    UniformRealRandom pos_y = Random::uniform_real(-(limit.y() / 2.0) , (limit.y() / 2.0) );
-    
-    for(size_t i = particles.size(); i < filter_config.particle_number; i++){
-      PoseParticle pp;
-      pp.p_position[0] = pos_x();
-      pp.p_position[1] = pos_y();
-      pp.p_position[2] = best.p_position[2];
-      pp.main_confidence = best.main_confidence / 2.0;
-      
-      particles.push_back(pp);
-      
-    }
-    
-    normalizeParticles();    
-  }  
-  
 }
 
 
@@ -1039,5 +1044,15 @@ void ParticleLocalization::filterZeros(){
     }
   
 }
+
+void ParticleLocalization::setParticlesValid(){
+
+  for( std::list<PoseParticle>::iterator it = particles.begin(); it != particles.end(); it++){
+    it->valid = true;
+  }
+  
+  
+}
+
 
 }

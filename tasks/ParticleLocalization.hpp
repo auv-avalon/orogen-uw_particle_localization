@@ -50,6 +50,7 @@ public:
   virtual base::Position position(const PoseParticle& X) const { return X.p_position; }
   virtual base::Vector3d velocity(const PoseParticle& X) const { return X.p_velocity; }
   virtual base::samples::RigidBodyState orientation(const PoseParticle& X) const { return *(X.pose); }
+  virtual bool isValid(const PoseParticle& X) const {return X.valid; }
 
   virtual double confidence(const PoseParticle& X) const { return X.main_confidence; }
   virtual void   setConfidence(PoseParticle& X, double weight) { X.main_confidence = weight; }
@@ -91,9 +92,15 @@ public:
    */  
   virtual double perception(const PoseParticle& x, const double& z, GridMap& m);
   
-  virtual void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio);
+  /**
+   * Delete a amount of particles and insert randomly new articles
+   * @param pos: state of the vehicle, with position and position_covariance
+   * @param m: map of the enviroment
+   * @param ratio: amount of particles, which will be deleted, in percent
+   * @param random_uniform: ignore the position_covariance and interspere random over the environment 
+   */
+  void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio, bool random_uniform);
   
-  void interspersal(const NodeMap& m, double ratio);
 
   double observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance = 1.0);
   
@@ -146,6 +153,10 @@ public:
    */
   void filterZeros();
   
+  /**
+   * Sets all particles in valid-mode. This method should be called after a resampling
+   */
+  void setParticlesValid();
 
 private:
   FilterConfig filter_config;

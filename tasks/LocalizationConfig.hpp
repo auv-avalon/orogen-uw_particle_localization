@@ -44,6 +44,7 @@ struct FilterConfig {
     
     bool use_markov;
     bool avg_particle_position;
+    bool use_best_feature_only;
 
     // Sensor uncertainty
     double sonar_maximum_distance;

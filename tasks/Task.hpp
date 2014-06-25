@@ -28,40 +28,41 @@ namespace uw_particle_localization {
     {
 	friend class TaskBase;
     protected:
-        base::Time last_perception;
-	base::Time last_motion;
-        base::Time start_time;
-	 base::Time last_hough;
-        base::Time last_hough_timeout;
+          base::Time last_perception;
+          base::Time last_motion;
+          base::Time start_time;
+          base::Time last_hough;
+          base::Time last_hough_timeout;
+          base::samples::RigidBodyState lastRBS;
 
-        double current_depth;
-	 bool orientation_sample_recieved;
+          double current_depth;
+          bool orientation_sample_recieved;
 
-        unsigned number_sonar_perceptions;
-        unsigned number_rejected_samples;
-	int number_gps_perceptions;
-	
-        void step(const base::samples::RigidBodyState& sample);
+          unsigned number_sonar_perceptions;
+          unsigned number_rejected_samples;
+          int number_gps_perceptions;
+          
+          void step(const base::samples::RigidBodyState& sample);
 
-        virtual void laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan);
-        virtual void orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-        virtual void speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-        virtual void thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& rbs);
-        virtual void pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-        virtual void pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline);
-	virtual void gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-	virtual void buoy_samplesCallback(const base::Time&, const avalon::feature::Buoy&);
-        virtual void echosounder_samplesCallback(const base::Time&, const base::samples::RigidBodyState& rbs);
-        virtual void obstacle_samplesCallback(const base::Time&, const sonar_detectors::ObstacleFeatures& features);
+          virtual void laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan);
+          virtual void orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+          virtual void speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+          virtual void thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& rbs);
+          virtual void pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+          virtual void pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline);
+          virtual void gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+          virtual void buoy_samplesCallback(const base::Time&, const avalon::feature::Buoy&);
+          virtual void echosounder_samplesCallback(const base::Time&, const base::samples::RigidBodyState& rbs);
+          virtual void obstacle_samplesCallback(const base::Time&, const sonar_detectors::ObstacleFeatures& features);
 
-        uw_localization::ParticleLocalization* localizer;
-        uw_localization::NodeMap* map;
-        uw_localization::GridMap* grid_map;
-	uw_localization::Environment env;
-	uw_localization::FilterConfig config;
-	
-        void write(const uw_localization::PointInfo& sample);
-	bool initMotionConfig();
+          uw_localization::ParticleLocalization* localizer;
+          uw_localization::NodeMap* map;
+          uw_localization::GridMap* grid_map;
+          uw_localization::Environment env;
+          uw_localization::FilterConfig config;
+          
+          void write(const uw_localization::PointInfo& sample);
+          bool initMotionConfig();
 
     public:
         Task(std::string const& name = "uw_particle_localization::Task");

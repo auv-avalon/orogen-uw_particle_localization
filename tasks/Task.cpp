@@ -181,6 +181,7 @@ bool Task::startHook()
     
     config.use_markov = _use_markov.get();
     config.avg_particle_position = _avg_particle_position.get();
+    config.use_best_feature_only = _use_best_feature_only.get();
     
     orientation_sample_recieved = false;
           
@@ -233,7 +234,8 @@ void Task::updateHook()
      //if(!pose.time.isNull())
 	pose.position[2] = current_depth;
 	pose.velocity[2] = motion.velocity[2];
-        _pose_samples.write(pose);     
+        _pose_samples.write(pose);
+        lastRBS = pose;
 
      if(!motion.time.isNull())
        _dead_reckoning_samples.write(motion);
@@ -275,7 +277,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
             else if(ts.toSeconds() - last_hough_timeout.toSeconds() > _hough_timeout.get()){
               
               last_hough_timeout = ts;
-              localizer->interspersal(*map, _hough_timeout_interspersal.get());              
+              localizer->interspersal(base::samples::RigidBodyState(), *map, _hough_timeout_interspersal.get(), true);              
             }        
             
           }          
@@ -303,6 +305,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 	if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
 		&& Neff < _effective_sample_size_threshold.value()) {
 	    localizer->resample();
+            localizer->setParticlesValid();
 	    number_sonar_perceptions = 0;
 	    //std::cout << "Resampling" << std::endl;
 	}	
@@ -320,21 +323,63 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& features)
 {
   
-  last_perception = ts;
-  double Neff = localizer->observeAndDebug(features, *map, _sonar_importance.value());
-  
-  number_sonar_perceptions++;
-  
-  if(localizer->hasStats()){
-     _stats.write(localizer->getStats());
-  }  
-  
-  
-  if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value())
-            && Neff < _effective_sample_size_threshold.value()){
-    localizer->resample();
-    number_sonar_perceptions = 0;
-  }
+    if(orientation_sample_recieved){
+      
+      if(current_depth < _minimum_depth.get()){
+        
+        if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get())
+           state(NO_JOINTS);
+        else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
+          state(NO_HOUGH);
+          
+          if(ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
+            
+            if(last_hough_timeout.isNull()){
+              last_hough_timeout = ts;
+            }
+            else if(ts.toSeconds() - last_hough_timeout.toSeconds() > _hough_timeout.get()){
+              
+              last_hough_timeout = ts;
+              localizer->interspersal(base::samples::RigidBodyState(), *map, _hough_timeout_interspersal.get(), true);              
+            }        
+            
+          }          
+          
+        }
+        else
+          state(LOCALIZING);
+        
+        
+        last_perception = ts;
+
+        if(number_rejected_samples < static_cast<unsigned>(_init_sample_rejection.value())) {
+            number_rejected_samples++;
+            return;
+        }
+
+        double Neff = localizer->observeAndDebug(features, *map, _sonar_importance.value());
+
+        if(localizer->hasStats()) {
+            _stats.write(localizer->getStats());
+        }
+
+        number_sonar_perceptions++;
+
+        if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
+                && Neff < _effective_sample_size_threshold.value()) {
+            localizer->resample();
+            localizer->setParticlesValid();
+            number_sonar_perceptions = 0;
+            //std::cout << "Resampling" << std::endl;
+        }       
+        
+      }else{
+        state(ABOVE_SURFACE);
+      }
+    }
+    else{
+      state(NO_ORIENTATION);
+    }
   
 }
 
@@ -379,10 +424,20 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
 void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
     last_hough = ts;
+    
+    if(map->belongsToWorld(rbs.position)){
+    
+      if( (lastRBS.position - rbs.position).norm() > 2.0){
+        std::cout << "Detected position jump: " << (lastRBS.position - rbs.position).norm() << "m" << std::endl;
+      }
+      
+      localizer->interspersal(rbs, *map, _hough_interspersal_ratio.value(), false);
 
-    localizer->interspersal(rbs, *map, _hough_interspersal_ratio.value());
-
-    number_sonar_perceptions = 0;
+      number_sonar_perceptions = 0;
+    }
+    else{
+      std::cout << "Hough outside of world: " << rbs.position.transpose() << std::endl;
+    }
 }
 
 
@@ -428,6 +483,7 @@ void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::R
   
   if(number_gps_perceptions >= _minimum_perceptions.value()) {
         localizer->resample();
+        localizer->setParticlesValid();
         number_gps_perceptions = 0;
     }  
 }
