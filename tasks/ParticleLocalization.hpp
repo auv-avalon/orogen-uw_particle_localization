@@ -29,8 +29,8 @@
 namespace uw_localization {
 
 class ParticleLocalization : public ParticleFilter<PoseParticle>,
-  public Dynamic<PoseParticle, base::samples::Joints>,
-  public Dynamic<PoseParticle, base::samples::RigidBodyState>,
+  public Dynamic<PoseParticle, base::samples::Joints, NodeMap>,
+  public Dynamic<PoseParticle, base::samples::RigidBodyState, NodeMap>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
   public Perception<PoseParticle, sonar_detectors::ObstacleFeatures, NodeMap>,
   public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
@@ -55,8 +55,8 @@ public:
   virtual double confidence(const PoseParticle& X) const { return X.main_confidence; }
   virtual void   setConfidence(PoseParticle& X, double weight) { X.main_confidence = weight; }
 
-  virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u);
-  virtual void dynamic(PoseParticle& x, const base::samples::Joints& u);
+  virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u, const NodeMap& m);
+  virtual void dynamic(PoseParticle& x, const base::samples::Joints& u, const NodeMap& m);
 
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::samples::Joints& u);

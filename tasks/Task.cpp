@@ -443,7 +443,7 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
 
 void Task::speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
-    localizer->update(rbs);
+    localizer->update(rbs, *map);
 }
 
 
@@ -467,7 +467,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
 
   if(orientation_sample_recieved){
     localizer->update_dead_reckoning(j);
-    localizer->update(j);
+    localizer->update(j, *map);
     
   }else{
     state(NO_ORIENTATION);

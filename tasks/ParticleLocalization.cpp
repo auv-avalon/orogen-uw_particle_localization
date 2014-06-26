@@ -229,7 +229,7 @@ underwaterVehicle::Parameters ParticleLocalization::initializeDynamicModel(UwVeh
   return params;  
 }
 
-void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U)
+void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U, const NodeMap& map)
 {
     base::Vector3d v_noisy;
     base::Vector3d u_velocity;
@@ -244,8 +244,15 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
       v_noisy = u_velocity + (StaticSpeedNoise() * dt);
 
       base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
-
-      X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+      
+      base::Vector3d pos = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+      
+      if(map.belongsToWorld(pos)){      
+        X.p_position = pos;
+      }
+      else{
+        X.valid = false; //Particle left world, something went wrong
+      }
       X.p_velocity = v_noisy;
     }
 
@@ -254,7 +261,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
     X.p_position.z() = vehicle_pose.position.z();
 }
 
-void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Joints& Ut)
+void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Joints& Ut, const NodeMap& map)
 {
     Vector6d Xt;
     base::Time sample_time = Ut.time;
@@ -298,7 +305,17 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::Joints&
 	  
 	  if(vehicle_pose.hasValidOrientation() && !std::isnan(v_avg[0]) && !std::isnan(v_avg[1]) 
 		  && base::samples::RigidBodyState::isValidValue(v_noisy) ){
-	    X.p_position = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+            
+            base::Vector3d pos = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+          
+            //Only exept new position, if new position is part of world
+            if(map.belongsToWorld(pos)){
+              X.p_position = pos;
+            }
+            else{
+              X.valid = false; //Particle left world, something went wrong
+            }
+            
 	    X.p_velocity = v_noisy;
           
           //Cut off velocity ddift
@@ -868,7 +885,8 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
     MultiNormalRandom<3> Pose = Random::multi_gaussian(p.position, p.cov_position);
     UniformRealRandom pos_x = Random::uniform_real(-(limit.x() / 2.0) , (limit.x() / 2.0) );
     UniformRealRandom pos_y = Random::uniform_real(-(limit.y() / 2.0) , (limit.y() / 2.0) );    
-
+    int count = 0;
+    
     for(size_t i = particles.size(); i < filter_config.particle_number; i++) {
         PoseParticle pp;
         
@@ -885,9 +903,10 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
         pp.main_confidence = worst.main_confidence / 10000.0; //Choose a realy small value
         pp.valid = false;
         
+        count++;
         particles.push_back(pp);
     }
-
+    std::cout << "Interspersal. Created " << count << " new particles." << std::endl;
     normalizeParticles();
 }
 
