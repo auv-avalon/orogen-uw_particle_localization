@@ -260,127 +260,52 @@ void Task::updateHook()
 
 void Task::laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan)
 {
-    if(orientation_sample_recieved){
-      
-      if(current_depth < _minimum_depth.get()){
-	
-	if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get())
-	   state(NO_JOINTS);
-	else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
-	  state(NO_HOUGH);
-          
-          if(ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
-            
-            if(last_hough_timeout.isNull()){
-              last_hough_timeout = ts;
-            }
-            else if(ts.toSeconds() - last_hough_timeout.toSeconds() > _hough_timeout.get()){
-              
-              last_hough_timeout = ts;
-              localizer->interspersal(base::samples::RigidBodyState(), *map, _hough_timeout_interspersal.get(), true);              
-            }        
-            
-          }          
-          
-        }
-	else
-	  state(LOCALIZING);
-	
-	
-	last_perception = ts;
+  
+  if(perception_state_machine(ts)){
+  
+    double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
 
-	if(number_rejected_samples < static_cast<unsigned>(_init_sample_rejection.value())) {
-	    number_rejected_samples++;
-	    return;
-	}
-
-	double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
-
-	if(localizer->hasStats()) {
-	    _stats.write(localizer->getStats());
-	}
-
-	number_sonar_perceptions++;
-
-	if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
-		&& Neff < _effective_sample_size_threshold.value()) {
-	    localizer->resample();
-            localizer->setParticlesValid();
-	    number_sonar_perceptions = 0;
-	    //std::cout << "Resampling" << std::endl;
-	}	
-	
-      }else{
-	state(ABOVE_SURFACE);
-      }
+    if(localizer->hasStats()) {
+      _stats.write(localizer->getStats());
     }
-    else{
-      state(NO_ORIENTATION);
-    }
+
+    number_sonar_perceptions++;
+
+    if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
+            && Neff < _effective_sample_size_threshold.value()) {
+      localizer->resample();
+      localizer->setParticlesValid();
+      number_sonar_perceptions = 0;
+              //std::cout << "Resampling" << std::endl;
+    } 
+    
+  }
 
 }
 
 void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& features)
 {
-  
-    if(orientation_sample_recieved){
-      
-      if(current_depth < _minimum_depth.get()){
-        
-        if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get())
-           state(NO_JOINTS);
-        else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
-          state(NO_HOUGH);
-          
-          if(ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
-            
-            if(last_hough_timeout.isNull()){
-              last_hough_timeout = ts;
-            }
-            else if(ts.toSeconds() - last_hough_timeout.toSeconds() > _hough_timeout.get()){
-              
-              last_hough_timeout = ts;
-              localizer->interspersal(base::samples::RigidBodyState(), *map, _hough_timeout_interspersal.get(), true);              
-            }        
-            
-          }          
-          
-        }
-        else
-          state(LOCALIZING);
-        
-        
-        last_perception = ts;
+  if(perception_state_machine(ts)){
 
-        if(number_rejected_samples < static_cast<unsigned>(_init_sample_rejection.value())) {
-            number_rejected_samples++;
-            return;
-        }
+      double Neff = localizer->observeAndDebug(features, *map, _sonar_importance.value());
 
-        double Neff = localizer->observeAndDebug(features, *map, _sonar_importance.value());
-
-        if(localizer->hasStats()) {
-            _stats.write(localizer->getStats());
-        }
-
-        number_sonar_perceptions++;
-
-        if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
-                && Neff < _effective_sample_size_threshold.value()) {
-            localizer->resample();
-            localizer->setParticlesValid();
-            number_sonar_perceptions = 0;
-            //std::cout << "Resampling" << std::endl;
-        }       
-        
-      }else{
-        state(ABOVE_SURFACE);
+      if(localizer->hasStats()) {
+      _stats.write(localizer->getStats());
       }
-    }
-    else{
-      state(NO_ORIENTATION);
-    }
-  
+
+      number_sonar_perceptions++;
+
+      if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
+            && Neff < _effective_sample_size_threshold.value()) {
+        localizer->resample();
+        localizer->setParticlesValid();
+        number_sonar_perceptions = 0;
+
+      }   
+        
+        
+  }
+
 }
 
 
@@ -633,3 +558,56 @@ bool Task::initMotionConfig()
     
     return true;
 }
+
+
+bool Task::perception_state_machine(const base::Time& ts)
+{
+    if(orientation_sample_recieved){ //we have a valid orientation
+      
+      if(current_depth < _minimum_depth.get()){ //we have a valid depth
+        
+        if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get()) //Joint timeout
+           state(NO_JOINTS);
+        else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){ //Hough timeout
+          state(NO_HOUGH);
+          
+          //get timedifference to last hpugh timeout, and intersper random particles after a given time
+          if(ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
+            
+            if(last_hough_timeout.isNull()){
+              last_hough_timeout = ts;
+            }
+            else if(ts.toSeconds() - last_hough_timeout.toSeconds() > _hough_timeout.get()){
+              
+              last_hough_timeout = ts;
+              localizer->interspersal(base::samples::RigidBodyState(), *map, _hough_timeout_interspersal.get(), true);              
+            }        
+            
+          }          
+          
+        }
+        else //Everything is fine :-)
+          state(LOCALIZING);
+        
+        
+        last_perception = ts;
+
+        if(number_rejected_samples < static_cast<unsigned>(_init_sample_rejection.value())) {
+            number_rejected_samples++;
+            return false;
+        }
+        
+        return true;     
+      
+        
+      }else{ //Invalid depth
+        state(ABOVE_SURFACE);
+      }
+    }
+    else{ //Invalid or no orientation
+      state(NO_ORIENTATION);
+    }
+    return false;
+}
+
+

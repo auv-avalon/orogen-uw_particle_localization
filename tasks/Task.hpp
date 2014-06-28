@@ -63,6 +63,13 @@ namespace uw_particle_localization {
           
           void write(const uw_localization::PointInfo& sample);
           bool initMotionConfig();
+          
+          /**
+           * Statemachine for perception states
+           * @param ts: Timestamp of the perception
+           * @return: True, if the perception should be observed
+           */
+          bool perception_state_machine(const base::Time& ts);
 
     public:
         Task(std::string const& name = "uw_particle_localization::Task");
