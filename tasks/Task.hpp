@@ -42,6 +42,14 @@ namespace uw_particle_localization {
           unsigned number_rejected_samples;
           int number_gps_perceptions;
           
+          States task_state;
+          
+          /**
+           * Changes the state of the task
+           * If the new state is equal to the old state, no action is performed
+           */
+          void changeState(States new_state);
+          
           void step(const base::samples::RigidBodyState& sample);
 
           virtual void laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan);

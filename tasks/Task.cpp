@@ -193,6 +193,9 @@ bool Task::startHook()
      
      last_hough_timeout = base::Time::fromMicroseconds(0);
 
+     task_state = RUNNING;
+     
+     
      return true;
 }
 
@@ -341,7 +344,7 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
 	std::cout << "Initialize" << std::endl;
         last_perception = ts;
         start_time = ts;
-	state(NO_SONAR);
+	changeState(NO_SONAR);
     }
 }
 
@@ -395,7 +398,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
     localizer->update(j, *map);
     
   }else{
-    state(NO_ORIENTATION);
+    changeState(NO_ORIENTATION);
   }  
     
 }
@@ -567,9 +570,9 @@ bool Task::perception_state_machine(const base::Time& ts)
       if(current_depth < _minimum_depth.get()){ //we have a valid depth
         
         if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get()) //Joint timeout
-           state(NO_JOINTS);
+           changeState(NO_JOINTS);
         else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){ //Hough timeout
-          state(NO_HOUGH);
+          changeState(NO_HOUGH);
           
           //get timedifference to last hpugh timeout, and intersper random particles after a given time
           if(ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){
@@ -587,7 +590,7 @@ bool Task::perception_state_machine(const base::Time& ts)
           
         }
         else //Everything is fine :-)
-          state(LOCALIZING);
+          changeState(LOCALIZING);
         
         
         last_perception = ts;
@@ -601,13 +604,21 @@ bool Task::perception_state_machine(const base::Time& ts)
       
         
       }else{ //Invalid depth
-        state(ABOVE_SURFACE);
+        changeState(ABOVE_SURFACE);
       }
     }
     else{ //Invalid or no orientation
-      state(NO_ORIENTATION);
+      changeState(NO_ORIENTATION);
     }
     return false;
 }
 
+void Task::changeState(States new_state){
+  
+  if(new_state != task_state){
+    task_state = new_state;
+    state(new_state);
+  }
+  
+}
 
