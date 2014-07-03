@@ -41,9 +41,10 @@ namespace uw_particle_localization {
           unsigned number_sonar_perceptions;
           unsigned number_rejected_samples;
           int number_gps_perceptions;
-          
-          States task_state;
-          
+          bool position_jump_detected;
+          double sum_scan;
+          double last_scan_angle;
+           
           /**
            * Changes the state of the task
            * If the new state is equal to the old state, no action is performed
@@ -78,6 +79,13 @@ namespace uw_particle_localization {
            * @return: True, if the perception should be observed
            */
           bool perception_state_machine(const base::Time& ts);
+          
+          /**
+           * Sets als particles to valid
+           * If there was a position jump, we only set the particles to valid, when we have at least a half scan
+           * @param angle: angle of the last scan
+           */
+          void validate_particles();
 
     public:
         Task(std::string const& name = "uw_particle_localization::Task");

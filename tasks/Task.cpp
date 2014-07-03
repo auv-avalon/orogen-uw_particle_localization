@@ -193,8 +193,8 @@ bool Task::startHook()
      
      last_hough_timeout = base::Time::fromMicroseconds(0);
 
-     task_state = RUNNING;
-     
+     position_jump_detected = false;
+     last_scan_angle = 0.0;
      
      return true;
 }
@@ -206,9 +206,9 @@ void Task::updateHook()
      if(_debug.value() && !_yaml_map.value().empty()){
        _environment.write(map->getEnvironment());
        
-       base::samples::Pointcloud pc;;
+       base::samples::Pointcloud pc;
+       pc = grid_map->getCloud();
        pc.time = base::Time::now();
-       pc.points = grid_map->getCloud();
       _depth_grid.write( pc); 
        
      }
@@ -263,7 +263,14 @@ void Task::updateHook()
 
 void Task::laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan)
 {
+  double scan_diff = std::fabs(last_scan_angle - scan.start_angle);
   
+  while(scan_diff > M_PI)
+    scan_diff -= 2.0 * M_PI;
+  
+  last_scan_angle = scan.start_angle;
+  sum_scan += std::fabs(scan_diff);  
+    
   if(perception_state_machine(ts)){
   
     double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
@@ -277,7 +284,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
     if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
             && Neff < _effective_sample_size_threshold.value()) {
       localizer->resample();
-      localizer->setParticlesValid();
+      validate_particles();
       number_sonar_perceptions = 0;
               //std::cout << "Resampling" << std::endl;
     } 
@@ -288,6 +295,15 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 
 void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& features)
 {
+  
+  double scan_diff = std::fabs(last_scan_angle - features.angle);
+  
+  while(scan_diff > M_PI)
+    scan_diff -= 2.0 * M_PI;
+  
+  last_scan_angle = features.angle;
+  sum_scan += std::fabs(scan_diff);   
+  
   if(perception_state_machine(ts)){
 
       double Neff = localizer->observeAndDebug(features, *map, _sonar_importance.value());
@@ -301,7 +317,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
       if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
             && Neff < _effective_sample_size_threshold.value()) {
         localizer->resample();
-        localizer->setParticlesValid();
+        validate_particles();
         number_sonar_perceptions = 0;
 
       }   
@@ -355,8 +371,11 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
     
     if(map->belongsToWorld(rbs.position)){
     
-      if( (lastRBS.position - rbs.position).norm() > 2.0){
+      //There is a jump in the position. we need at least a half scan to validate the new particles!
+      if( (lastRBS.position - rbs.position).norm() > 3.0){
         std::cout << "Detected position jump: " << (lastRBS.position - rbs.position).norm() << "m" << std::endl;
+        position_jump_detected = true;
+        sum_scan = 0.0;
       }
       
       localizer->interspersal(rbs, *map, _hough_interspersal_ratio.value(), false);
@@ -426,6 +445,9 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
 
 void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
   
+  if(rbs.position[2] <= 0.0)
+    return;
+  
   if(orientation_sample_recieved){
     //std::cout << "Echosounder callback" << std::endl;
     
@@ -435,6 +457,9 @@ void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples
       localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);   
     
   }
+  
+  //grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
+  
   
 }
 
@@ -615,10 +640,22 @@ bool Task::perception_state_machine(const base::Time& ts)
 
 void Task::changeState(States new_state){
   
-  if(new_state != task_state){
-    task_state = new_state;
+  if(new_state != state()){
     state(new_state);
   }
   
+}
+
+void Task::validate_particles(){
+  
+  //If we had detected a position jump, we want at least a half scan to validate the particles
+  if(position_jump_detected){
+    if(sum_scan < M_PI)
+      return;
+    
+  }
+  
+  position_jump_detected = false;
+  localizer->setParticlesValid();
 }
 
