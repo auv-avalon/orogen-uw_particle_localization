@@ -101,6 +101,9 @@ namespace uw_particle_localization {
          * it again. Finally, FatalError cannot be recovered.
          */
         void updateHook();
+        
+        virtual void orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+        virtual void thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& joint);
 
     };
 }

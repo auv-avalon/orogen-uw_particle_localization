@@ -357,10 +357,12 @@ task_context "MotionModel" do
 
     
     input_port("thruster_samples", "base/samples/Joints").
-	  doc("Samples of thruster actions")
+	  doc("Samples of thruster actions").
+	  needs_reliable_connection
 	  
     input_port("orientation_samples", "/base/samples/RigidBodyState").
-	  doc("current orientation of the vehicle")
+	  doc("current orientation of the vehicle").
+	  needs_reliable_connection
     
     output_port("pose_samples", "/base/samples/RigidBodyState").triggered_on("orientation_samples")
   
@@ -403,8 +405,14 @@ task_context "MotionModel" do
 	doc("true, if density of avalon = density of water")
 	
     property("joint_names" ,"std/vector<string>")
-         
-   port_driven
+    
+    stream_aligner do
+        max_latency 1.0
+        align_port "thruster_samples", 0.01
+        align_port "orientation_samples", 0.01
+    end
+          
+    port_driven
    
 end
 
