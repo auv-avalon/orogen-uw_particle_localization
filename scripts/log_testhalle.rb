@@ -51,7 +51,7 @@ Orocos.run "uw_particle_localization_test", "orientation_correction_test", "sona
     pos.hough_interspersal_ratio = 0.01
     pos.sonar_maximum_distance = 25.0
     pos.sonar_covariance = 1.5
-    pos.yaml_map = File.join("#{ENV['AUTOPROJ_PROJECT_BASE']}/avalon/orogen/uw_particle_localization/maps/testhalle.yml")
+    pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/avalon/orogen/uw_particle_localization/maps/testhalle.yml")
     pos.advanced_motion_model = false
     pos.param_TCM = [0.0,0.0,1.0,-1.0,0.0,0.0,
                      0.0,0.0,0.0,0.0,0.1,-1.0,
@@ -78,7 +78,7 @@ Orocos.run "uw_particle_localization_test", "orientation_correction_test", "sona
     pos.sonar_position = [[0.0, 0.0, 0.0]]
     pos.laser_samples_period = 0.01
     
-    #pos.apply_conf_file("#{ENV['AUTOPROJ_PROJECT_BASE']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["maritime_hall"])
+    #pos.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["maritime_hall"])
     
     
   hough = TaskContext.get 'sonar_wall_hough'
@@ -97,7 +97,7 @@ Orocos.run "uw_particle_localization_test", "orientation_correction_test", "sona
   hough.maxDistance = 500
   hough.continous_write = false
   
-  #hough.apply_conf_file("#{ENV['AUTOPROJ_PROJECT_BASE']}/bundles/avalon/config/orogen/sonar_wall_hough::Task.yml", ["maritime_hall"])
+  #hough.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/sonar_wall_hough::Task.yml", ["maritime_hall"])
   
   oriCor.buffer_size = 5
   oriCor.min_buffer_size = 2
