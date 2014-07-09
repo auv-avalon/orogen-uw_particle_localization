@@ -107,8 +107,9 @@ bool Task::startHook()
         return false;
       }
       env = map->getEnvironment();
-      grid_map = new GridMap( base::Vector2d(-map->getTranslation().x(), -map->getTranslation().y() ),
-                              base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ), 0.5);
+      grid_map = new DepthObstacleGrid( base::Vector2d(-map->getTranslation().x(), -map->getTranslation().y() ),
+                              1.2 * base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ), _feature_grid_resolution.get());
+      grid_map->initGrid();
       config.env = &env;
       config.useMap = true;
      }
@@ -182,6 +183,12 @@ bool Task::startHook()
     config.use_markov = _use_markov.get();
     config.avg_particle_position = _avg_particle_position.get();
     config.use_best_feature_only = _use_best_feature_only.get();
+    
+    config.feature_grid_resolution = _feature_grid_resolution.get();
+    config.feature_weight_reduction = _feature_weight_reduction.get();
+    config.feature_observation_range = _feature_observation_range.get();
+    config.feature_observation_minimum_range = _feature_observation_minimum_range.get();
+    config.feature_filter_threshold = _feature_filter_threshold.get();
     
     orientation_sample_recieved = false;
           
@@ -320,8 +327,10 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
         validate_particles();
         number_sonar_perceptions = 0;
 
-      }   
-        
+      }
+      
+      if(!base::isNaN( lastRBS.cov_position(0,0)) && !base::isInfinity( lastRBS.cov_position(0,0)) )  
+        localizer->setObstacles(features, *grid_map, lastRBS);
         
   }
 
@@ -444,10 +453,10 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
 }
 
 void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
-  
+
   if(rbs.position[2] <= 0.0)
     return;
-  
+  /*  
   if(orientation_sample_recieved){
     //std::cout << "Echosounder callback" << std::endl;
     
@@ -456,9 +465,9 @@ void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples
     else
       localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);   
     
-  }
+  }*/
   
-  //grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
+  grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
   
   
 }

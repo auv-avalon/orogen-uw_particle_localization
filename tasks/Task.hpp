@@ -10,6 +10,7 @@
 #include <list>
 #include "tasks/LocalizationConfig.hpp"
 #include <uw_localization/maps/grid_map.hpp>
+#include <uw_localization/maps/depth_obstacle_grid.hpp>
 
 namespace aggregator {
     class StreamAligner;
@@ -18,7 +19,7 @@ namespace aggregator {
 namespace uw_localization {
     class ParticleLocalization;
     class NodeMap;
-    class GridMap;
+    class DepthObstacleGrid;
 }
 
 namespace uw_particle_localization {
@@ -66,7 +67,7 @@ namespace uw_particle_localization {
 
           uw_localization::ParticleLocalization* localizer;
           uw_localization::NodeMap* map;
-          uw_localization::GridMap* grid_map;
+          uw_localization::DepthObstacleGrid* grid_map;
           uw_localization::Environment env;
           uw_localization::FilterConfig config;
           

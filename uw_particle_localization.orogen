@@ -278,8 +278,26 @@ task_context "Task" do
 	
     property("joint_names" ,"std/vector<string>")	        
         
-        
-        
+    
+    #---- Slam properties
+    
+    property("feature_weight_reduction", "double", 0.8).
+      doc("Reducce the weight of features by this value")
+      
+    property("feature_observation_range", "double", 10.0).
+      doc("Only reduce feature_weights inside this range")
+      
+    property("feature_observation_minimum_range", "double", 1.0).
+      doc("Only use features inside this range")
+      
+    property("feature_grid_resolution", "double", 0.5).
+      doc("Size of one grid-cell in meter")
+    
+    property("feature_filter_threshold", "double", 0.0).
+      doc("Only use features with values obove ths threshold").
+      doc("If value is 0, no features will be filtered")
+    
+            
         
    # ----------------------------------------------------------------------
    # stream aligner

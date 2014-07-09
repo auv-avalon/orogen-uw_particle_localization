@@ -766,6 +766,8 @@ double ParticleLocalization::perception(const PoseParticle& X, const sonar_detec
     
   debug(best_z, best_distance.get<1>() ,angle + yaw  ,best_distance.get<2>(), best_zPoint, X.p_position, probability, best_state);
   
+  first_perception_received = true;
+  
  return probability; 
 }
 
@@ -837,8 +839,8 @@ double ParticleLocalization::perception(const PoseParticle& X, const avalon::fea
 }
 
 
-double ParticleLocalization::perception(const PoseParticle& X, const double& Z, GridMap& M){
-  
+double ParticleLocalization::perception(const PoseParticle& X, const double& Z, DepthObstacleGrid& M){
+
   if(first_perception_received)
     M.setDepth(X.p_position.x(), X.p_position.y(), Z, X.main_confidence);  
   
@@ -1071,6 +1073,65 @@ void ParticleLocalization::setParticlesValid(){
   }
   
   
+}
+
+void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs){
+  
+  Eigen::AngleAxis<double> sonar_yaw(z.angle, Eigen::Vector3d::UnitZ()); 
+  Eigen::AngleAxis<double> abs_yaw(rbs.getYaw(), Eigen::Vector3d::UnitZ());
+  Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);
+  
+  std::vector<base::Vector2d> grid_cells = m.getGridCells( base::Vector2d( rbs.position.x(), rbs.position.y()), z.angle + rbs.getYaw()
+                                                          , filter_config.sonar_minimum_distance, filter_config.feature_observation_range);
+  
+  std::cout << "Got " << grid_cells.size() << " grid cells" << std::endl;
+  for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it = z.features.begin(); it != z.features.end(); it++){
+    
+    double distance = it->range / 1000.0;
+    
+    if(filter_config.feature_filter_threshold > 0.0 && it->confidence < filter_config.feature_filter_threshold)
+      continue;
+    
+    if(distance > filter_config.sonar_maximum_distance || distance < filter_config.sonar_minimum_distance
+      || distance < filter_config.feature_observation_minimum_range)
+      continue;
+    
+    Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(distance , 0.0, 0.0);
+    Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + rbs.position;
+    
+    double confidence;
+    
+    if(filter_config.feature_filter_threshold > 0.0)
+      confidence = it->confidence;
+    else
+      confidence = 1.0;
+    
+    m.setObstacle(AbsZ.x(), AbsZ.y(), true, confidence);
+    base::Vector2d z_temp = m.getGridCoord(AbsZ.x(), AbsZ.y()); //Grid cell of the observation
+    
+    //Remove all corresponding cells
+    for(std::vector<base::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
+      
+      if(z_temp == *it_grid){
+        grid_cells.erase(it_grid);
+        
+        if(it_grid == grid_cells.end())
+          break;
+        
+      }
+      
+    } 
+  }
+    
+  //Remove not observed obstacles from map
+  std::cout << grid_cells.size() << " grid cells left after filtering" << std::endl;
+  for(std::vector<base::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
+    
+    m.setObstacle(it_grid->x(), it_grid->y(), false, filter_config.feature_weight_reduction); 
+    
+  }  
+  
+  //m.reduce_weights(1.0 / (360.0* 8.0));
 }
 
 

@@ -17,6 +17,7 @@
 #include <uw_localization/model/uw_motion_model.hpp>
 #include <uw_localization/maps/node_map.hpp>
 #include <uw_localization/maps/grid_map.hpp>
+#include <uw_localization/maps/depth_obstacle_grid.hpp>
 #include <uw_localization/types/info.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
@@ -36,7 +37,7 @@ class ParticleLocalization : public ParticleFilter<PoseParticle>,
   public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
   public Perception<PoseParticle, std::pair<double,double>, NodeMap>,
   public Perception<PoseParticle, avalon::feature::Buoy, NodeMap>,
-  public Perception<PoseParticle, double, GridMap>
+  public Perception<PoseParticle, double, DepthObstacleGrid>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -90,7 +91,7 @@ public:
    * @param z: depth sample
    * @param M: the gridmap
    */  
-  virtual double perception(const PoseParticle& x, const double& z, GridMap& m);
+  virtual double perception(const PoseParticle& x, const double& z, DepthObstacleGrid& m);
   
   /**
    * Delete a amount of particles and insert randomly new articles
@@ -157,6 +158,8 @@ public:
    * Sets all particles in valid-mode. This method should be called after a resampling
    */
   void setParticlesValid();
+  
+  void setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs);
 
 private:
   FilterConfig filter_config;

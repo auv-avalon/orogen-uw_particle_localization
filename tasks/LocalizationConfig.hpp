@@ -95,8 +95,17 @@ struct FilterConfig {
     Environment* env;
     
     std::vector<std::string> joint_names;
-};
+    
+    //slam stuff
+    
+    double feature_weight_reduction;
+    double feature_observation_range;
+    double feature_observation_minimum_range;
+    double feature_grid_resolution;
+    double feature_filter_threshold;
 
+    
+};
 
 }
 
