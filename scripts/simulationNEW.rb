@@ -24,8 +24,8 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_wall_houg
       white_light.randomInterval_max = 5000;
       #white_light.start
       
-#simulation.scenefile = "#{ENV['AUTOPROJ_PROJECT_BASE']}/simulation/orogen/avalon_simulation/configuration/testhalle.scn"
-    #simulation.initial_scene = "#{ENV['AUTOPROJ_PROJECT_BASE']}/simulation/orogen/avalon_simulation/configuration/testhalle.scn"
+#simulation.scenefile = "#{ENV['AUTOPROJ_CURRENT_ROOT']}/simulation/orogen/avalon_simulation/configuration/testhalle.scn"
+    #simulation.initial_scene = "#{ENV['AUTOPROJ_CURRENT_ROOT']}/simulation/orogen/avalon_simulation/configuration/testhalle.scn"
     simulation.apply_conf_file("/home/fabio/avalon/bundles/avalon/config/orogen/simulation::Mars.yml")
     simulation.configure
     simulation.start
@@ -229,7 +229,7 @@ values = ActuatorsConfig.new()
     pos.hough_interspersal_ratio = 0.05
     pos.sonar_maximum_distance = 25.0
     pos.sonar_covariance = 0.5
-    pos.yaml_map = File.join("#{ENV['AUTOPROJ_PROJECT_BASE']}/avalon/orogen/uw_particle_localization/maps/testhalle.yml")
+    pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/avalon/orogen/uw_particle_localization/maps/testhalle.yml")
     pos.advanced_motion_model = false
     pos.filter_zeros = true
     pos.param_TCM = [0.0,0.0,-1.0,-1.0,0.0,0.0,
@@ -258,8 +258,8 @@ values = ActuatorsConfig.new()
     pos.laser_samples_period = 0.01
     pos.echosounder_samples_period = 0.01
     
-    pos.apply_conf_file("#{ENV['AUTOPROJ_PROJECT_BASE']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default"])
-    pos.yaml_map = File.join("#{ENV['AUTOPROJ_PROJECT_BASE']}/auv_avalon/orogen/uw_particle_localization/maps/testhalle_sim.yml")
+    pos.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default"])
+    pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/auv_avalon/orogen/uw_particle_localization/maps/testhalle_sim.yml")
     pos.orientation_offset = 0.0#-2.47 - (Math::PI / 2.0) #0.47951
     pos.hough_interspersal_ratio = 0.05
     pos.hough_timeout = 20.0
@@ -299,7 +299,7 @@ values = ActuatorsConfig.new()
     hough.sensorAngularTolerance = 20 
   
   
-  #hough.apply_conf_file("#{ENV['AUTOPROJ_PROJECT_BASE']}/bundles/avalon/config/orogen/sonar_wall_hough::Task.yml", ["maritime_hall"])
+  #hough.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/sonar_wall_hough::Task.yml", ["maritime_hall"])
   oriCor = TaskContext.get 'orientation_correction'
   oriCor.buffer_size = 20
   oriCor.min_buffer_size = 6
@@ -368,7 +368,7 @@ Orocos.run "AvalonSimulation" ,"uw_particle_localization_test", "sonar_wall_houg
       white_light.randomInterval_max = 5000;
       white_light.start
       
-simulation.scenefile = "#{ENV['AUTOPROJ_PROJECT_BASE']}/simulation/orogen/avalon_simulation/configuration/testhalle.scn"
+simulation.scenefile = "#{ENV['AUTOPROJ_CURRENT_ROOT']}/simulation/orogen/avalon_simulation/configuration/testhalle.scn"
 
     simulation.debug_sonar = false 
     simulation.use_osg_ocean = false 

@@ -12,8 +12,8 @@ if !File.directory?(directory)
     raise "#{dirname} is not a directory"
 end
 
-mapfile = File.join(ENV['AUTOPROJ_PROJECT_BASE'], "supervision", "maps", "nurc.yml")
-configpath = File.join(ENV['AUTOPROJ_PROJECT_BASE'], "supervision", "config", "orogen")
+mapfile = File.join(ENV['AUTOPROJ_CURRENT_ROOT'], "supervision", "maps", "nurc.yml")
+configpath = File.join(ENV['AUTOPROJ_CURRENT_ROOT'], "supervision", "config", "orogen")
 
 log_files = Dir.glob(File.join(ARGV[0], "*.log"))
 files = log_files.select do |sample|

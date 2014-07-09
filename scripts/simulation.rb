@@ -28,7 +28,7 @@ Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_feature_e
     sim.debug_sonar = false
     sim.use_osg_ocean = false 
     sim.enable_gui = true
-    sim.scenefile = "#{ENV['AUTOPROJ_PROJECT_BASE']}/simulation/orogen/avalon_simulation/configuration/demo.scn"
+    sim.scenefile = "#{ENV['AUTOPROJ_CURRENT_ROOT']}/simulation/orogen/avalon_simulation/configuration/demo.scn"
 
     sonar.sonar_beam.connect_to feature.sonar_input
     state.pose_samples.connect_to pos.orientation_samples
