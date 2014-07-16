@@ -65,9 +65,9 @@ public:
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::samples::Joints& u);
 
-  virtual double perception(const PoseSlamParticle& x, const base::samples::LaserScan& z, NodeMap& m);
-  virtual double perception(const PoseSlamParticle& x, const controlData::Pipeline& z, NodeMap& m);
-  virtual double perception(const PoseSlamParticle& x, const avalon::feature::Buoy& z, NodeMap& m);  
+  virtual double perception(PoseSlamParticle& x, const base::samples::LaserScan& z, NodeMap& m);
+  virtual double perception(PoseSlamParticle& x, const controlData::Pipeline& z, NodeMap& m);
+  virtual double perception(PoseSlamParticle& x, const avalon::feature::Buoy& z, NodeMap& m);  
   
   /**
    * Calculates the propability of a particle using a recieved list of sonar features
@@ -76,7 +76,7 @@ public:
    * @param M: the nodemap
    * @return: propability of the particle
    */
-  virtual double perception(const PoseSlamParticle& x, const sonar_detectors::ObstacleFeatures& z, NodeMap& m);  
+  virtual double perception(PoseSlamParticle& x, const sonar_detectors::ObstacleFeatures& z, NodeMap& m);  
     
  /**
  * Calculates the propability of a particle using a received gps-position
@@ -85,7 +85,7 @@ public:
  * @param M: the nodemap
  * @return the propability of the particle
  */ 
-  virtual double perception(const PoseSlamParticle& x, const base::Vector3d& z, NodeMap& m);
+  virtual double perception(PoseSlamParticle& x, const base::Vector3d& z, NodeMap& m);
 
   
   /**
@@ -94,7 +94,7 @@ public:
    * @param z: depth sample
    * @param M: the gridmap
    */  
-  virtual double perception(const PoseSlamParticle& x, const double& z, DepthObstacleGrid& m);
+  virtual double perception(PoseSlamParticle& x, const double& z, DepthObstacleGrid& m);
   
   /**
    * Delete a amount of particles and insert randomly new articles

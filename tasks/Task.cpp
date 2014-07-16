@@ -243,6 +243,7 @@ void Task::updateHook()
             
           pc.time = base::Time::now();
           _depth_grid.write( pc);
+          last_map_update = base::Time::now();
        }
        
      }     

@@ -51,14 +51,16 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
 }
 
 
-double DPSlam::observe(PoseSlamParticle &X, const SonarMeasurement &Z){
+double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw){
   std::vector<base::Vector2d> cells = map->getGridCells( base::Vector2d(X.p_position.x(), X.p_position.y()), Z.angle,
                                                          config.feature_observation_minimum_range, config.feature_observation_range);
   
   Eigen::AngleAxis<double> abs_yaw(Z.angle, Eigen::Vector3d::UnitZ());
   
- for(std::list<SonarFeature>::const_iterator it_f = Z.features.begin(); it_f != Z.features.end(); it_f++){
-      base::Vector3d real_pos = X.p_position + (abs_yaw * base::Vector3d(it_f->dist, 0.0, 0.0 ) );
+ for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it_f = Z.features.begin(); it_f != Z.features.end(); it_f++){
+      
+      double dist = it_f->range / 1000.0;
+      base::Vector3d real_pos = X.p_position + (abs_yaw * base::Vector3d(dist, 0.0, 0.0 ) );
       
       base::Vector2d feature_discrete = map->getGridCoord(real_pos.x(), real_pos.y() );
       

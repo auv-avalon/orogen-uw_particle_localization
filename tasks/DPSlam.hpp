@@ -4,7 +4,7 @@
 #include "LocalizationConfig.hpp"
 #include <uw_localization/dp_slam/dp_map.hpp>
 #include <uw_localization/dp_slam/dp_types.hpp>
-#include <uw_localization/dp_slam/node_tree.hpp>
+#include <sonar_feature_estimator/FeatureEstimationDebugTypes.hpp>
 
 namespace uw_localization{
   
@@ -33,7 +33,7 @@ namespace uw_localization{
     /**
      * Observe the sonar measurement for one particle
      */
-    double observe(PoseSlamParticle &X, const SonarMeasurement &Z);
+    double observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw);
     
     base::samples::Pointcloud getCloud(PoseSlamParticle &X);
     

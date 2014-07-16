@@ -549,7 +549,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
 
 
 
-double ParticleLocalization::perception(const PoseSlamParticle& X, const base::samples::LaserScan& Z, NodeMap& M)
+double ParticleLocalization::perception(PoseSlamParticle& X, const base::samples::LaserScan& Z, NodeMap& M)
 {
     uw_localization::PointInfo info;
     info.time = X.timestamp;
@@ -635,7 +635,7 @@ double ParticleLocalization::perception(const PoseSlamParticle& X, const base::s
     return probability;
 }
 
-double ParticleLocalization::perception(const PoseSlamParticle& X, const sonar_detectors::ObstacleFeatures& Z, NodeMap& M){
+double ParticleLocalization::perception(PoseSlamParticle& X, const sonar_detectors::ObstacleFeatures& Z, NodeMap& M){
  
     //Check if particle is part of the map
     if(!M.belongsToWorld(X.p_position)) {
@@ -651,6 +651,11 @@ double ParticleLocalization::perception(const PoseSlamParticle& X, const sonar_d
      debug(0.0, X.p_position, p, OUT_OF_RANGE);
      return p;
   }
+  
+  if(filter_config.use_slam){
+    dp_slam.observe(X, Z, base::getYaw(vehicle_pose.orientation));
+  }
+  
   
     double angle = Z.angle;
     double yaw = base::getYaw(vehicle_pose.orientation);
@@ -783,7 +788,7 @@ double ParticleLocalization::perception(const PoseSlamParticle& X, const sonar_d
 
 
 
-double ParticleLocalization::perception(const PoseSlamParticle& X, const controlData::Pipeline& Z, NodeMap& M) 
+double ParticleLocalization::perception(PoseSlamParticle& X, const controlData::Pipeline& Z, NodeMap& M) 
 {
     double yaw = base::getYaw(vehicle_pose.orientation);
     Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
@@ -806,7 +811,7 @@ double ParticleLocalization::perception(const PoseSlamParticle& X, const control
 }
 
 
-double ParticleLocalization::perception(const PoseSlamParticle& X, const base::Vector3d& Z, NodeMap& M)
+double ParticleLocalization::perception(PoseSlamParticle& X, const base::Vector3d& Z, NodeMap& M)
 {
     Eigen::Matrix<double,2,1> pos;
     pos << X.p_position[0] , X.p_position[1];
@@ -833,7 +838,7 @@ double ParticleLocalization::perception(const PoseSlamParticle& X, const base::V
     return probability;
 }
 
-double ParticleLocalization::perception(const PoseSlamParticle& X, const avalon::feature::Buoy& Z, NodeMap& M){
+double ParticleLocalization::perception(PoseSlamParticle& X, const avalon::feature::Buoy& Z, NodeMap& M){
   
   Eigen::Vector3d cameraInWorld = X.p_position + (vehicle_pose.orientation * filter_config.buoyCamPosition);
   Eigen::Vector3d buoyToCam = vehicle_pose.orientation * (filter_config.buoyCamRotation * Z.world_coord);
@@ -849,7 +854,7 @@ double ParticleLocalization::perception(const PoseSlamParticle& X, const avalon:
 }
 
 
-double ParticleLocalization::perception(const PoseSlamParticle& X, const double& Z, DepthObstacleGrid& M){
+double ParticleLocalization::perception(PoseSlamParticle& X, const double& Z, DepthObstacleGrid& M){
 
   if(first_perception_received)
     M.setDepth(X.p_position.x(), X.p_position.y(), Z, X.main_confidence);  
@@ -1165,6 +1170,8 @@ base::samples::Pointcloud ParticleLocalization::getPointCloud(){
     
     //We need a valid particle
     if(best_conf > 0.0){
+      std::cout << "GetCloud" << std::endl;
+      std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
       pc = dp_slam.getCloud(*best_it);
     }
   }
