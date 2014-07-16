@@ -1,24 +1,404 @@
-metrics: [120.0, 50.0, 12.1467]
-reference: [-60.0, -25.0, -12.1467]
-root:
-  wall:
-    - line_from: [-60.0, -25.0, 0.0]
-      line_to:   [-60.0,  25.0, 0.0]
-      height:    -12.1467
-    - line_from: [60.0, -25.0, 0.0]
-      line_to:   [60.0,  25.0, 0.0]
-      height:    -12.1467
-    - line_from: [-60.0, -25.0, 0.0]
-      line_to:   [ 60.0, -25.0, 0.0]
-      height:    -12.1467
-    - line_from: [-60.0,  25.0, 0.0]
-      line_to:   [ 60.0,  25.0, 0.0]
-      height:    -12.1467
-  buoy:
-    - point: [-4.0, -1.0, -1.0]
-  pipeline:
-    - point: [0, 0 ,0]
-  box:
-    - position: [5.0, 0.0, 0.0]
-      span: [1.0, 1.0, 2.0]
-    
+--- name:/uw_particle_localization
+# uses the advanced motion model implemented in modul dagon/uwv_dynamic_model
+advanced_motion_model: false
+# maximum latency, in seconds, of the stream aligner. The aligner will start dropping samples if the difference between the last output and last input is greater than this
+aggregator_max_latency: 0.5
+# Calculate position by calculating the avg particle position
+avg_particle_position: true
+# transformation of the buoy detection cam, with respect to the origin of avalon
+buoy_cam_position:
+  data:
+  - 0.7
+  - 0.0
+  - 0.0
+# Rotation of the buoy detection cam in the body frame
+buoy_cam_rotation:
+  data:
+  - 0.0
+  - 0.0
+  - 0.0
+# set buoy detetction covariance for defining measurement uncertainty
+buoy_covariance: 1.0
+# sets importance ratio for buoy detection updates
+buoy_importance: 0.5
+# minimum time, in s, between two sequential samples arrive on buoy_samples
+buoy_samples_period: 0.1
+# write all debug informations to output ports
+debug: true
+# minimum time, in s, between two sequential samples arrive on echosounder_samples
+echosounder_samples_period: 0.01
+# effective sample size threshold controls the resampling timing and uses values between 0.0 and 1.0 particles
+effective_sample_size_threshold: 0.8
+# Filter out particles with zero confidence (e.g. particle is out of map)
+filter_zeros: true
+# sets gps covariance for defining measurement uncertainty
+gps_covarianz: 1.0
+# sets importance ratio for gps perception updates
+gps_importance: 1.0
+# ratio for generating new particle after each gps_sample
+gps_interspersal_ratio: 0.01
+# minimum time, in s, between two sequential samples arrive on gps_pose_samples
+gps_pose_samples_period: 0.1
+# transformation of the gps sensor, with respect to the origin of avalon
+gps_position:
+  data:
+  - 0.0
+  - 0.0
+  - 0.0
+# ratio for generating new particles after each hough measurement
+hough_interspersal_ratio: 0.01
+# Timeout ,after not recieving any hough input for x seconds
+hough_timeout: 20.0
+# no documentation available for this property
+hough_timeout_interspersal: 0.0
+# initial centre position for all particles
+init_position:
+- 0.0
+- 0.0
+- 0.0
+# dont use the first n sonar samples for state estimation
+init_sample_rejection: 10
+# spatial covariance from initial centre position for initialization
+init_variance:
+- 24.0
+- 20.0
+- 1.0
+# no documentation available for this property
+joint_names:
+- pitch
+- dive
+- right
+- left
+- yaw
+- strave
+# minimum time, in s, between two sequential samples arrive on laser_samples
+laser_samples_period: 0.01
+# The maximum difference between the dead reckoning velocity and the randomized particle velocity
+max_velocity_drift: 0.1
+# no documentation available for this property
+metadata:
+  metadata: []
+  properties: []
+  input_ports: []
+  output_ports: []
+# minimum depth for collecting perception samples
+minimum_depth: 0.0
+# minimum number of perceptions before starting resampling
+minimum_perceptions: 3
+# minimum time, in s, between two sequential samples arrive on obstacle_samples
+obstacle_samples_period: 0.1
+# no documentation available for this property
+orientation_offset: 0.0
+# minimum time, in s, between two sequential samples arrive on orientation_samples
+orientation_samples_period: 0.01
+# Thruster Coefficient Matrix, which sets the direction of the thruster force
+param_TCM:
+- 0.0
+- 0.0
+- 1.0
+- -1.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.1
+- -1.0
+- 1.0
+- -1.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+# no documentation available for this property
+param_centerOfBuoyancy:
+  data:
+  - 0.0
+  - 0.0
+  - 0.0
+# no documentation available for this property
+param_centerOfGravity:
+  data:
+  - 0.0
+  - 0.0
+  - 0.0
+# true, if density of avalon = density of water
+param_floating: true
+# length of avalon
+param_length: 1.0
+# no documentation available for this property
+param_linDamp:
+  rows: 6
+  cols: 6
+  data:
+  - 8.203187564
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 24.94216
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+# no documentation available for this property
+param_linDampNeg:
+  rows: 6
+  cols: 6
+  data:
+  - 8.203187564
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 24.94216
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+# mass of avalon
+param_mass: 6.5
+# radius of avalon
+param_radius: 0.1
+# no documentation available for this property
+param_sqDamp:
+  rows: 6
+  cols: 6
+  data:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+# no documentation available for this property
+param_sqDampNeg:
+  rows: 6
+  cols: 6
+  data:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+# Third row: square factor
+param_thrusterCoefficient:
+- 0.005
+- 0.005
+- 0.005
+- 0.005
+- 0.005
+- 0.005
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+# Thruster Volatage
+param_thrusterVoltage: 33.0
+# number of used particles
+particle_number: 500
+# set history size for determing uncertainty_degree of best measurement samples
+perception_history_number: 8
+# sets pipeline covariance for defining measurement uncertainty
+pipeline_covariance: 1.0
+# sets importance ratio for pipeline perception updates
+pipeline_importance: 0.5
+# transformation of the pipeline-camera, with respect to the origin of avalon
+pipeline_position:
+  data:
+  - -0.7
+  - 0.0
+  - -2.0
+# minimum time, in s, between two sequential samples arrive on pipeline_samples
+pipeline_samples_period: 0.1
+# minimum time, in s, between two sequential samples arrive on pose_update
+pose_update_period: 0.1
+# ignore velocity in speed samples for dynamic update
+pure_random_motion: false
+# automatic reset of particle filter after not receiving any perception for X seconds
+reset_timeout: 10.0
+# sets sonar covariance for defining measurement uncertainty
+sonar_covariance: 0.5
+# This factor is used to size up the covariance, when the sonar leads up to a corner
+sonar_covariance_corner_factor: 1.0
+# This factor is used, when the sonar-distance is in an range, at which a refelction from the water surface is possible
+sonar_covariance_reflection_factor: 1.0
+# sets importance ratio for sonar perception updates
+sonar_importance: 1.0
+# set maximum distance for filtering sonar samples
+sonar_maximum_distance: 30.0
+# set maximum distance for filtering sonar samples
+sonar_minimum_distance: 1.0
+# transformation of the sonar, with respect to the origin of avalon
+sonar_position:
+  data:
+  - 0.0
+  - 0.0
+  - 0.0
+# vertical opening angle of the sonar in radian
+sonar_vertical_angle: 0.52
+# minimum time, in s, between two sequential samples arrive on speed_samples
+speed_samples_period: 0.01
+# sets a static covariance for speed samples
+static_motion_covariance:
+- 0.2
+- 0.0
+- 0.0
+- 0.0
+- 0.2
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+# minimum system time in s between two status readings
+stream_aligner_status_period: 1.0
+# minimum time, in s, between two sequential samples arrive on thruster_samples
+thruster_samples_period: 0.01
+# If false, feature ratings will be multiplied
+use_best_feature_only: true
+# no documentation available for this property
+use_markov: true
+# gives the angle difference between the coordinate-system and the utm-north
+utm_relative_angle: 0.0
+# start map for localization algorithm
+yaml_map: "<%= ENV['AUTOPROJ_PROJECT_BASE'] %>/auv_avalon/orogen/uw_particle_localization/maps/testhalle.yml"

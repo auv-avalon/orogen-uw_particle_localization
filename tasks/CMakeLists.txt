@@ -2,7 +2,7 @@
 
 include(uw_particle_localizationTaskLib)
 ADD_LIBRARY(${UW_PARTICLE_LOCALIZATION_TASKLIB_NAME} SHARED 
-    ${UW_PARTICLE_LOCALIZATION_TASKLIB_SOURCES} ParticleLocalization.cpp)
+    ${UW_PARTICLE_LOCALIZATION_TASKLIB_SOURCES} ParticleLocalization.cpp DPSlam.cpp)
 
 add_dependencies(${UW_PARTICLE_LOCALIZATION_TASKLIB_NAME}
     regen-typekit)
@@ -18,6 +18,6 @@ INSTALL(TARGETS ${UW_PARTICLE_LOCALIZATION_TASKLIB_NAME}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib/orocos)
 
-INSTALL(FILES ${UW_PARTICLE_LOCALIZATION_TASKLIB_HEADERS} ParticleLocalization.hpp LocalizationConfig.hpp Fir.hpp
+INSTALL(FILES ${UW_PARTICLE_LOCALIZATION_TASKLIB_HEADERS} ParticleLocalization.hpp LocalizationConfig.hpp Fir.hpp DPSlam.hpp
     DESTINATION include/orocos/uw_particle_localization)
 

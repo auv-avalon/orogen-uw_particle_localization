@@ -19,25 +19,27 @@
 #include <uw_localization/maps/grid_map.hpp>
 #include <uw_localization/maps/depth_obstacle_grid.hpp>
 #include <uw_localization/types/info.hpp>
+#include <uw_localization/dp_slam/dp_types.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
 #include <sonar_feature_estimator/FeatureEstimationDebugTypes.hpp>
 #include <visual_detectors/Types.hpp>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"
+#include "DPSlam.hpp"
 
 
 namespace uw_localization {
 
-class ParticleLocalization : public ParticleFilter<PoseParticle>,
-  public Dynamic<PoseParticle, base::samples::Joints, NodeMap>,
-  public Dynamic<PoseParticle, base::samples::RigidBodyState, NodeMap>,
-  public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
-  public Perception<PoseParticle, sonar_detectors::ObstacleFeatures, NodeMap>,
-  public Perception<PoseParticle, controlData::Pipeline, NodeMap>,
-  public Perception<PoseParticle, std::pair<double,double>, NodeMap>,
-  public Perception<PoseParticle, avalon::feature::Buoy, NodeMap>,
-  public Perception<PoseParticle, double, DepthObstacleGrid>
+class ParticleLocalization : public ParticleFilter<PoseSlamParticle>,
+  public Dynamic<PoseSlamParticle, base::samples::Joints, NodeMap>,
+  public Dynamic<PoseSlamParticle, base::samples::RigidBodyState, NodeMap>,
+  public Perception<PoseSlamParticle, base::samples::LaserScan, NodeMap>,
+  public Perception<PoseSlamParticle, sonar_detectors::ObstacleFeatures, NodeMap>,
+  public Perception<PoseSlamParticle, controlData::Pipeline, NodeMap>,
+  public Perception<PoseSlamParticle, std::pair<double,double>, NodeMap>,
+  public Perception<PoseSlamParticle, avalon::feature::Buoy, NodeMap>,
+  public Perception<PoseSlamParticle, double, DepthObstacleGrid>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -45,26 +47,27 @@ public:
 
   static UwVehicleParameter VehicleParameter(FilterConfig filter_config);
 
+  void init_slam(NodeMap *map);
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
   static underwaterVehicle::Parameters initializeDynamicModel(UwVehicleParameter p, FilterConfig filter_config);
 
-  virtual base::Position position(const PoseParticle& X) const { return X.p_position; }
-  virtual base::Vector3d velocity(const PoseParticle& X) const { return X.p_velocity; }
-  virtual base::samples::RigidBodyState orientation(const PoseParticle& X) const { return *(X.pose); }
-  virtual bool isValid(const PoseParticle& X) const {return X.valid; }
+  virtual base::Position position(const PoseSlamParticle& X) const { return X.p_position; }
+  virtual base::Vector3d velocity(const PoseSlamParticle& X) const { return X.p_velocity; }
+  virtual base::samples::RigidBodyState orientation(const PoseSlamParticle& X) const { return *(X.pose); }
+  virtual bool isValid(const PoseSlamParticle& X) const {return X.valid; }
 
-  virtual double confidence(const PoseParticle& X) const { return X.main_confidence; }
-  virtual void   setConfidence(PoseParticle& X, double weight) { X.main_confidence = weight; }
+  virtual double confidence(const PoseSlamParticle& X) const { return X.main_confidence; }
+  virtual void   setConfidence(PoseSlamParticle& X, double weight) { X.main_confidence = weight; }
 
-  virtual void dynamic(PoseParticle& x, const base::samples::RigidBodyState& u, const NodeMap& m);
-  virtual void dynamic(PoseParticle& x, const base::samples::Joints& u, const NodeMap& m);
+  virtual void dynamic(PoseSlamParticle& x, const base::samples::RigidBodyState& u, const NodeMap& m);
+  virtual void dynamic(PoseSlamParticle& x, const base::samples::Joints& u, const NodeMap& m);
 
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::samples::Joints& u);
 
-  virtual double perception(const PoseParticle& x, const base::samples::LaserScan& z, NodeMap& m);
-  virtual double perception(const PoseParticle& x, const controlData::Pipeline& z, NodeMap& m);
-  virtual double perception(const PoseParticle& x, const avalon::feature::Buoy& z, NodeMap& m);  
+  virtual double perception(const PoseSlamParticle& x, const base::samples::LaserScan& z, NodeMap& m);
+  virtual double perception(const PoseSlamParticle& x, const controlData::Pipeline& z, NodeMap& m);
+  virtual double perception(const PoseSlamParticle& x, const avalon::feature::Buoy& z, NodeMap& m);  
   
   /**
    * Calculates the propability of a particle using a recieved list of sonar features
@@ -73,7 +76,7 @@ public:
    * @param M: the nodemap
    * @return: propability of the particle
    */
-  virtual double perception(const PoseParticle& x, const sonar_detectors::ObstacleFeatures& z, NodeMap& m);  
+  virtual double perception(const PoseSlamParticle& x, const sonar_detectors::ObstacleFeatures& z, NodeMap& m);  
     
  /**
  * Calculates the propability of a particle using a received gps-position
@@ -82,7 +85,7 @@ public:
  * @param M: the nodemap
  * @return the propability of the particle
  */ 
-  virtual double perception(const PoseParticle& x, const base::Vector3d& z, NodeMap& m);
+  virtual double perception(const PoseSlamParticle& x, const base::Vector3d& z, NodeMap& m);
 
   
   /**
@@ -91,7 +94,7 @@ public:
    * @param z: depth sample
    * @param M: the gridmap
    */  
-  virtual double perception(const PoseParticle& x, const double& z, DepthObstacleGrid& m);
+  virtual double perception(const PoseSlamParticle& x, const double& z, DepthObstacleGrid& m);
   
   /**
    * Delete a amount of particles and insert randomly new articles
@@ -160,6 +163,12 @@ public:
   void setParticlesValid();
   
   void setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs);
+  
+  /**
+   * Return the pointcloud-map of the best particle
+   * This is only avaiable in use_slam-mode, (else an empty cloud will be returned)
+   */
+  base::samples::Pointcloud getPointCloud();
 
 private:
   FilterConfig filter_config;
@@ -170,6 +179,7 @@ private:
   base::samples::RigidBodyState motion_pose;
   base::samples::RigidBodyState full_motion_pose;
   base::Time lastActuatorTime;
+  DPSlam dp_slam;
 
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
 

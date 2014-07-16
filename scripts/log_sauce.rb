@@ -15,11 +15,11 @@ log_center = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-200
                                 "/media/WINDOWS/LOGS/SAUC-E12/20120706-2003_Day1_sonar_angle_5_0_gain_0_9_centered/sonar_rear.0.log")
 =end
 
-=begin
+#=begin
 log_bottom = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/sonar.0.log",
                                "/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/avalon_back_base_control.0.log",
                                 "/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/sonar_rear.0.log")
-=end                               
+#=end                               
 =begin
 log_top = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_Day1_sonar_angle_2_5_gain_0_9_top_basin/sonar.0.log",
                                "/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_Day1_sonar_angle_2_5_gain_0_9_top_basin/avalon_back_base_control.0.log",
@@ -27,13 +27,13 @@ log_top = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_D
 
 =end
 
-#=begin
+=begin
 log_traj = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/sonar.0.log",
                                     "/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/avalon_back_base_control.0.log",
                                     "/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/sonar_rear.0.log")
-#=end
+=end
 
-log = log_traj
+log = log_bottom
 
 puts "3"
 
@@ -104,7 +104,7 @@ Orocos.run "uw_particle_localization_test","orientation_correction_test", "sonar
     pos.param_floating = true
     pos.sonar_covariance_reflection_factor = 1.0
     pos.sonar_covariance_corner_factor = 1.0
-    pos.init_sample_rejection = 10
+    pos.init_sample_rejection = 200
     pos.orientation_offset = 0#-2.47 - (Math::PI / 2.0) #0.47951
     pos.sonar_position = [[0.6, 0.0, 0.0]]
     pos.laser_samples_period = 0.01
@@ -165,7 +165,8 @@ Orocos.run "uw_particle_localization_test","orientation_correction_test", "sonar
     end
 
     #ori.pose_samples.connect_to feature.orientation_sample
-    feature.new_feature.connect_to pos.laser_samples
+    #feature.new_feature.connect_to pos.laser_samples
+    feature.features_out.connect_to pos.obstacle_samples
     joint_converter.joints.connect_to pos.thruster_samples
     hough.position.connect_to pos.pose_update
     echo.ground_distance.connect_to pos.echosounder_samples
@@ -190,11 +191,11 @@ Orocos.run "uw_particle_localization_test","orientation_correction_test", "sonar
     puts "started"
     
     
-    #Vizkit.display feature
+    Vizkit.display feature
     Vizkit.display pos
     #Vizkit.display joint_converter
     #Vizkit.display feature
-    Vizkit.display hough
+    #Vizkit.display hough
     #Vizkit.display hough.lines
     #Vizkit.display oriCor
     Vizkit.control log

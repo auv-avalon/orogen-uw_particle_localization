@@ -38,7 +38,11 @@ Task::Task(std::string const& name)
   v_buoy_rotation.setZero();
   _buoy_cam_rotation.set(v_buoy_rotation);
   v_pipeline << -0.7, 0.0, -2.0;
-  _pipeline_position.set(v_pipeline);  
+  _pipeline_position.set(v_pipeline);
+  
+  localizer = 0;
+  map = 0;
+  grid_map = 0;
 
 }
 
@@ -72,7 +76,12 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
   v_buoy_rotation.setZero();
   _buoy_cam_rotation.set(v_buoy_rotation);
   v_pipeline << -0.7, 0.0, -2.0;
-  _pipeline_position.set(v_pipeline);  
+  _pipeline_position.set(v_pipeline); 
+  
+  localizer = 0;
+  map = 0;
+  grid_map = 0;  
+  
 }
 
 Task::~Task()
@@ -184,6 +193,7 @@ bool Task::startHook()
     config.avg_particle_position = _avg_particle_position.get();
     config.use_best_feature_only = _use_best_feature_only.get();
     
+    config.use_slam = _use_slam.get();
     config.feature_grid_resolution = _feature_grid_resolution.get();
     config.feature_weight_reduction = _feature_weight_reduction.get();
     config.feature_observation_range = _feature_observation_range.get();
@@ -195,6 +205,12 @@ bool Task::startHook()
      //delete localizer;
      localizer = new ParticleLocalization(config);
      localizer->initialize(config.particle_number, config.init_position, config.init_variance, 0.0, 0.0);
+     
+     if(_use_slam && map){
+       
+       localizer->init_slam(map);
+       
+     }
           
      localizer->setSonarDebug(this);
      
@@ -212,15 +228,24 @@ void Task::updateHook()
    
      if(_debug.value() && !_yaml_map.value().empty()){
        _environment.write(map->getEnvironment());
+      
+       if(base::Time::now().toSeconds() - last_map_update.toSeconds() > 2.0){
+        
+          base::samples::Pointcloud pc;
+          
+          if(_use_slam.get()){
+            localizer->getPointCloud();
+          }
+          else{
+            pc = grid_map->getCloud();
+          }
+          
+            
+          pc.time = base::Time::now();
+          _depth_grid.write( pc);
+       }
        
-       base::samples::Pointcloud pc;
-       pc = grid_map->getCloud();
-       pc.time = base::Time::now();
-      _depth_grid.write( pc); 
-       
-     }
-     
-     
+     }     
      
      base::samples::RigidBodyState pose;
      if(_avg_particle_position.get()){
@@ -480,6 +505,10 @@ void Task::stopHook()
      delete localizer;
      delete map;
      delete grid_map;
+     
+     localizer = 0;
+     map = 0;
+     grid_map = 0;
 }
 
 

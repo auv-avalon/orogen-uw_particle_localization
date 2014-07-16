@@ -281,6 +281,9 @@ task_context "Task" do
     
     #---- Slam properties
     
+    property("use_slam", "bool", false).
+      doc("Use dp-slam algorithm for additional mapping")
+    
     property("feature_weight_reduction", "double", 0.8).
       doc("Reducce the weight of features by this value")
       

@@ -77,6 +77,7 @@ values = ActuatorsConfig.new()
     sonar.ping_pong_mode = false
     sonar.configure
     sonar.start
+=begin
     
     sonar_rear = TaskContext.get 'sonar_rear'
     sonar_rear.node_name = "sonar_rear_sensor"
@@ -92,7 +93,7 @@ values = ActuatorsConfig.new()
     ground_distance.node_name = "ground_distance_sensor"
     ground_distance.configure
     ground_distance.start
-
+=end
     imu = TaskContext.get 'imu'
     imu.name = "avalon"
     imu.configure
@@ -230,6 +231,7 @@ values = ActuatorsConfig.new()
     pos.sonar_maximum_distance = 25.0
     pos.sonar_covariance = 0.5
     pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/avalon/orogen/uw_particle_localization/maps/testhalle.yml")
+
     pos.advanced_motion_model = false
     pos.filter_zeros = true
     pos.param_TCM = [0.0,0.0,-1.0,-1.0,0.0,0.0,
@@ -260,6 +262,7 @@ values = ActuatorsConfig.new()
     
     pos.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default"])
     pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/auv_avalon/orogen/uw_particle_localization/maps/testhalle_sim.yml")
+
     pos.orientation_offset = 0.0#-2.47 - (Math::PI / 2.0) #0.47951
     pos.hough_interspersal_ratio = 0.05
     pos.hough_timeout = 20.0
@@ -323,14 +326,14 @@ values = ActuatorsConfig.new()
     
     puts "Connection end"
     
-    feature.configure
-    feature.start
-    pos.configure
-    pos.start
-    hough.configure
-    hough.start
-    oriCor.configure
-    oriCor.start
+    #feature.configure
+    #feature.start
+    #pos.configure
+    #pos.start
+    #hough.configure
+    #hough.start
+    #oriCor.configure
+    #oriCor.start
     puts "started"    
     
    

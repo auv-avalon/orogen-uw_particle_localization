@@ -35,6 +35,7 @@ namespace uw_particle_localization {
           base::Time last_hough;
           base::Time last_hough_timeout;
           base::samples::RigidBodyState lastRBS;
+          base::Time last_map_update;
 
           double current_depth;
           bool orientation_sample_recieved;

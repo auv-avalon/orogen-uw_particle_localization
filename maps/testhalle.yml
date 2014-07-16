@@ -14,10 +14,13 @@ root:
     - line_from: [-11.5,  9.5, 0.0]
       line_to:   [ 11.5,  9.5, 0.0]
       height:    -20
-#  box: #first part of the pipeline segment
-#    - position: [-4.0, 3.0, 0.0]
-#      span: [ 2.0, 4.0, 40.0]
-  
+  box: #first part of the pipeline segment
+    - position: [-4.0, 3.0, 0.0]
+      span: [ 2.0, 4.0, 40.0]
+    - position: [-2.0, 7.0, 0.0] #end part of the pipeline segment
+      span: [ 2.0, 1.0, 40.0]
+    - position: [-9.5, -9.0, 0.0] #tripot
+      span: [ 1.0, 2.0, 40.0]
 #  buoy:
 #    - mean: [-5.0, -5.0, -5.0]
 #      cov:  [1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,1.0]
