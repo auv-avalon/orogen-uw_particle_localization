@@ -234,7 +234,7 @@ void Task::updateHook()
           base::samples::Pointcloud pc;
           
           if(_use_slam.get()){
-            localizer->getPointCloud();
+            pc = localizer->getPointCloud();
           }
           else{
             pc = grid_map->getCloud();

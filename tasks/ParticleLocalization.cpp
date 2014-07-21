@@ -81,6 +81,9 @@ void ParticleLocalization::init_slam(NodeMap *map){
                               1.2 * base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ),
                 filter_config.feature_grid_resolution , filter_config);
   
+  dp_slam.initalize_statics(map);
+  
+  
 }
 
 
@@ -1128,7 +1131,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
     for(std::vector<base::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
       
       if(z_temp == *it_grid){
-        grid_cells.erase(it_grid);
+        it_grid = grid_cells.erase(it_grid);
         
         if(it_grid == grid_cells.end())
           break;
