@@ -199,6 +199,7 @@ bool Task::startHook()
     config.feature_observation_range = _feature_observation_range.get();
     config.feature_observation_minimum_range = _feature_observation_minimum_range.get();
     config.feature_filter_threshold = _feature_filter_threshold.get();
+    config.feature_confidence = _feature_confidence.get();
     
     orientation_sample_recieved = false;
           

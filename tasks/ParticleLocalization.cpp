@@ -656,7 +656,9 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const sonar_detecto
   }
   
   if(filter_config.use_slam){
-    dp_slam.observe(X, Z, base::getYaw(vehicle_pose.orientation));
+    double val = dp_slam.observe(X, Z, base::getYaw(vehicle_pose.orientation));
+    std::cout << "Pos: " << X.p_position.transpose() << " - confidence: " << val << std::endl;
+    return val;
   }
   
   
@@ -1099,7 +1101,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
   Eigen::AngleAxis<double> abs_yaw(rbs.getYaw(), Eigen::Vector3d::UnitZ());
   Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);
   
-  std::vector<base::Vector2d> grid_cells = m.getGridCells( base::Vector2d( rbs.position.x(), rbs.position.y()), z.angle + rbs.getYaw()
+  std::vector<Eigen::Vector2d> grid_cells = m.getGridCells( Eigen::Vector2d( rbs.position.x(), rbs.position.y()), z.angle + rbs.getYaw()
                                                           , filter_config.sonar_minimum_distance, filter_config.feature_observation_range);
   
   //std::cout << "Got " << grid_cells.size() << " grid cells" << std::endl;
@@ -1128,7 +1130,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
     base::Vector2d z_temp = m.getGridCoord(AbsZ.x(), AbsZ.y()); //Grid cell of the observation
     
     //Remove all corresponding cells
-    for(std::vector<base::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
+    for(std::vector<Eigen::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
       
       if(z_temp == *it_grid){
         it_grid = grid_cells.erase(it_grid);
@@ -1143,7 +1145,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
     
   //Remove not observed obstacles from map
   //std::cout << grid_cells.size() << " grid cells left after filtering" << std::endl;
-  for(std::vector<base::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
+  for(std::vector<Eigen::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
     
     m.setObstacle(it_grid->x(), it_grid->y(), false, filter_config.feature_weight_reduction); 
     
@@ -1173,10 +1175,15 @@ base::samples::Pointcloud ParticleLocalization::getPointCloud(){
     
     //We need a valid particle
     if(best_conf > 0.0){
-      std::cout << "GetCloud" << std::endl;
-      std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
+      //std::cout << "GetCloud" << std::endl;
+      //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
       pc = dp_slam.getCloud(*best_it);
+      std::cout << "Found best particle" << std::endl;
     }
+    else{
+      std::cout << "Found no particle to create map" << std::endl;
+    }
+    
   }
   
   return pc; 

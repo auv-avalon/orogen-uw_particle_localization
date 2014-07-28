@@ -299,6 +299,10 @@ task_context "Task" do
     property("feature_filter_threshold", "double", 0.0).
       doc("Only use features with values obove ths threshold").
       doc("If value is 0, no features will be filtered")
+      
+    property("feature_confidence", "double", 0.5).
+      doc("Confidence of single sonar features.").
+      doc("This value should be between 0 and 1")
     
             
         

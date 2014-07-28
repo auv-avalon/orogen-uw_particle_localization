@@ -30,7 +30,7 @@ void DPSlam::initalize_statics(NodeMap *map){
 
 double DPSlam::observe(PoseSlamParticle &X, const double &depth){
   
-  base::Vector2d pos = map->getGridCoord(X.p_position.x(), X.p_position.y());
+  Eigen::Vector2d pos = map->getGridCoord(X.p_position.x(), X.p_position.y());
   
   //Search for correspondig cell
   for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it = X.depth_cells.begin(); it != X.depth_cells.end(); it++){
@@ -59,27 +59,51 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
 
 
 double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw){
-  std::vector<base::Vector2d> cells = map->getGridCells( base::Vector2d(X.p_position.x(), X.p_position.y()), Z.angle,
+  std::vector<Eigen::Vector2d> cells = map->getGridCells( Eigen::Vector2d(X.p_position.x(), X.p_position.y()), Z.angle,
                                                          config.feature_observation_minimum_range, config.feature_observation_range);
   
   Eigen::AngleAxis<double> abs_yaw(Z.angle, Eigen::Vector3d::UnitZ());
+  Eigen::Vector2d pos2d(X.p_position.x(), X.p_position.y() );
   
   reduceFeatures(vehicle_yaw + Z.angle);
+  
+  
+  std::list<double> distances; //Save the observed distances;
+  std::list< std::pair<double, double> > distances_cells;  //Distances of the grid map, as pair (distance, confidence)
+  
+  std::list< std::pair<Eigen::Vector2d, double > > observed_cells = map->getObservedCells(cells, X.obstacle_cells);
+  
+  for(std::list< std::pair<Eigen::Vector2d, double > >::iterator it = observed_cells.begin(); it != observed_cells.end(); it++){
+    
+    distances_cells.push_back( std::make_pair ( (it->first -  pos2d).norm(), it->second) );
+    
+  }
+  
   
  int feature_count = 0;
  for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it_f = Z.features.begin(); it_f != Z.features.end(); it_f++){
       
       double dist = it_f->range / 1000.0;
-      base::Vector3d real_pos = X.p_position + (abs_yaw * base::Vector3d(dist, 0.0, 0.0 ) );
       
-      base::Vector2d feature_discrete = map->getGridCoord(real_pos.x(), real_pos.y() );
+      //Is feature in valid range??
+      if(dist < config.sonar_minimum_distance ||
+        dist > config.sonar_maximum_distance){
+        
+       continue; 
+      }
+      
+      Eigen::Vector3d real_pos = X.p_position + (abs_yaw * Eigen::Vector3d(dist, 0.0, 0.0 ) );
+      
+      Eigen::Vector2d feature_discrete = map->getGridCoord(real_pos.x(), real_pos.y() );
       
       //Check, if feature is in valid coordinates. If feature is outside the grid, values could be nan
       if(std::isnan(feature_discrete.x()))
         continue;
         
+      distances.push_back(dist);
+      
       //Search for coresponding grid cells
-      for(std::vector<base::Vector2d>::iterator it_c = cells.begin(); it_c != cells.end(); it_c++){
+      for(std::vector<Eigen::Vector2d>::iterator it_c = cells.begin(); it_c != cells.end(); it_c++){
         
         if(feature_discrete == *it_c){
           
@@ -94,7 +118,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it = X.obstacle_cells.begin(); it != X.obstacle_cells.end(); it++){
         
         if(feature_discrete == it->first){
-          int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, X.main_confidence, it->second);
+          int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, config.feature_confidence , it->second);
            //std::cout << "Obstacle: " << feature_discrete.transpose() << std::endl;         
           if(id != 0){
             it->second = id;
@@ -105,13 +129,12 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
           break;
         }
         
-        //TODO rate partivle
-        
+                
       } 
       
       if(!found_match){
       
-        int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, X.main_confidence, 0);
+        int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, config.feature_confidence, 0);
         feature_count++;
         
         if(id != 0)
@@ -119,15 +142,16 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       }
   }
   
-  //TODO handle empty cells
-  for(std::vector<base::Vector2d>::iterator it = cells.begin(); it != cells.end(); it++){
+  //handle empty cells
+  //There ae no observation for the cells, update cell confidence
+  for(std::vector<Eigen::Vector2d>::iterator it = cells.begin(); it != cells.end(); it++){
     
     //search for correspondig observations    
     for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it_o = X.obstacle_cells.begin(); it_o != X.obstacle_cells.end(); it_o++){
       
       if(it_o->first == *it){
         
-        int64_t id = map->setObstacle(it->x(), it->y(), false, X.main_confidence, 0);
+        int64_t id = map->setObstacle(it->x(), it->y(), false, config.feature_confidence, 0);
         
         if(id != 0){
           it_o->second = id;          
@@ -140,9 +164,61 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
     
   //std::cout << "Set " << feature_count << " features" << std::endl;
   
-  return X.main_confidence;
+  //Rate particle
+  return rateParticle(distances, distances_cells);
+  
+  //return X.main_confidence;
   
 }
+
+double DPSlam::rateParticle(std::list<double> &distances, std::list<std::pair<double, double> > &distances_cells){
+  std::cout << "distances: " << distances.size() << " cells: " << distances_cells.size() << std::endl;
+  std::list< std::pair<double, double> > diffs; //list of distance differences as pair: (difference, confidence)
+  
+  for(std::list<double>::iterator it = distances.begin(); it != distances.end(); it++){
+    
+    
+    double min_diff = INFINITY;
+    std::list< std::pair<double, double > >::iterator min_it;
+    
+    for(std::list<std::pair<double, double > >::iterator it_c = distances_cells.begin(); it_c != distances_cells.end(); it_c++){
+      
+      double diff = std::fabs( *it - it_c->first);
+      
+      if(diff < min_diff){
+        min_it = it_c;
+        min_diff = diff;
+        
+      }
+      
+    }
+    
+    if(min_diff != INFINITY){
+      diffs.push_back( std::make_pair(min_diff, min_it->second ) );
+      distances_cells.erase(min_it);
+      
+    }
+    
+  }  
+  
+  double prob = 0.0;
+  double sum_weight = 0.0;
+  
+  for(std::list< std::pair<double, double > >::iterator it = diffs.begin(); it != diffs.end(); it++){
+    prob += it->second * machine_learning::gaussian1d( 0.0, config.sonar_covariance, it->first );
+    sum_weight += it->second;
+    
+    std::cout << "F: " << it->second << std::endl; 
+  }
+  
+  if(sum_weight > 0.0){
+    return prob / sum_weight;
+  }
+  std::cout << "sumweight" << sum_weight << std::endl;
+  return 0.0;
+}
+
+
 
 base::samples::Pointcloud DPSlam::getCloud(PoseSlamParticle &X){
   

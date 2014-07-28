@@ -103,6 +103,7 @@ struct FilterConfig {
     double feature_observation_minimum_range;
     double feature_grid_resolution;
     double feature_filter_threshold;
+    double feature_confidence;
     bool use_slam;
 
     

@@ -2,6 +2,7 @@
 #define UW_LOCALIZATION_DPSLAM_DPSLAM_HPP
 
 #include "LocalizationConfig.hpp"
+#include <machine_learning/GaussianParameters.hpp>
 #include <uw_localization/dp_slam/dp_map.hpp>
 #include <uw_localization/dp_slam/dp_types.hpp>
 #include <uw_localization/maps/node_map.hpp>
@@ -40,6 +41,14 @@ namespace uw_localization{
      * Observe the sonar measurement for one particle
      */
     double observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw);
+    
+    /**
+     * Rate a given particle
+     * @param distances: list of observed laser distances
+     * @param distances_cells: list of simulated map distances
+     * @return: probalility of the messurement
+     */
+    double rateParticle(std::list<double> &distances, std::list< std::pair<double,double > > &distances_cells);
     
     base::samples::Pointcloud getCloud(PoseSlamParticle &X);
     
