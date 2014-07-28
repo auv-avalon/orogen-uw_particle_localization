@@ -226,6 +226,13 @@ bool Task::startHook()
 void Task::updateHook()
 {
      TaskBase::updateHook();
+     
+     //Read pose sample updates
+     base::samples::RigidBodyState rbs;
+     while(_pose_update.read(rbs) == RTT::NewData){
+       
+       pose_updateCallback(rbs.time, rbs);       
+     }
    
      if(_debug.value() && !_yaml_map.value().empty()){
        _environment.write(map->getEnvironment());

@@ -316,7 +316,7 @@ task_context "Task" do
        align_port "speed_samples", 0.01
        align_port "thruster_samples", 0.01
        align_port "pipeline_samples", 0.1
-       align_port "pose_update", 0.1
+       #align_port "pose_update", 0.1
        align_port "gps_pose_samples", 0.1
        align_port "buoy_samples", 0.1
        align_port "echosounder_samples", 0.1
