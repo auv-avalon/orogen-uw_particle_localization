@@ -283,6 +283,10 @@ task_context "Task" do
     
     property("use_slam", "bool", false).
       doc("Use dp-slam algorithm for additional mapping")
+      
+    property("use_mapping_only", "bool", true).
+      doc("Use dp-slam for mapping nly, created maps are not used for lokalisation").
+      doc("Takes only effect, if use_slam is true")
     
     property("feature_weight_reduction", "double", 0.8).
       doc("Reducce the weight of features by this value")

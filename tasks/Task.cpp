@@ -194,6 +194,7 @@ bool Task::startHook()
     config.use_best_feature_only = _use_best_feature_only.get();
     
     config.use_slam = _use_slam.get();
+    config.use_mapping_only = _use_mapping_only.get();
     config.feature_grid_resolution = _feature_grid_resolution.get();
     config.feature_weight_reduction = _feature_weight_reduction.get();
     config.feature_observation_range = _feature_observation_range.get();
@@ -272,6 +273,10 @@ void Task::updateHook()
      //pose.velocity[1]=0.0;
      //pose.angular_velocity[2]=0.0;
      
+     pose.velocity = pose.orientation * pose.velocity;
+     motion.velocity = motion.orientation * motion.velocity;
+     full_motion.velocity = full_motion.orientation * full_motion.velocity;
+     
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
 
@@ -334,8 +339,11 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 
 }
 
-void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& features)
+void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& sample)
 {
+  sonar_detectors::ObstacleFeatures features = sample;
+  
+  filter_sample(features);
   
   double scan_diff = std::fabs(last_scan_angle - features.angle);
   
@@ -704,5 +712,39 @@ void Task::validate_particles(){
   
   position_jump_detected = false;
   localizer->setParticlesValid();
+}
+
+
+void Task::filter_sample(sonar_detectors::ObstacleFeatures& sample){
+  
+  //std::cout << "Filter features - before: " << sample.features.size();
+  
+  uint32_t last_range = -1;
+  double  last_confidence = NAN;
+  
+  //Search for duplicate features
+  //we asume, that duplicate features succed to each other
+  for(std::vector<sonar_detectors::ObstacleFeature>::iterator it = sample.features.begin(); it != sample.features.end(); it++){
+   
+    if(it->range == last_range){
+      
+      if(it->confidence <= last_confidence){        
+        it = sample.features.erase(it);
+        
+      }else{
+        sample.features.erase(it - 1);
+        last_confidence = it->confidence;
+      }
+      
+    }else{
+      last_range = it->range;
+      last_confidence = it->confidence;
+      
+    }
+    
+  }
+  
+  //std::cout << " after: " << sample.features.size();
+  
 }
 

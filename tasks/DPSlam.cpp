@@ -165,7 +165,11 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
   //std::cout << "Set " << feature_count << " features" << std::endl;
   
   //Rate particle
-  return rateParticle(distances, distances_cells);
+  
+  if(config.use_mapping_only)
+    return rateParticle(distances, distances_cells);
+  
+  return 0.0;
   
   //return X.main_confidence;
   
@@ -175,12 +179,13 @@ double DPSlam::rateParticle(std::list<double> &distances, std::list<std::pair<do
   std::cout << "distances: " << distances.size() << " cells: " << distances_cells.size() << std::endl;
   std::list< std::pair<double, double> > diffs; //list of distance differences as pair: (difference, confidence)
   
-  for(std::list<double>::iterator it = distances.begin(); it != distances.end(); it++){
-    
+  //Iterate through meassured distances, and find corresponding feature in map
+  for(std::list<double>::iterator it = distances.begin(); it != distances.end(); it++){    
     
     double min_diff = INFINITY;
     std::list< std::pair<double, double > >::iterator min_it;
     
+    //Search for best corrsponding feature
     for(std::list<std::pair<double, double > >::iterator it_c = distances_cells.begin(); it_c != distances_cells.end(); it_c++){
       
       double diff = std::fabs( *it - it_c->first);
@@ -193,6 +198,7 @@ double DPSlam::rateParticle(std::list<double> &distances, std::list<std::pair<do
       
     }
     
+    //we found at least one feature -> save distance difference
     if(min_diff != INFINITY){
       diffs.push_back( std::make_pair(min_diff, min_it->second ) );
       distances_cells.erase(min_it);

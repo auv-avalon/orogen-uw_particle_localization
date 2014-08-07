@@ -83,11 +83,18 @@ namespace uw_particle_localization {
           bool perception_state_machine(const base::Time& ts);
           
           /**
-           * Sets als particles to valid
+           * Sets all particles to valid
            * If there was a position jump, we only set the particles to valid, when we have at least a half scan
            * @param angle: angle of the last scan
            */
           void validate_particles();
+          
+          /**
+           * Filter out duplicate features. If a feature is found multiple times, the feature with the highest confidence is choosen
+           * We assume, that duplicate features are succeed to each other, to reduce computation time
+           * @param sample: Features to be filtered
+           */
+          void filter_sample(sonar_detectors::ObstacleFeatures& sample);
 
     public:
         Task(std::string const& name = "uw_particle_localization::Task");

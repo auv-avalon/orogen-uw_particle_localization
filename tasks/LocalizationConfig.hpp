@@ -105,6 +105,7 @@ struct FilterConfig {
     double feature_filter_threshold;
     double feature_confidence;
     bool use_slam;
+    bool use_mapping_only;
 
     
 };
