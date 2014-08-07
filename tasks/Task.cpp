@@ -280,12 +280,18 @@ void Task::updateHook()
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
 
-     //if(!pose.time.isNull())
+     if(!pose.time.isNull()){
 	pose.position[2] = current_depth;
 	pose.velocity[2] = motion.velocity[2];
+     
+      if(!base::samples::RigidBodyState::isValidValue(pose.velocity)){
+        pose.velocity = Eigen::Vector3d(0.0, 0.0, 0.0);
+      }
         _pose_samples.write(pose);
         lastRBS = pose;
-
+     }
+      
+      
      if(!motion.time.isNull())
        _dead_reckoning_samples.write(motion);
      
