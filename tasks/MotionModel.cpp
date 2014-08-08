@@ -110,7 +110,7 @@ void MotionModel::thruster_samplesCallback(const base::Time& ts, const base::sam
         base::Vector3d u_t1;
         double dt = (j.time - lastThrusterTime).toSeconds();
         
-        if(dt < 5.0 && dt > 0.0){
+        if(dt < 5.0 && dt >= 0.0){
           
           if(advanced_model){
                       
