@@ -92,6 +92,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
        continue; 
       }
       
+      //Calculate feature in wolrd frame
       Eigen::Vector3d real_pos = X.p_position + (abs_yaw * Eigen::Vector3d(dist, 0.0, 0.0 ) );
       
       Eigen::Vector2d feature_discrete = map->getGridCoord(real_pos.x(), real_pos.y() );
@@ -102,7 +103,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
         
       distances.push_back(dist);
       
-      //Search for coresponding grid cells
+      //Search for coresponding grid cells and delete them
       for(std::vector<Eigen::Vector2d>::iterator it_c = cells.begin(); it_c != cells.end(); it_c++){
         
         if(feature_discrete == *it_c){
@@ -251,7 +252,7 @@ void DPSlam::reduceFeatures(double angle, double max_sum){
     sumAngle += diff;
     
     if(sumAngle > max_sum){
-      map->reduceFeatures();
+      map->reduceFeatures(config.feature_confidence_threshold);
       sumAngle = 0.0;
     }    
     

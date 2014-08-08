@@ -416,7 +416,7 @@ void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut
 	      std::cout << "Invalid orientation" << std::endl;
 	  }
 	}else{
-	  std::cout << "Timestampdifference between thruster-samples to big" << std::endl;
+          std::cout << "Timestampdifference between thruster-samples to big or negative" << std::endl;
           std::cout << "Last: " << lastActuatorTime << " actual: " << Ut.time << std::endl; 
 	}
 	

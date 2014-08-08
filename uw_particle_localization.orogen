@@ -308,6 +308,13 @@ task_context "Task" do
       doc("Confidence of single sonar features.").
       doc("This value should be between 0 and 1")
     
+    property("feature_confidence_threshold", "double", 0.2).
+      doc("Only use features above this threshold for the output map").
+      doc("Features below this value will be removed")
+      
+    property("feature_output_confidence_threshold", "double", 0.5).
+      doc("Only features above this threshold will be shown in the map")
+    
             
         
    # ----------------------------------------------------------------------
@@ -338,7 +345,7 @@ task_context "Task" do
    port_driven :echosounder_samples
    port_driven :obstacle_samples
    
-   runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS"
+   runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS", "INVALID_VALUES"
    
 end
 

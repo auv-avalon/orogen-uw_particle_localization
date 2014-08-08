@@ -201,6 +201,8 @@ bool Task::startHook()
     config.feature_observation_minimum_range = _feature_observation_minimum_range.get();
     config.feature_filter_threshold = _feature_filter_threshold.get();
     config.feature_confidence = _feature_confidence.get();
+    config.feature_confidence_threshold = _feature_confidence_threshold.get();
+    config.feature_output_confidence_threshold = _feature_output_confidence_threshold.get();
     
     orientation_sample_recieved = false;
           
@@ -338,7 +340,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
       localizer->resample();
       validate_particles();
       number_sonar_perceptions = 0;
-              //std::cout << "Resampling" << std::endl;
+     
     } 
     
   }
