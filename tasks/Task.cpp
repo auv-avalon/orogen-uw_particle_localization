@@ -289,6 +289,10 @@ void Task::updateHook()
       if(!base::samples::RigidBodyState::isValidValue(pose.velocity)){
         pose.velocity = Eigen::Vector3d(0.0, 0.0, 0.0);
       }
+      
+      if(!base::samples::RigidBodyState::isValidValue(pose.orientation)){
+        pose.orientation = Eigen::Quaterniond(0.0, 0.0, 0.0, 0.0);
+      }
         _pose_samples.write(pose);
         lastRBS = pose;
      }
@@ -740,8 +744,11 @@ void Task::filter_sample(sonar_detectors::ObstacleFeatures& sample){
         it = sample.features.erase(it);
         
       }else{
-        sample.features.erase(it - 1);
-        last_confidence = it->confidence;
+        
+        if(it == sample.features.begin()){
+          sample.features.erase(it - 1);
+          last_confidence = it->confidence;
+        }
       }
       
     }else{
