@@ -424,10 +424,6 @@ void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut
     
     lastActuatorTime = sample_time;
     motion_pose.time = base::Time::now();
-    motion_pose.velocity[2] = vehicle_pose.velocity[2];
-    motion_pose.angular_velocity = vehicle_pose.angular_velocity;
-    motion_pose.orientation = vehicle_pose.orientation;
-    motion_pose.position.z() = vehicle_pose.position.z();
     
     vehicle_pose.velocity = motion_pose.velocity;
 }
@@ -1031,6 +1027,12 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
     vehicle_pose.position = orientation.position;
     vehicle_pose.angular_velocity = orientation.angular_velocity;
     vehicle_pose.velocity[2] = orientation.velocity[2];
+    
+    motion_pose.velocity[2] = vehicle_pose.velocity[2];
+    motion_pose.angular_velocity = vehicle_pose.angular_velocity;
+    motion_pose.orientation = vehicle_pose.orientation;
+    motion_pose.position.z() = vehicle_pose.position.z();    
+    
 }
 
 void ParticleLocalization::setThrusterVoltage(double voltage){

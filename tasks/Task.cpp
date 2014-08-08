@@ -219,6 +219,7 @@ bool Task::startHook()
      localizer->setSonarDebug(this);
      
      last_hough_timeout = base::Time::fromMicroseconds(0);
+     lastSpeed = Eigen::Vector3d(NAN, NAN, NAN);
 
      position_jump_detected = false;
      last_scan_angle = 0.0;
@@ -278,6 +279,10 @@ void Task::updateHook()
      pose.velocity = pose.orientation * pose.velocity;
      motion.velocity = motion.orientation * motion.velocity;
      full_motion.velocity = full_motion.orientation * full_motion.velocity;
+     
+     if(base::samples::RigidBodyState::isValidValue(lastSpeed)){
+       pose.velocity = lastSpeed;
+     }     
      
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
@@ -453,6 +458,10 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
 
 void Task::speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
+    if(base::samples::RigidBodyState::isValidValue(rbs.velocity)){
+      lastSpeed = rbs.velocity;
+    }  
+  
     localizer->update(rbs, *map);
 }
 
