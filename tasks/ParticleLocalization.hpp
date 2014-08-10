@@ -52,7 +52,7 @@ public:
   static underwaterVehicle::Parameters initializeDynamicModel(UwVehicleParameter p, FilterConfig filter_config);
 
   virtual base::Position position(const PoseSlamParticle& X) const { return X.p_position; }
-  virtual base::Vector3d velocity(const PoseSlamParticle& X) const { return X.p_velocity; }
+  virtual base::Vector3d velocity(const PoseSlamParticle& X) const { return X.pose->velocity; }
   virtual base::samples::RigidBodyState orientation(const PoseSlamParticle& X) const { return *(X.pose); }
   virtual bool isValid(const PoseSlamParticle& X) const {return X.valid; }
 
@@ -129,7 +129,11 @@ public:
   bool hasStats() const;
   uw_localization::Stats getStats() const;
 
-  void setCurrentOrientation(const base::samples::RigidBodyState& orientation);
+  void setCurrentOrientation(const base::samples::RigidBodyState& orientation);  
+  void setCurrentVelocity(const base::samples::RigidBodyState& speed);
+  void setCurrentAngularVelocity(const base::samples::RigidBodyState& speed);
+  void setCurrentZVelocity(const base::samples::RigidBodyState& speed);
+  void setCurrentDepth(const base::samples::RigidBodyState& depth);
 
   void update_dead_reckoning(const base::samples::Joints& u);
   const base::samples::RigidBodyState& dead_reckoning() const { return motion_pose; }

@@ -122,6 +122,10 @@ task_context "Task" do
 
    property("reset_timeout", "double", 10.0).
         doc("automatic reset of particle filter after not receiving any perception for X seconds")
+        
+   property("speed_samples_timeout", "double", 1.0).
+        doc("If both speed_samples and thruster_samples are used").
+        doc("Use thruster_samples if we have a timeout of x seconds on the speed_samples")
 
    property("minimum_perceptions", "int", 5).
 	doc("minimum number of perceptions before starting resampling")

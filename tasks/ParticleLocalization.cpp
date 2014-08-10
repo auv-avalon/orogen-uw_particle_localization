@@ -1022,17 +1022,52 @@ void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyS
       vehicle_pose.time = orientation.time;
     }
     
-    vehicle_pose.orientation = Eigen::AngleAxis<double>(filter_config.yaw_offset, Eigen::Vector3d::UnitZ()) * orientation.orientation;
-    vehicle_pose.cov_orientation = orientation.cov_orientation;
-    vehicle_pose.position = orientation.position;
-    vehicle_pose.angular_velocity = orientation.angular_velocity;
-    vehicle_pose.velocity[2] = orientation.velocity[2];
+    if(base::samples::RigidBodyState::isValidValue(orientation.orientation)){
     
-    motion_pose.velocity[2] = vehicle_pose.velocity[2];
-    motion_pose.angular_velocity = vehicle_pose.angular_velocity;
-    motion_pose.orientation = vehicle_pose.orientation;
-    motion_pose.position.z() = vehicle_pose.position.z();    
+      vehicle_pose.orientation = Eigen::AngleAxis<double>(filter_config.yaw_offset, Eigen::Vector3d::UnitZ()) * orientation.orientation;
+      vehicle_pose.cov_orientation = orientation.cov_orientation;
+
+      motion_pose.orientation = vehicle_pose.orientation;
+      motion_pose.cov_orientation = vehicle_pose.cov_orientation;
+    }
     
+}
+
+void ParticleLocalization::setCurrentVelocity(const base::samples::RigidBodyState& speed)
+{
+  
+  if(base::samples::RigidBodyState::isValidValue(speed.velocity)){
+  
+    vehicle_pose.velocity = speed.velocity;
+  }
+  
+}
+
+void ParticleLocalization::setCurrentAngularVelocity(const base::samples::RigidBodyState& speed){
+  
+  if(base::samples::RigidBodyState::isValidValue(speed.angular_velocity)){
+  
+    vehicle_pose.angular_velocity = speed.angular_velocity;
+    motion_pose.angular_velocity = speed.angular_velocity;
+  }
+}
+
+void ParticleLocalization::setCurrentZVelocity(const base::samples::RigidBodyState& speed){
+  
+  if(!std::isnan(speed.velocity.z() )){
+    vehicle_pose.velocity.z() = speed.velocity.z();
+    motion_pose.velocity.z() = speed.velocity.z();
+  }
+  
+}
+
+void ParticleLocalization::setCurrentDepth(const base::samples::RigidBodyState& depth){
+  
+  if(!std::isnan(depth.position.z() )){
+    vehicle_pose.position.z() = depth.position.z();
+    motion_pose.position.z() = depth.position.z();
+  }
+  
 }
 
 void ParticleLocalization::setThrusterVoltage(double voltage){

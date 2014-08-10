@@ -219,7 +219,7 @@ bool Task::startHook()
      localizer->setSonarDebug(this);
      
      last_hough_timeout = base::Time::fromMicroseconds(0);
-     lastSpeed = Eigen::Vector3d(NAN, NAN, NAN);
+     last_speed_time = base::Time::fromMicroseconds(0);
 
      position_jump_detected = false;
      last_scan_angle = 0.0;
@@ -276,13 +276,11 @@ void Task::updateHook()
      //pose.velocity[1]=0.0;
      //pose.angular_velocity[2]=0.0;
      
+     //Convert velocities to world frame
      pose.velocity = pose.orientation * pose.velocity;
      motion.velocity = motion.orientation * motion.velocity;
      full_motion.velocity = full_motion.orientation * full_motion.velocity;
-     
-     if(base::samples::RigidBodyState::isValidValue(lastSpeed)){
-       pose.velocity = lastSpeed;
-     }     
+    
      
      if(_debug.value())
         _particles.write(localizer->getParticleSet());
@@ -360,7 +358,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
 {
   sonar_detectors::ObstacleFeatures features = sample;
   
-  filter_sample(features);
+  //filter_sample(features);
   
   double scan_diff = std::fabs(last_scan_angle - features.angle);
   
@@ -416,6 +414,10 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
 {   
     orientation_sample_recieved = true;
     localizer->setCurrentOrientation(rbs);
+    localizer->setCurrentAngularVelocity(rbs);
+    localizer->setCurrentZVelocity(rbs);
+    localizer->setCurrentDepth(rbs);
+    
     current_depth = rbs.position.z();
 
     if(start_time.isNull()) {
@@ -458,39 +460,44 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
 
 void Task::speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
-    if(base::samples::RigidBodyState::isValidValue(rbs.velocity)){
-      lastSpeed = rbs.velocity;
-    }  
+    localizer->setCurrentVelocity(rbs);
   
     localizer->update(rbs, *map);
+    
+    last_speed_time = ts;
+    last_motion = ts;
 }
 
 
 void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& status)
 {  
   
-  base::samples::Joints j = status;
-  last_motion = ts; 
-
-  if(status.hasNames()){
+  if(last_speed_time.isNull() || ts.toSeconds() - last_speed_time.toSeconds() > _speed_samples_timeout.get() ){
   
-    for(int i = 0; i < status.size() && i < config.joint_names.size(); i++){
-      
-	try{
-	  j.elements[i] = status[config.joint_names[i]]; 
-	}
-	catch(...){
-	}	
-    }  
-  }
-
-  if(orientation_sample_recieved){
-    localizer->update_dead_reckoning(j);
-    localizer->update(j, *map);
     
-  }else{
-    changeState(NO_ORIENTATION);
-  }  
+    base::samples::Joints j = status;
+    last_motion = ts; 
+
+    if(status.hasNames()){
+    
+      for(int i = 0; i < status.size() && i < config.joint_names.size(); i++){
+        
+          try{
+            j.elements[i] = status[config.joint_names[i]]; 
+          }
+          catch(...){
+          }	
+      }  
+    }
+
+    if(orientation_sample_recieved){
+      localizer->update_dead_reckoning(j);
+      localizer->update(j, *map);
+      
+    }else{
+      changeState(NO_ORIENTATION);
+    }
+  }
     
 }
 
@@ -754,10 +761,10 @@ void Task::filter_sample(sonar_detectors::ObstacleFeatures& sample){
         
       }else{
         
-        if(it == sample.features.begin()){
-          sample.features.erase(it - 1);
-          last_confidence = it->confidence;
-        }
+        //if(it == sample.features.begin()){
+        //  sample.features.erase(it - 1);
+        //  last_confidence = it->confidence;
+        //}
       }
       
     }else{
