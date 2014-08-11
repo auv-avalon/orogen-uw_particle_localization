@@ -152,7 +152,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       
       if(it_o->first == *it){
         
-        int64_t id = map->setObstacle(it->x(), it->y(), false, config.feature_confidence, 0);
+        int64_t id = map->setObstacle(it->x(), it->y(), false, config.feature_empty_cell_confidence, 0);
         
         if(id != 0){
           it_o->second = id;          
@@ -168,16 +168,18 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
   //Rate particle
   
   if(config.use_mapping_only)
-    return rateParticle(distances, distances_cells);
+    0.0;
+    
+    
+  return rateParticle(distances, distances_cells);
   
-  return 0.0;
-  
+    
   //return X.main_confidence;
   
 }
 
 double DPSlam::rateParticle(std::list<double> &distances, std::list<std::pair<double, double> > &distances_cells){
-  std::cout << "distances: " << distances.size() << " cells: " << distances_cells.size() << std::endl;
+
   std::list< std::pair<double, double> > diffs; //list of distance differences as pair: (difference, confidence)
   
   //Iterate through meassured distances, and find corresponding feature in map
@@ -215,13 +217,13 @@ double DPSlam::rateParticle(std::list<double> &distances, std::list<std::pair<do
     prob += it->second * machine_learning::gaussian1d( 0.0, config.sonar_covariance, it->first );
     sum_weight += it->second;
     
-    std::cout << "F: " << it->second << std::endl; 
+
   }
   
   if(sum_weight > 0.0){
     return prob / sum_weight;
   }
-  std::cout << "sumweight" << sum_weight << std::endl;
+
   return 0.0;
 }
 

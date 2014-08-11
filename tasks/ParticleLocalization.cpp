@@ -656,8 +656,7 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const sonar_detecto
   
   if(filter_config.use_slam){
     double val = dp_slam.observe(X, Z, base::getYaw(vehicle_pose.orientation));
-    std::cout << "Pos: " << X.p_position.transpose() << " - confidence: " << val << std::endl;
-    
+        
     if(!filter_config.use_mapping_only){
     
       if(val == 0.0)

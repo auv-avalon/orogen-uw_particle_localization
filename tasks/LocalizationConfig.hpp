@@ -105,6 +105,7 @@ struct FilterConfig {
     double feature_grid_resolution;
     double feature_filter_threshold;
     double feature_confidence;
+    double feature_empty_cell_confidence;
     double feature_confidence_threshold;
     double feature_output_confidence_threshold;
     bool use_slam;

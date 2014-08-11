@@ -314,6 +314,10 @@ task_context "Task" do
     property("feature_confidence", "double", 0.5).
       doc("Confidence of single sonar features.").
       doc("This value should be between 0 and 1")
+      
+    property("feature_empty_cell_confidence", "double", 0.5).
+      doc("Confidence, that an observed cell is empty").
+      doc("This value should be between 0 and 1")
     
     property("feature_confidence_threshold", "double", 0.2).
       doc("Only use features above this threshold for the output map").

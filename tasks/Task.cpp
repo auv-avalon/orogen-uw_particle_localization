@@ -220,6 +220,7 @@ bool Task::startHook()
     config.feature_observation_minimum_range = _feature_observation_minimum_range.get();
     config.feature_filter_threshold = _feature_filter_threshold.get();
     config.feature_confidence = _feature_confidence.get();
+    config.feature_empty_cell_confidence = _feature_empty_cell_confidence.get();
     config.feature_confidence_threshold = _feature_confidence_threshold.get();
     config.feature_output_confidence_threshold = _feature_output_confidence_threshold.get();
     
@@ -368,7 +369,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
 {
   sonar_detectors::ObstacleFeatures features = sample;
   
-  //filter_sample(features);
+  filter_sample(features);
   
   double scan_diff = std::fabs(last_scan_angle - features.angle);
   
@@ -771,25 +772,34 @@ void Task::filter_sample(sonar_detectors::ObstacleFeatures& sample){
   
   //Search for duplicate features
   //we asume, that duplicate features succed to each other
+  
   for(std::vector<sonar_detectors::ObstacleFeature>::iterator it = sample.features.begin(); it != sample.features.end(); it++){
    
+  
     if(it->range == last_range){
       
       if(it->confidence <= last_confidence){        
         it = sample.features.erase(it);
-        
+
       }else{
-        
-        //if(it == sample.features.begin()){
-        //  sample.features.erase(it - 1);
-        //  last_confidence = it->confidence;
-        //}
+
+        if(it == sample.features.begin()){
+          it = sample.features.erase(it - 1);
+          last_confidence = it->confidence;
+        }else{
+          std::cout << std::endl;
+          
+        }
       }
       
     }else{
       last_range = it->range;
       last_confidence = it->confidence;
       
+    }
+    
+    if(it == sample.features.end()){
+      break;
     }
     
   }
