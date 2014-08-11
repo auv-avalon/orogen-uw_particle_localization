@@ -158,7 +158,10 @@ task_context "Task" do
         doc("ignore velocity in speed samples for dynamic update")
 
    property("static_motion_covariance", "/std/vector<double>").
-        doc("sets a static covariance for speed samples")
+        doc("sets a static covariance for the motion model")
+        
+   property("static_speed_covariance", "/std/vector<double>").
+        doc("sets a static covariance for the speed samples")
 
    property("sonar_importance", "double", 1.0).
 	doc("sets importance ratio for sonar perception updates")
@@ -349,7 +352,7 @@ task_context "Task" do
    port_driven :echosounder_samples
    port_driven :obstacle_samples
    
-   runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS", "INVALID_VALUES"
+   runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS_NO_DVL", "INVALID_VALUES"
    
 end
 

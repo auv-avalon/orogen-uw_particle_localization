@@ -11,7 +11,8 @@ base::samples::RigidBodyState* PoseSlamParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
     : ParticleFilter<PoseSlamParticle>(), filter_config(config),
-    StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
+    StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_speed_covariance)),
+    StaticMotionNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
     perception_history_sum(0.0),
     sonar_debug(0)
 {
@@ -312,7 +313,7 @@ void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::Joi
 	    }   
 	  
 	  //Motion noise. Noise depends on the delta-time. For a long time intervall, there is more noise
-	  v_noisy = u_velocity + (StaticSpeedNoise() * dt); 
+	  v_noisy = u_velocity + (StaticMotionNoise() * dt); 
 
 	  base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
 	  
@@ -425,7 +426,9 @@ void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut
     lastActuatorTime = sample_time;
     motion_pose.time = base::Time::now();
     
+    motion_pose.velocity.z() = vehicle_pose.velocity.z();
     vehicle_pose.velocity = motion_pose.velocity;
+    
 }
 
 
@@ -1039,6 +1042,7 @@ void ParticleLocalization::setCurrentVelocity(const base::samples::RigidBodyStat
   if(base::samples::RigidBodyState::isValidValue(speed.velocity)){
   
     vehicle_pose.velocity = speed.velocity;
+    motion_pose.velocity = speed.velocity;
   }
   
 }

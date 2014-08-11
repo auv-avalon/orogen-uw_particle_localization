@@ -173,6 +173,25 @@ bool Task::startHook()
 
          _static_motion_covariance.set(value);
      }
+     
+     if(_static_speed_covariance.value().size() > 0) {
+         config.static_speed_covariance = convertProperty<Eigen::Matrix3d>(_static_speed_covariance.value());
+     } else {
+         std::cout << "No static speed covariance assigned. Use static motion matrix" << std::endl;
+         config.static_speed_covariance = config.static_motion_covariance;
+         
+         std::vector<double> value;
+         for(unsigned i = 0; i < config.static_speed_covariance.rows(); i++) {
+             for(unsigned j = 0; j < config.static_speed_covariance.cols(); j++) {
+                 value.push_back(config.static_speed_covariance(i,j));
+             }
+         }
+
+         _static_speed_covariance.set(value);         
+         
+     }     
+     
+     
       
     if (!initMotionConfig())
       return false;
@@ -286,16 +305,7 @@ void Task::updateHook()
         _particles.write(localizer->getParticleSet());
 
      if(!pose.time.isNull()){
-	pose.position[2] = current_depth;
-	pose.velocity[2] = motion.velocity[2];
-     
-      if(!base::samples::RigidBodyState::isValidValue(pose.velocity)){
-        pose.velocity = Eigen::Vector3d(0.0, 0.0, 0.0);
-      }
-      
-      if(!base::samples::RigidBodyState::isValidValue(pose.orientation)){
-        pose.orientation = Eigen::Quaterniond(0.0, 0.0, 0.0, 0.0);
-      }
+
         _pose_samples.write(pose);
         lastRBS = pose;
      }
@@ -460,12 +470,21 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
 
 void Task::speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
-    localizer->setCurrentVelocity(rbs);
   
-    localizer->update(rbs, *map);
+    if(base::samples::RigidBodyState::isValidValue(rbs.velocity)){
+  
+      localizer->setCurrentVelocity(rbs);
     
-    last_speed_time = ts;
-    last_motion = ts;
+      if(orientation_sample_recieved){
+        localizer->update(rbs, *map);
+              
+      }else{
+        changeState(NO_ORIENTATION);
+      }
+        
+      last_speed_time = ts;
+      last_motion = ts;
+    }
 }
 
 
@@ -678,7 +697,7 @@ bool Task::perception_state_machine(const base::Time& ts)
       if(current_depth < _minimum_depth.get()){ //we have a valid depth
         
         if(last_motion.isNull() || ts.toSeconds() - last_motion.toSeconds() > _reset_timeout.get()) //Joint timeout
-           changeState(NO_JOINTS);
+           changeState(NO_JOINTS_NO_DVL);
         else if(last_hough.isNull() || ts.toSeconds() - last_hough.toSeconds() > _hough_timeout.get()){ //Hough timeout
           changeState(NO_HOUGH);
           

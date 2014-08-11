@@ -186,6 +186,7 @@ private:
   DPSlam dp_slam;
 
   machine_learning::MultiNormalRandom<3> StaticSpeedNoise;
+  machine_learning::MultiNormalRandom<3> StaticMotionNoise;
 
   uw_localization::PointInfo best_sonar_measurement;
 

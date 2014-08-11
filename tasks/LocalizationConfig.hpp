@@ -58,6 +58,7 @@ struct FilterConfig {
     double sonar_covariance_corner_factor;
 
     Eigen::Matrix3d static_motion_covariance;
+    Eigen::Matrix3d static_speed_covariance;
     
     //Sensor transformations
     Eigen::Translation3d sonarToAvalon;
