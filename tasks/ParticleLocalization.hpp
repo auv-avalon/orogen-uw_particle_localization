@@ -22,7 +22,7 @@
 #include <uw_localization/dp_slam/dp_types.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
-#include <sonar_feature_estimator/FeatureEstimationDebugTypes.hpp>
+#include <sonar_detectors/SonarDetectorTypes.hpp>
 #include <visual_detectors/Types.hpp>
 #include "LocalizationConfig.hpp"
 #include "Types.hpp"

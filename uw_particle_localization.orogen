@@ -3,6 +3,7 @@ name "uw_particle_localization"
 using_library "uw_localization"
 using_library "machine_learning"
 using_library "uwv_dynamic_model"
+using_library "sonar_detectors"
 using_task_library "sonar_wall_hough"
 using_task_library "sonar_feature_estimator"
 
@@ -18,6 +19,7 @@ import_types_from "uw_localization/types/environment.hpp"
 #import_types_from "battery_management"
 import_types_from "sonar_wall_hough/tasks/DebugTypes.hpp"
 import_types_from "sonar_feature_estimator/FeatureEstimationDebugTypes.hpp"
+import_types_from "sonar_detectors/SonarDetectorTypes.hpp"
 
 
 task_context "Task" do

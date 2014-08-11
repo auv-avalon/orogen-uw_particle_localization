@@ -14,6 +14,7 @@
   <depend package="auv_avalon/orogen/sonar_wall_hough" />
   <depend package="auv_avalon/visual_detectors" />
   <depend package="auv_avalon/orogen/sonar_feature_estimator" />
+  <depend package="auv_avalon/sonar_detectors" />
   <!--depend package="avalon/orogen/battery_management" /-->
   <tags>needs_opt</tags>
 </package>

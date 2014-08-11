@@ -6,7 +6,7 @@
 #include <uw_localization/dp_slam/dp_map.hpp>
 #include <uw_localization/dp_slam/dp_types.hpp>
 #include <uw_localization/maps/node_map.hpp>
-#include <sonar_feature_estimator/FeatureEstimationDebugTypes.hpp>
+#include <sonar_detectors/SonarDetectorTypes.hpp>
 #include <cmath>
 
 namespace uw_localization{
