@@ -50,6 +50,8 @@ task_context "Task" do
         doc("various values representing current localization state")
         
    output_port("depth_grid", "/base/samples/Pointcloud")
+   
+   output_port("debug_filtered_obstacles", "sonar_detectors/ObstacleFeatures")
 
    # ----------------------------------------------------------------------
    # input samples 
@@ -296,6 +298,9 @@ task_context "Task" do
     property("use_mapping_only", "bool", true).
       doc("Use dp-slam for mapping nly, created maps are not used for lokalisation").
       doc("Takes only effect, if use_slam is true")
+      
+    property("echosounder_variance", "double", 0.5).
+      doc("Variance of the echosounder samples")
     
     property("feature_weight_reduction", "double", 0.8).
       doc("Reducce the weight of features by this value")
@@ -310,7 +315,7 @@ task_context "Task" do
       doc("Size of one grid-cell in meter")
     
     property("feature_filter_threshold", "double", 0.0).
-      doc("Only use features with values obove ths threshold").
+      doc("Only use input-features with values obove ths threshold").
       doc("If value is 0, no features will be filtered")
       
     property("feature_confidence", "double", 0.5).
@@ -322,11 +327,11 @@ task_context "Task" do
       doc("This value should be between 0 and 1")
     
     property("feature_confidence_threshold", "double", 0.2).
-      doc("Only use features above this threshold for the output map").
-      doc("Features below this value will be removed")
+      doc("Only use map-features above this threshold for the map").
+      doc("Features below this value will be removed during filtering")
       
     property("feature_output_confidence_threshold", "double", 0.5).
-      doc("Only features above this threshold will be shown in the map")
+      doc("Only features above this threshold will be shown in the output-map")
     
             
         

@@ -149,7 +149,8 @@ bool Task::startHook()
          config.init_variance = map->getLimitations();
      }
 
-     current_depth = 0;
+     current_depth = 0.0;
+     current_ground = -8.0;
 
      number_sonar_perceptions = 0;
      number_rejected_samples = 0;
@@ -223,6 +224,7 @@ bool Task::startHook()
     config.feature_empty_cell_confidence = _feature_empty_cell_confidence.get();
     config.feature_confidence_threshold = _feature_confidence_threshold.get();
     config.feature_output_confidence_threshold = _feature_output_confidence_threshold.get();
+    config.echosounder_variance = _echosounder_variance.get();
     
     orientation_sample_recieved = false;
           
@@ -546,20 +548,21 @@ void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples
 
   if(rbs.position[2] <= 0.0)
     return;
-  /*  
+  
   if(orientation_sample_recieved){
-    //std::cout << "Echosounder callback" << std::endl;
     
     if(_use_markov.get())
       localizer->observe_markov(current_depth - rbs.position[2], *grid_map, 1.0);
     else
-      localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);   
+      localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);
     
-  }*/
-  
-  grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
-  
-  
+    if(!_use_slam.get()){
+      grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
+    }
+      
+    current_ground = current_depth - rbs.position[2];
+  }
+    
 }
 
 void Task::stopHook()
@@ -767,17 +770,31 @@ void Task::filter_sample(sonar_detectors::ObstacleFeatures& sample){
   
   //std::cout << "Filter features - before: " << sample.features.size();
   
+  //calculate reflection of the ground
+  double diff_ground = std::fabs( current_ground - current_depth);
+  double dist_groundreflection = diff_ground/sin(_sonar_vertical_angle.get()/2.0);
+  double dist_surfacereflection = std::fabs(current_depth)/sin(_sonar_vertical_angle.get()/2.0);
+  //std::cout << "--------------" << std::endl;
+  //std::cout << "Filter surface at " << dist_surfacereflection << std::endl;
+  //std::cout << "Filter ground at " << dist_groundreflection << std::endl;
+  
   uint32_t last_range = -1;
   double  last_confidence = NAN;
   
   //Search for duplicate features
   //we asume, that duplicate features succed to each other
   
-  for(std::vector<sonar_detectors::ObstacleFeature>::iterator it = sample.features.begin(); it != sample.features.end(); it++){
+  //std::cout << "Size before: " << sample.features.size() << std::endl;
+  for(std::vector<sonar_detectors::ObstacleFeature>::iterator it = sample.features.begin(); it != sample.features.end(); ){
    
-  
+    double dist = it->range / 1000.0;
+    
+    
+    //std::cout << "confidence: " << it->confidence << ", range: " << it->range <<  ", threshold: " << _feature_filter_threshold.get() << std::endl;
+    
+    //We have a duplicate -> remove feature with lower confidence
     if(it->range == last_range){
-      
+      //std::cout << "Duplicate" << std::endl;
       if(it->confidence <= last_confidence){        
         it = sample.features.erase(it);
 
@@ -786,24 +803,41 @@ void Task::filter_sample(sonar_detectors::ObstacleFeatures& sample){
         if(it == sample.features.begin()){
           it = sample.features.erase(it - 1);
           last_confidence = it->confidence;
-        }else{
-          std::cout << std::endl;
-          
+          ++it;
         }
       }
+     
+     //Feature is out of range -> remove it!
+    }else if(dist <= 0 || dist < _sonar_minimum_distance.get() || dist > _sonar_maximum_distance.get()){
+      //std::cout << "Out of range" << std::endl;
+      it = sample.features.erase(it);
       
+      //Feature could be a false reflection from the ground or surface
+    }else if( std::fabs( dist - dist_groundreflection) < 0.5 || std::fabs( dist - dist_surfacereflection) < 0.5 ){ 
+      //std::cout << "Reflection" << std::endl;
+      it = sample.features.erase(it); //TODO do we need this?
+      //++it;
+      
+      //Feature confidence is to low -> do not use it!
+    }else if( _feature_filter_threshold.get() > 0.0 && it->confidence <= _feature_filter_threshold.get()){
+      //std::cout << "Filter because low confidence" << std::endl;
+      it = sample.features.erase(it);      
+    
     }else{
       last_range = it->range;
       last_confidence = it->confidence;
-      
+      ++it;
+      //std::cout << "No filtering" << std::endl;
     }
     
     if(it == sample.features.end()){
+      //std::cout << "Break loop" << std::endl;
       break;
     }
     
   }
-  
+  //std::cout << "Size after: " << sample.features.size() << std::endl;
+  _debug_filtered_obstacles.write(sample);
   //std::cout << " after: " << sample.features.size();
   
 }

@@ -15,6 +15,7 @@ namespace uw_localization{
     
   private:
     DPMap* map;
+    NodeMap* node_map;
     FilterConfig config;
     double lastAngle;
     double sumAngle;

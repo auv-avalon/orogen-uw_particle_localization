@@ -40,6 +40,7 @@ namespace uw_particle_localization {
           base::Time last_map_update;
 
           double current_depth;
+          double current_ground;
           bool orientation_sample_recieved;
 
           unsigned number_sonar_perceptions;

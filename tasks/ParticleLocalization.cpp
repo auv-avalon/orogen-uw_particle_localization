@@ -103,6 +103,18 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     UniformRealRandom pos_y = Random::uniform_real(pos.y() - var1.y() * 0.5, pos.y() + var1.y() * 0.5 );
     UniformRealRandom pos_z = Random::uniform_real(pos.z() - var1.z() * 0.5, pos.z() + var1.z() * 0.5 );
 
+    bool first_init = true; //Is this the first time, the initialization is called
+    PoseSlamParticle best; // Best particle
+    
+    //We already have particles -> the filter was initialized before
+    if(particles.size() > 0){
+      first_init = false;
+      
+      particles.sort(compare_particles<PoseSlamParticle>);
+      best = particles.front();
+     
+    }
+    
     particles.clear();
     perception_history.clear();
     perception_history_sum = 0.0;
@@ -111,6 +123,14 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
         PoseSlamParticle pp;
         pp.p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
         pp.p_velocity = base::Vector3d(0.0, 0.0, 0.0);
+        
+        //We already have used particles -> use the best map for the new particles
+        if(!first_init){
+          pp.depth_cells = best.depth_cells;
+          pp.obstacle_cells = best.obstacle_cells;
+          
+        }
+        
         pp.main_confidence = 1.0 / numbers;
         pp.valid = true;
         particles.push_back(pp);
@@ -866,8 +886,8 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const avalon::featu
 
 double ParticleLocalization::perception(PoseSlamParticle& X, const double& Z, DepthObstacleGrid& M){
 
-  if(first_perception_received)
-    M.setDepth(X.p_position.x(), X.p_position.y(), Z, X.main_confidence);  
+  if(filter_config.use_slam)
+    dp_slam.observe(X, Z);
   
   return X.main_confidence;
   
@@ -927,6 +947,13 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
         
         pp.p_velocity = best.p_velocity;
         pp.p_position[2] = best.p_position[2];
+        
+        if(filter_config.use_slam){
+        
+          pp.depth_cells = best.depth_cells;
+          pp.obstacle_cells = best.obstacle_cells;
+        }
+          
         pp.main_confidence = worst.main_confidence / 10000.0; //Choose a realy small value
         pp.valid = false;
         
@@ -1225,10 +1252,6 @@ base::samples::Pointcloud ParticleLocalization::getPointCloud(){
       //std::cout << "GetCloud" << std::endl;
       //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
       pc = dp_slam.getCloud(*best_it);
-      std::cout << "Found best particle" << std::endl;
-    }
-    else{
-      std::cout << "Found no particle to create map" << std::endl;
     }
     
   }

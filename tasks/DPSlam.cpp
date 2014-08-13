@@ -25,6 +25,7 @@ void DPSlam::init(base::Vector2d position, base::Vector2d span, double resolutio
 
 void DPSlam::initalize_statics(NodeMap *map){
   
+  node_map = map;
   this->map->initalize_statics(map);
 }
 
@@ -37,18 +38,18 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
     
     //We found a match
     if(it->first == pos){
-      int64_t id = map->setDepth(pos.x(), pos.y(), depth, X.main_confidence, it->second);
+      int64_t id = map->setDepth(pos.x(), pos.y(), depth, config.echosounder_variance , it->second);
       
-      if(id != 0 && id != it->second)
+      if(id != 0 && id != it->second){
         it->second = id;
-      
+      }
       
       return X.main_confidence;
     }
     
   }
   
-  int64_t id = map->setDepth(pos.x(), pos.y(), depth, X.main_confidence, 0);
+  int64_t id = map->setDepth(pos.x(), pos.y(), config.echosounder_variance , X.main_confidence, 0);
  
   if(id != 0)
     X.depth_cells.push_back( std::make_pair(pos, id) );
@@ -79,27 +80,41 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
     
   }
   
-  
+  //std::cout << "Observe " << Z.features.size() << std::endl;
  int feature_count = 0;
  for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it_f = Z.features.begin(); it_f != Z.features.end(); it_f++){
       
       double dist = it_f->range / 1000.0;
       
+      //std::cout << "Dist: " << dist << "Thresholds: " << config.sonar_minimum_distance << " " << config.sonar_maximum_distance << " " << config.feature_observation_range << std::endl;
+      
       //Is feature in valid range??
       if(dist < config.sonar_minimum_distance ||
-        dist > config.sonar_maximum_distance){
-        
+        dist > config.sonar_maximum_distance ||
+        dist > config.feature_observation_range){
+        //std::cout << "Obstacle out of range" << std::endl;
        continue; 
       }
+      
       
       //Calculate feature in wolrd frame
       Eigen::Vector3d real_pos = X.p_position + (abs_yaw * Eigen::Vector3d(dist, 0.0, 0.0 ) );
       
+      //If feature inside the map?
+      if(!node_map->belongsToWorld(real_pos)){
+        //std::cout << "Out of map" << std::endl;
+        continue; //Feature is outside, ignore it!
+      
+      }
+      
       Eigen::Vector2d feature_discrete = map->getGridCoord(real_pos.x(), real_pos.y() );
       
       //Check, if feature is in valid coordinates. If feature is outside the grid, values could be nan
-      if(std::isnan(feature_discrete.x()))
+      if(std::isnan(feature_discrete.x())){
+        //std::cout << "Feature out of map" << std::endl;
         continue;
+        
+      }
         
       distances.push_back(dist);
       
@@ -115,12 +130,12 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       }     
       
       bool found_match = false;
-      
+      //std::cout << "Obstacle " << feature_discrete.transpose() << std::endl;
       for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it = X.obstacle_cells.begin(); it != X.obstacle_cells.end(); it++){
         
         if(feature_discrete == it->first){
           int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, config.feature_confidence , it->second);
-           //std::cout << "Obstacle: " << feature_discrete.transpose() << std::endl;         
+           //std::cout << "UPdate Obstacle" << std::endl;         
           if(id != 0){
             it->second = id;
             feature_count++;
@@ -134,7 +149,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       } 
       
       if(!found_match){
-      
+        //std::cout << "Create new Obstacle" << std::endl;
         int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, config.feature_confidence, 0);
         feature_count++;
         

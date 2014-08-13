@@ -108,6 +108,7 @@ struct FilterConfig {
     double feature_empty_cell_confidence;
     double feature_confidence_threshold;
     double feature_output_confidence_threshold;
+    double echosounder_variance;
     bool use_slam;
     bool use_mapping_only;
 
