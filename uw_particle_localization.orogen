@@ -332,6 +332,9 @@ task_context "Task" do
       
     property("feature_output_confidence_threshold", "double", 0.5).
       doc("Only features above this threshold will be shown in the output-map")
+      
+    property("feature_observation_count_threshold", "int", 5).
+      doc("If we observed a feature this many time without removing it, this feature will be saved")
     
             
         
@@ -469,6 +472,7 @@ task_context "MotionModel" do
     port_driven
    
 end
+
 
 
 #Declares a deployment, i.e. an actual executable that contains various tasks.

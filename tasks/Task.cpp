@@ -224,6 +224,7 @@ bool Task::startHook()
     config.feature_empty_cell_confidence = _feature_empty_cell_confidence.get();
     config.feature_confidence_threshold = _feature_confidence_threshold.get();
     config.feature_output_confidence_threshold = _feature_output_confidence_threshold.get();
+    config.feature_observation_count_threshold = _feature_observation_count_threshold.get();
     config.echosounder_variance = _echosounder_variance.get();
     
     orientation_sample_recieved = false;
@@ -461,7 +462,7 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
         sum_scan = 0.0;
       }
       
-      localizer->interspersal(rbs, *map, _hough_interspersal_ratio.value(), false);
+      localizer->interspersal(rbs, *map, _hough_interspersal_ratio.value(), false, position_jump_detected);
 
       number_sonar_perceptions = 0;
     }
@@ -546,21 +547,25 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
 
 void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
 
-  if(rbs.position[2] <= 0.0)
-    return;
   
-  if(orientation_sample_recieved){
+  if(rbs.position[2] > 0.0){
     
-    if(_use_markov.get())
-      localizer->observe_markov(current_depth - rbs.position[2], *grid_map, 1.0);
-    else
-      localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);
-    
-    if(!_use_slam.get()){
-      grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
-    }
+    if(orientation_sample_recieved){
       
-    current_ground = current_depth - rbs.position[2];
+      //std::cout << "Observe ground: " << rbs.position[2] << " depth: " << current_depth << " sum: " << current_depth - rbs.position[2] << std::endl;
+      
+      if(_use_markov.get())
+        localizer->observe_markov(current_depth - rbs.position[2], *grid_map, 1.0);
+      else
+        localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);
+      
+      if(!_use_slam.get()){
+        grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
+      }
+        
+      current_ground = current_depth - rbs.position[2];
+    }
+    
   }
     
 }
@@ -714,7 +719,7 @@ bool Task::perception_state_machine(const base::Time& ts)
             else if(ts.toSeconds() - last_hough_timeout.toSeconds() > _hough_timeout.get()){
               
               last_hough_timeout = ts;
-              localizer->interspersal(base::samples::RigidBodyState(), *map, _hough_timeout_interspersal.get(), true);              
+              localizer->interspersal(base::samples::RigidBodyState(), *map, _hough_timeout_interspersal.get(), true, true);              
             }        
             
           }          

@@ -554,7 +554,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
     newRBS.position[1]=pose[1];
     
     //Creates new particle at the gps-position
-    interspersal(newRBS, m, filter_config.gps_interspersal_ratio, false);	  
+    interspersal(newRBS, m, filter_config.gps_interspersal_ratio, false, false);	  
     
     double effective_sample_size = observe(pose, m, importance);   
     
@@ -921,7 +921,7 @@ uw_localization::Stats ParticleLocalization::getStats() const
     return stats;
 }
 
-void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m, double ratio, bool random_uniform)
+void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, const NodeMap& m, double ratio, bool random_uniform, bool invalidate_particles)
 {
     reduceParticles(1.0 - ratio);
 
@@ -955,7 +955,15 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
         }
           
         pp.main_confidence = worst.main_confidence / 10000.0; //Choose a realy small value
-        pp.valid = false;
+        
+        if(invalidate_particles){
+          pp.valid = false;
+        }
+        else{
+          pp.valid = true;
+        }
+        
+        
         
         count++;
         particles.push_back(pp);
@@ -1235,15 +1243,24 @@ base::samples::Pointcloud ParticleLocalization::getPointCloud(){
   if(filter_config.use_slam){
     
     double best_conf = 0.0;
-    std::list<PoseSlamParticle>::iterator best_it;
+    double best_invalid_conf = -1.0;
+    std::list<PoseSlamParticle>::iterator best_it = particles.begin();
+    std::list<PoseSlamParticle>::iterator best_invalid_it = particles.begin();
     
     //Search for best particle
+    //If all particles are invalid, select best invalid particle 
     for(std::list<PoseSlamParticle>::iterator it = particles.begin(); it != particles.end(); it++){
       
       if(it->main_confidence > best_conf && it->valid){
         best_conf = it->main_confidence;
         best_it = it;
-      }
+        
+      }else if(!it->valid && it->main_confidence > best_invalid_conf){
+        
+        best_invalid_conf = it->main_confidence;
+        best_invalid_it = it;
+        
+      }      
       
     }
     
@@ -1252,6 +1269,9 @@ base::samples::Pointcloud ParticleLocalization::getPointCloud(){
       //std::cout << "GetCloud" << std::endl;
       //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
       pc = dp_slam.getCloud(*best_it);
+    }
+    else if(best_invalid_conf > -1.0){
+      pc = dp_slam.getCloud(*best_invalid_it);
     }
     
   }

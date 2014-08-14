@@ -60,10 +60,13 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
 
 
 double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw){
-  std::vector<Eigen::Vector2d> cells = map->getGridCells( Eigen::Vector2d(X.p_position.x(), X.p_position.y()), Z.angle,
+  std::vector<Eigen::Vector2d> cells = map->getGridCells( Eigen::Vector2d(X.p_position.x(), X.p_position.y()), Z.angle + vehicle_yaw,
                                                          config.feature_observation_minimum_range, config.feature_observation_range);
   
-  Eigen::AngleAxis<double> abs_yaw(Z.angle, Eigen::Vector3d::UnitZ());
+  Eigen::AngleAxis<double> sonar_yaw(Z.angle, Eigen::Vector3d::UnitZ()); 
+  Eigen::AngleAxis<double> abs_yaw(vehicle_yaw, Eigen::Vector3d::UnitZ());    
+  Eigen::Affine3d SonarToAvalon(config.sonarToAvalon);
+  
   Eigen::Vector2d pos2d(X.p_position.x(), X.p_position.y() );
   
   reduceFeatures(vehicle_yaw + Z.angle);
@@ -97,8 +100,9 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       }
       
       
-      //Calculate feature in wolrd frame
-      Eigen::Vector3d real_pos = X.p_position + (abs_yaw * Eigen::Vector3d(dist, 0.0, 0.0 ) );
+      //Calculate feature in world frame
+      Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(dist, 0.0, 0.0);
+      Eigen::Vector3d real_pos = (abs_yaw * RelativeZ) + X.p_position;
       
       //If feature inside the map?
       if(!node_map->belongsToWorld(real_pos)){
@@ -269,7 +273,7 @@ void DPSlam::reduceFeatures(double angle, double max_sum){
     sumAngle += diff;
     
     if(sumAngle > max_sum){
-      map->reduceFeatures(config.feature_confidence_threshold);
+      map->reduceFeatures(config.feature_confidence_threshold, config.feature_observation_count_threshold );
       sumAngle = 0.0;
     }    
     

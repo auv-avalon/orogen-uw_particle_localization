@@ -102,8 +102,9 @@ public:
    * @param m: map of the enviroment
    * @param ratio: amount of particles, which will be deleted, in percent
    * @param random_uniform: ignore the position_covariance and interspere random over the environment 
+   * @param invalidate_particles: set new particles to invalid -> particles need to be meassured to be valid
    */
-  void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio, bool random_uniform);
+  void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio, bool random_uniform, bool invalidate_particles);
   
 
   double observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance = 1.0);
