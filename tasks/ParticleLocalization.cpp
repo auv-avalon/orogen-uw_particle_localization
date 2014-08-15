@@ -447,7 +447,8 @@ void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut
     motion_pose.time = base::Time::now();
     
     motion_pose.velocity.z() = vehicle_pose.velocity.z();
-    vehicle_pose.velocity = motion_pose.velocity;
+    vehicle_pose.velocity.x() = motion_pose.velocity.x();
+    vehicle_pose.velocity.y() = motion_pose.velocity.y();
     
 }
 
