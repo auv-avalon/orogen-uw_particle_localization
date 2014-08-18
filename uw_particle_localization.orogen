@@ -473,6 +473,37 @@ task_context "MotionModel" do
    
 end
 
+###############################################################################################################
+# This Task provides a full rigid body state, by fusion of direct sensor input and localization-data
+# This task works WITHOUT a stream-aligner, so the data-delay should be on a minimum, but data may be missaligned
+###############################################################################################################
+task_context "FastFusion" do
+   
+   input_port("position_samples", "/base/samples/RigidBodyState").
+      doc("Contains x- and y-positions").
+      doc("Alternativ to the velocity_samples, this port can also contain linear velocities")
+   
+   input_port("depth_samples", "/base/samples/RigidBodyState").
+      doc("Contains depth and depth velocity")
+      
+   input_port("orientation_samples", "/base/samples/RigidBodyState").
+      doc("Contains orientation and angular velocity")
+      
+   input_port("velocity_samples", "/base/samples/RigidBodyState").
+      doc("contains linear velocites").
+      doc("Velocity in body-frame")
+   
+   
+   output_port("pose_samples", "/base/samples/RigidBodyState")
+   
+   property("velocity_timeout", "double", 0.5).
+      doc("Timeout for velocity samples, after which the position_samples-veelocity is used")
+   
+   
+   port_driven   
+   
+end
+
 
 
 #Declares a deployment, i.e. an actual executable that contains various tasks.
