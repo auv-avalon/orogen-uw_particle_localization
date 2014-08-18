@@ -21,6 +21,9 @@ void DPSlam::init(base::Vector2d position, base::Vector2d span, double resolutio
   std::cout << "Center: " << position << std::endl;
   map = new DPMap(position, span, resolution);  
   map->initGrid();
+  
+  map->init_depth_obstacle_config(-8.0, 0.0, 2.0);
+  
 }
 
 void DPSlam::initalize_statics(NodeMap *map){
@@ -59,7 +62,7 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
 }
 
 
-double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw){
+double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw, double vehicle_depth){
   std::vector<Eigen::Vector2d> cells = map->getGridCells( Eigen::Vector2d(X.p_position.x(), X.p_position.y()), Z.angle + vehicle_yaw,
                                                          config.feature_observation_minimum_range, config.feature_observation_range);
   
@@ -94,6 +97,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       //Is feature in valid range??
       if(dist < config.sonar_minimum_distance ||
         dist > config.sonar_maximum_distance ||
+        dist < config.feature_observation_minimum_range ||
         dist > config.feature_observation_range){
         //std::cout << "Obstacle out of range" << std::endl;
        continue; 
@@ -103,6 +107,8 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       //Calculate feature in world frame
       Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(dist, 0.0, 0.0);
       Eigen::Vector3d real_pos = (abs_yaw * RelativeZ) + X.p_position;
+      
+      double vertical_span = dist * std::sin(config.sonar_vertical_angle / 2.0);
       
       //If feature inside the map?
       if(!node_map->belongsToWorld(real_pos)){
@@ -138,7 +144,8 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it = X.obstacle_cells.begin(); it != X.obstacle_cells.end(); it++){
         
         if(feature_discrete == it->first){
-          int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, config.feature_confidence , it->second);
+          int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true,
+                                        config.feature_confidence , vehicle_depth - vertical_span, vehicle_depth + vertical_span, it->second);
            //std::cout << "UPdate Obstacle" << std::endl;         
           if(id != 0){
             it->second = id;
@@ -154,7 +161,8 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       
       if(!found_match){
         //std::cout << "Create new Obstacle" << std::endl;
-        int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true, config.feature_confidence, 0);
+        int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true,
+                                      config.feature_confidence, vehicle_depth - vertical_span, vehicle_depth + vertical_span, 0);
         feature_count++;
         
         if(id != 0)
@@ -163,15 +171,20 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
   }
   
   //handle empty cells
-  //There ae no observation for the cells, update cell confidence
+  //There is no observation for the cells, update cell confidence
   for(std::vector<Eigen::Vector2d>::iterator it = cells.begin(); it != cells.end(); it++){
+    
+    double dist = std::sqrt( std::pow( it->x() - X.p_position.x(), 2.0)  + std::pow( it->y() - X.p_position.y(), 2.0 )  );
+    double vertical_span = dist * std::sin(config.sonar_vertical_angle);
+    
     
     //search for correspondig observations    
     for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it_o = X.obstacle_cells.begin(); it_o != X.obstacle_cells.end(); it_o++){
       
       if(it_o->first == *it){
         
-        int64_t id = map->setObstacle(it->x(), it->y(), false, config.feature_empty_cell_confidence, 0);
+        int64_t id = map->setObstacle(it->x(), it->y(), false,
+                                      config.feature_empty_cell_confidence, vehicle_depth - vertical_span, vehicle_depth + vertical_span, 0);
         
         if(id != 0){
           it_o->second = id;          
@@ -250,7 +263,7 @@ double DPSlam::rateParticle(std::list<double> &distances, std::list<std::pair<do
 
 base::samples::Pointcloud DPSlam::getCloud(PoseSlamParticle &X){
   
-  return map->getCloud(X.depth_cells, X.obstacle_cells);
+  return map->getCloud(X.depth_cells, X.obstacle_cells, config.feature_output_confidence_threshold, config.feature_observation_count_threshold);
   
 }
 

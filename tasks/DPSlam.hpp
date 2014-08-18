@@ -41,7 +41,7 @@ namespace uw_localization{
     /**
      * Observe the sonar measurement for one particle
      */
-    double observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw);
+    double observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw, double vehicle_depth);
     
     /**
      * Rate a given particle
