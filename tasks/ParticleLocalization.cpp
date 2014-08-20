@@ -1190,7 +1190,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
   Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);
   
   std::vector<Eigen::Vector2d> grid_cells = m.getGridCells( Eigen::Vector2d( rbs.position.x(), rbs.position.y()), z.angle + rbs.getYaw()
-                                                          , filter_config.sonar_minimum_distance, filter_config.feature_observation_range);
+                                                          , filter_config.sonar_minimum_distance, filter_config.feature_observation_range, false);
   
   //std::cout << "Got " << grid_cells.size() << " grid cells" << std::endl;
   for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it = z.features.begin(); it != z.features.end(); it++){

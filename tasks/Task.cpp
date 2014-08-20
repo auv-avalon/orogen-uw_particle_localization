@@ -557,21 +557,28 @@ void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples
   
   if(rbs.position[2] > 0.0){
     
-    if(orientation_sample_recieved){
-      
-      //std::cout << "Observe ground: " << rbs.position[2] << " depth: " << current_depth << " sum: " << current_depth - rbs.position[2] << std::endl;
-      
-      if(_use_markov.get())
-        localizer->observe_markov(current_depth - rbs.position[2], *grid_map, 1.0);
-      else
-        localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);
-      
-      if(!_use_slam.get()){
-        grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
-      }
+    //Do not use every echosounder sample!
+    //if(std::fabs( ts.toSeconds() - last_echosounder.toSeconds()) < 0.5){
         
-      current_ground = current_depth - rbs.position[2];
-    }
+      if(orientation_sample_recieved){
+        
+        //std::cout << "Observe ground: " << rbs.position[2] << " depth: " << current_depth << " sum: " << current_depth - rbs.position[2] << std::endl;
+        
+        if(_use_markov.get())
+          localizer->observe_markov(current_depth - rbs.position[2], *grid_map, 1.0);
+        else
+          localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);
+        
+        if(!_use_slam.get()){
+          grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
+        }
+          
+        current_ground = current_depth - rbs.position[2];
+      }
+    
+    //}
+    
+    last_echosounder = ts;
     
   }
     

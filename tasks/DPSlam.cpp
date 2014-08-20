@@ -47,12 +47,17 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
         it->second = id;
       }
       
+      if(id == 0){
+        X.depth_cells.erase(it);
+      }
+      
       return X.main_confidence;
     }
     
   }
   
-  int64_t id = map->setDepth(pos.x(), pos.y(), config.echosounder_variance , X.main_confidence, 0);
+  //We found no match, set new feature!
+  int64_t id = map->setDepth(pos.x(), pos.y(), depth, config.echosounder_variance , 0);
  
   if(id != 0)
     X.depth_cells.push_back( std::make_pair(pos, id) );
@@ -64,7 +69,7 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
 
 double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw, double vehicle_depth){
   std::vector<Eigen::Vector2d> cells = map->getGridCells( Eigen::Vector2d(X.p_position.x(), X.p_position.y()), Z.angle + vehicle_yaw,
-                                                         config.feature_observation_minimum_range, config.feature_observation_range);
+                                                         config.feature_observation_minimum_range, config.feature_observation_range, true);
   
   Eigen::AngleAxis<double> sonar_yaw(Z.angle, Eigen::Vector3d::UnitZ()); 
   Eigen::AngleAxis<double> abs_yaw(vehicle_yaw, Eigen::Vector3d::UnitZ());    
@@ -78,12 +83,15 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
   std::list<double> distances; //Save the observed distances;
   std::list< std::pair<double, double> > distances_cells;  //Distances of the grid map, as pair (distance, confidence)
   
-  std::list< std::pair<Eigen::Vector2d, double > > observed_cells = map->getObservedCells(cells, X.obstacle_cells);
+  if(!config.use_mapping_only){
   
-  for(std::list< std::pair<Eigen::Vector2d, double > >::iterator it = observed_cells.begin(); it != observed_cells.end(); it++){
+    std::list< std::pair<Eigen::Vector2d, double > > observed_cells = map->getObservedCells(cells, X.obstacle_cells);
     
-    distances_cells.push_back( std::make_pair ( (it->first -  pos2d).norm(), it->second) );
-    
+    for(std::list< std::pair<Eigen::Vector2d, double > >::iterator it = observed_cells.begin(); it != observed_cells.end(); it++){
+      
+      distances_cells.push_back( std::make_pair ( (it->first -  pos2d).norm(), it->second) );
+      
+    }
   }
   
   //std::cout << "Observe " << Z.features.size() << std::endl;
@@ -146,10 +154,15 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
         if(feature_discrete == it->first){
           int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true,
                                         config.feature_confidence , vehicle_depth - vertical_span, vehicle_depth + vertical_span, it->second);
-           //std::cout << "UPdate Obstacle" << std::endl;         
+           //std::cout << "UPdate Obstacle" << std::endl;
+          
+          //We have got a valid feature
           if(id != 0){
             it->second = id;
             feature_count++;
+          }
+          else{ //Feature could not be set, maybe it was deleted or invalid
+            X.obstacle_cells.erase(it);
           }
           
           found_match = true;
@@ -165,13 +178,14 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
                                       config.feature_confidence, vehicle_depth - vertical_span, vehicle_depth + vertical_span, 0);
         feature_count++;
         
-        if(id != 0)
+        if(id != 0){
           X.obstacle_cells.push_back(std::make_pair(feature_discrete, id));
+        }
       }
   }
   
   //handle empty cells
-  //There is no observation for the cells, update cell confidence
+  //There is no observation for the cells, update cells and lower their confidence
   for(std::vector<Eigen::Vector2d>::iterator it = cells.begin(); it != cells.end(); it++){
     
     double dist = std::sqrt( std::pow( it->x() - X.p_position.x(), 2.0)  + std::pow( it->y() - X.p_position.y(), 2.0 )  );
@@ -181,14 +195,29 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
     //search for correspondig observations    
     for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it_o = X.obstacle_cells.begin(); it_o != X.obstacle_cells.end(); it_o++){
       
+      //we found a correpondig feature
       if(it_o->first == *it){
         
-        int64_t id = map->setObstacle(it->x(), it->y(), false,
+        //Feature is inside our observation range -> update confidence
+        if(dist <= config.feature_observation_range){
+        
+          int64_t id = map->setObstacle(it->x(), it->y(), false,
                                       config.feature_empty_cell_confidence, vehicle_depth - vertical_span, vehicle_depth + vertical_span, it_o->second);
         
-        if(id != 0){
-          it_o->second = id;          
+          if(id != 0){
+            it_o->second = id;          
+          }
+          else{
+            X.obstacle_cells.erase(it_o);
+          }
+        
+        }else{//Feature is outside observation rannge -> mark it, so we now, that it is still used
+          
+          map->touchFeature(it->x(), it->y(), it_o->second);
+          
         }
+        
+        break; //We found our observation, no more searching needed
         
       }
     }
@@ -200,7 +229,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
   //Rate particle
   
   if(config.use_mapping_only)
-    0.0;
+    return 0.0;
     
     
   return rateParticle(distances, distances_cells);
