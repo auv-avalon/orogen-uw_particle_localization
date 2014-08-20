@@ -1,5 +1,7 @@
-metrics: [120.0, 50.0, 12.1467]
-reference: [-60.0, -25.0, -12.1467]
+#metrics: [120.0, 50.0, 12.1467]
+#reference: [-60.0, -25.0, -12.1467]
+metrics: [60, 50, 12.1467]
+reference: [0.0, -25.0, -12.1467]
 root:
   wall:
 #    - line_from: [-60.0, -25.0, 0.0] #wall not visible in sonar
