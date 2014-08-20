@@ -918,7 +918,12 @@ uw_localization::Stats ParticleLocalization::getStats() const
     stats.uncertainty_degree = perception_history_sum / filter_config.perception_history_number;
     stats.effective_sample_size = effective_sample_size;
     stats.particle_generation = generation;
-
+    
+    if(particles.size() > 0){
+      stats.obstacle_features_per_particle = particles.front().obstacle_cells.size();
+      stats.depth_features_per_particle = particles.front().depth_cells.size();
+    }
+      
     return stats;
 }
 
@@ -979,10 +984,10 @@ void ParticleLocalization::debug(double distance, const base::Vector3d& location
     if(best_sonar_measurement.confidence < conf) {
         uw_localization::PointInfo info;
         info.distance = distance;
-	info.desire_distance = 0.0;
+        info.desire_distance = 0.0;
         info.desire_point = base::Vector3d(0.0, 0.0, 0.0);
         info.real_point = base::Vector3d(0.0, 0.0, 0.0);
-	info.angle = 0.0;
+        info.angle = 0.0;
         info.location = location;
         info.confidence = conf;
         info.status = status;

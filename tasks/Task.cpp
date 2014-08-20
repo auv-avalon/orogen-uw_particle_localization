@@ -338,6 +338,8 @@ void Task::updateHook()
 
 void Task::laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan)
 {
+  //base::Time temp = base::Time::now();
+  
   double scan_diff = std::fabs(last_scan_angle - scan.start_angle);
   
   while(scan_diff > M_PI)
@@ -366,10 +368,14 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
     
   }
 
+  
+  //std::cout << "Calc-time lasersamples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
+  
 }
 
 void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& sample)
 {
+  //base::Time temp = base::Time::now();
   sonar_detectors::ObstacleFeatures features = sample;
   
   filter_sample(features);
@@ -404,7 +410,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
         localizer->setObstacles(features, *grid_map, lastRBS);
         
   }
-
+  //std::cout << "Calc time obstacle samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
 }
 
 
@@ -474,7 +480,7 @@ void Task::pose_updateCallback(const base::Time& ts, const base::samples::RigidB
 
 void Task::speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs)
 {
-  
+    //base::Time temp = base::Time::now();
     if(base::samples::RigidBodyState::isValidValue(rbs.velocity)){
   
       localizer->setCurrentVelocity(rbs);
@@ -489,12 +495,13 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
       last_speed_time = ts;
       last_motion = ts;
     }
+    //std::cout << "Calc time speed-samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
 }
 
 
 void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& status)
 {  
-  
+  //base::Time temp = base::Time::now();
   if(last_speed_time.isNull() || ts.toSeconds() - last_speed_time.toSeconds() > _speed_samples_timeout.get() ){
   
     
@@ -521,7 +528,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
       changeState(NO_ORIENTATION);
     }
   }
-    
+  //std::cout << "Calc time thruster samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;  
 }
 
 void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){

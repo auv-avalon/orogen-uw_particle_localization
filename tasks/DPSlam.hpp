@@ -26,8 +26,18 @@ namespace uw_localization{
     
     ~DPSlam();
     
+    /**
+     * Initialize the map of the dp-slam
+     * @param position: relaive position of the coordinate-center
+     * @param span: size of the map
+     * @param resolution: size of one cell
+     * @param config: filter-config
+     */
     void init(base::Vector2d position, base::Vector2d span, double resolution, FilterConfig config);
     
+    /**
+     * Set static elements in the grid-map
+     */
     void initalize_statics(NodeMap *map);
     
     /**
@@ -51,11 +61,14 @@ namespace uw_localization{
      */
     double rateParticle(std::list<double> &distances, std::list< std::pair<double,double > > &distances_cells);
     
+    /**
+     * Get a pointcloud-representation of one particle-map
+     */
     base::samples::Pointcloud getCloud(PoseSlamParticle &X);
     
     /**
      * Reduces the weight of the particles
-     * The redusing event is triggered, when the sum of the scan angle reaches max_sum
+     * The reduce-event is triggered, when the sum of the scan angle reaches max_sum
      */
     void reduceFeatures(double angle, double max_sum = 4 * M_PI);
     

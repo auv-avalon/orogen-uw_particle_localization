@@ -25,6 +25,12 @@ struct Stats {
 
     /** particle generation */
     unsigned int particle_generation;
+    
+    /** Number of obstacle features per particle */
+    double obstacle_features_per_particle;
+    
+    /** Number of depth features per particle */
+    double depth_features_per_particle;
 };
 
 

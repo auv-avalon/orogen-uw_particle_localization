@@ -184,7 +184,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       if(it_o->first == *it){
         
         int64_t id = map->setObstacle(it->x(), it->y(), false,
-                                      config.feature_empty_cell_confidence, vehicle_depth - vertical_span, vehicle_depth + vertical_span, 0);
+                                      config.feature_empty_cell_confidence, vehicle_depth - vertical_span, vehicle_depth + vertical_span, it_o->second);
         
         if(id != 0){
           it_o->second = id;          
@@ -272,12 +272,14 @@ void DPSlam::reduceFeatures(double angle, double max_sum){
   double diff = 0.0;
   
   if(isnan(lastAngle)){    
-  
+    
+    //We need a new scan-angle
     if(lastAngle == angle)
       return;    
     
     diff = std::fabs(lastAngle - angle);
     
+    //Convert scan-difference to a range 0 - PI
     while(diff > M_PI)
       diff -= M_PI;
     
