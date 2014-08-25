@@ -139,7 +139,9 @@ void MotionModel::thruster_samplesCallback(const base::Time& ts, const base::sam
           if(base::samples::RigidBodyState::isValidValue(u_t1) && last_orientation.hasValidOrientation() ){
             
             motion_pose.position = motion_pose.position + last_orientation.orientation * (v_avg * dt);
-            motion_pose.velocity = u_t1;         
+            motion_pose.velocity = u_t1;       
+	    motion_pose.cov_velocity = _velocity_covariance.value().asDiagonal();
+	    motion_pose.cov_position = motion_pose.cov_position + motion_pose.cov_velocity * dt;
           
           }else{
             std::cout << "Error in motion_model. Velocity or orientation is unset." << std::endl;
