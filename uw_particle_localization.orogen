@@ -470,6 +470,9 @@ task_context "MotionModel" do
 	
     property("joint_names" ,"std/vector<string>")
     
+    property("velocity_covariance", "base/Vector3d").
+	doc("covariance of the estimated velocities.")
+    
     stream_aligner do
         max_latency 1.0
         align_port "thruster_samples", 0.01
