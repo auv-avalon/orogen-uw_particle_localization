@@ -53,7 +53,7 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
 
     pos.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default"])    
   
-    motion.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::MotionModel.yml", ["sim_nurc"])
+    motion.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::MotionModel.yml", ["default"])
     #motion.apply_conf_file("/home/fabio/avalon/bundles/avalon/config/orogen/uw_particle_localization::MotionModel.yml", ["default"])
 
     
