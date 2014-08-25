@@ -6,6 +6,7 @@
 #include <uw_localization/dp_slam/dp_map.hpp>
 #include <uw_localization/dp_slam/dp_types.hpp>
 #include <uw_localization/maps/node_map.hpp>
+#include <uw_localization/types/map.hpp>
 #include <sonar_detectors/SonarDetectorTypes.hpp>
 #include <cmath>
 
@@ -53,6 +54,12 @@ namespace uw_localization{
      */
     double observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatures& Z, double vehicle_yaw, double vehicle_depth);
     
+    
+    /**
+     * Depth-observation for a generall, non-particle map
+     */
+    double observeDepth(const base::Vector3d &pos, const base::Matrix3d &pos_covar, const double &depth);
+    
     /**
      * Rate a given particle
      * @param distances: list of observed laser distances
@@ -65,6 +72,7 @@ namespace uw_localization{
      * Get a pointcloud-representation of one particle-map
      */
     base::samples::Pointcloud getCloud(PoseSlamParticle &X);
+    uw_localization::SimpleGrid getSimpleGrid(PoseSlamParticle &X);
     
     /**
      * Reduces the weight of the particles

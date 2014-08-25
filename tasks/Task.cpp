@@ -215,6 +215,7 @@ bool Task::startHook()
     
     config.use_slam = _use_slam.get();
     config.use_mapping_only = _use_mapping_only.get();
+    config.single_depth_map = _single_depth_map.get();
     config.feature_grid_resolution = _feature_grid_resolution.get();
     config.feature_weight_reduction = _feature_weight_reduction.get();
     config.feature_observation_range = _feature_observation_range.get();
@@ -262,19 +263,21 @@ void Task::updateHook()
      }
    
      if(_debug.value() && !_yaml_map.value().empty()){
-       _environment.write(map->getEnvironment());
-      
+             
        if(base::Time::now().toSeconds() - last_map_update.toSeconds() > 2.0){
         
           base::samples::Pointcloud pc;
           
           if(_use_slam.get()){
             pc = localizer->getPointCloud();
+            _grid_map.write( localizer->getSimpleGrid() );
           }
           else{
             pc = grid_map->getCloud();
           }
           
+          _environment.write(map->getEnvironment());
+          _particles.write(localizer->getParticleSet());
             
           pc.time = base::Time::now();
           _depth_grid.write( pc);
@@ -303,10 +306,7 @@ void Task::updateHook()
      pose.velocity = pose.orientation * pose.velocity;
      motion.velocity = motion.orientation * motion.velocity;
      full_motion.velocity = full_motion.orientation * full_motion.velocity;
-    
-     
-     if(_debug.value())
-        _particles.write(localizer->getParticleSet());
+       
 
      if(!pose.time.isNull()){
 
@@ -571,6 +571,9 @@ void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples
         
         if(!_use_slam.get()){
           grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
+        }
+        else if(_single_depth_map.get()){
+          localizer->observeDepth(lastRBS.position, lastRBS.cov_position, current_depth - rbs.position[2] );
         }
           
         current_ground = current_depth - rbs.position[2];

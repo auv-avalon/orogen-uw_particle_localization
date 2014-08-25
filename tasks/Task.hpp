@@ -11,6 +11,7 @@
 #include "tasks/LocalizationConfig.hpp"
 #include <uw_localization/maps/grid_map.hpp>
 #include <uw_localization/maps/depth_obstacle_grid.hpp>
+#include <uw_localization/types/map.hpp>
 
 namespace aggregator {
     class StreamAligner;

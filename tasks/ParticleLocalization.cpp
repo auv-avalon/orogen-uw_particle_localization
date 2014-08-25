@@ -887,7 +887,7 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const avalon::featu
 
 double ParticleLocalization::perception(PoseSlamParticle& X, const double& Z, DepthObstacleGrid& M){
 
-  if(filter_config.use_slam)
+  if(filter_config.use_slam && (!filter_config.single_depth_map) )
     dp_slam.observe(X, Z);
   
   return X.main_confidence;
@@ -1242,6 +1242,10 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
   //m.reduce_weights(1.0 / (360.0* 8.0));
 }
 
+void ParticleLocalization::observeDepth(const Eigen::Vector3d &pose, const Eigen::Matrix3d pos_covar, double depth){
+  dp_slam.observeDepth(pose, pos_covar, depth);
+}
+
 base::samples::Pointcloud ParticleLocalization::getPointCloud(){
   
   base::samples::Pointcloud pc;
@@ -1285,6 +1289,53 @@ base::samples::Pointcloud ParticleLocalization::getPointCloud(){
   return pc; 
   
 }
+
+
+uw_localization::SimpleGrid ParticleLocalization::getSimpleGrid(){
+  
+  uw_localization::SimpleGrid result;
+  
+  if(filter_config.use_slam){
+    
+    double best_conf = 0.0;
+    double best_invalid_conf = -1.0;
+    std::list<PoseSlamParticle>::iterator best_it = particles.begin();
+    std::list<PoseSlamParticle>::iterator best_invalid_it = particles.begin();
+    
+    //Search for best particle
+    //If all particles are invalid, select best invalid particle 
+    for(std::list<PoseSlamParticle>::iterator it = particles.begin(); it != particles.end(); it++){
+      
+      if(it->main_confidence > best_conf && it->valid){
+        best_conf = it->main_confidence;
+        best_it = it;
+        
+      }else if(!it->valid && it->main_confidence > best_invalid_conf){
+        
+        best_invalid_conf = it->main_confidence;
+        best_invalid_it = it;
+        
+      }      
+      
+    }
+    
+    //We need a valid particle
+    if(best_conf > 0.0){
+      //std::cout << "GetCloud" << std::endl;
+      //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
+      result = dp_slam.getSimpleGrid(*best_it);
+    }
+    else if(best_invalid_conf > -1.0){
+      result = dp_slam.getSimpleGrid(*best_invalid_it);
+    }
+    
+  }
+  
+  return result;; 
+  
+}
+
+
 
 
 }

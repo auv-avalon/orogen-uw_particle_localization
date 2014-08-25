@@ -112,6 +112,7 @@ struct FilterConfig {
     double echosounder_variance;
     bool use_slam;
     bool use_mapping_only;
+    bool single_depth_map;
 
     
 };

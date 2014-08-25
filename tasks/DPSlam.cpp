@@ -22,14 +22,22 @@ void DPSlam::init(base::Vector2d position, base::Vector2d span, double resolutio
   map = new DPMap(position, span, resolution);  
   map->initGrid();
   
-  map->init_depth_obstacle_config(-8.0, 0.0, 2.0);
+  map->initDepthObstacleConfig(-8.0, 0.0, 2.0);
   
 }
 
 void DPSlam::initalize_statics(NodeMap *map){
   
   node_map = map;
-  this->map->initalize_statics(map);
+  this->map->initalizeStatics(map);
+}
+
+double DPSlam::observeDepth(const base::Vector3d &pos, const base::Matrix3d &pos_covar, const double &depth){
+  
+  double var = pos_covar.norm();
+  
+  map->setStaticDepth(pos.x(), pos.y(), depth, var);  
+  
 }
 
 double DPSlam::observe(PoseSlamParticle &X, const double &depth){
@@ -213,7 +221,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
         
         }else{//Feature is outside observation rannge -> mark it, so we now, that it is still used
           
-          map->touchFeature(it->x(), it->y(), it_o->second);
+          map->touchObstacleFeature(it->x(), it->y(), it_o->second);
           
         }
         
@@ -295,6 +303,13 @@ base::samples::Pointcloud DPSlam::getCloud(PoseSlamParticle &X){
   return map->getCloud(X.depth_cells, X.obstacle_cells, config.feature_output_confidence_threshold, config.feature_observation_count_threshold);
   
 }
+
+uw_localization::SimpleGrid DPSlam::getSimpleGrid(PoseSlamParticle &X){
+  
+  return map->getSimpleGrid(X.depth_cells, X.obstacle_cells, config.feature_output_confidence_threshold, config.feature_observation_count_threshold);
+  
+}
+
 
 void DPSlam::reduceFeatures(double angle, double max_sum){
   

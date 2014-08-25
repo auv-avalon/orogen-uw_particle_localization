@@ -19,6 +19,7 @@
 #include <uw_localization/maps/grid_map.hpp>
 #include <uw_localization/maps/depth_obstacle_grid.hpp>
 #include <uw_localization/types/info.hpp>
+#include <uw_localization/types/map.hpp>
 #include <uw_localization/dp_slam/dp_types.hpp>
 #include <offshore_pipeline_detector/pipeline.h>
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
@@ -169,11 +170,14 @@ public:
   
   void setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs);
   
+  void observeDepth(const Eigen::Vector3d &pose, const Eigen::Matrix3d pos_covar, double depth);
+  
   /**
    * Return the pointcloud-map of the best particle
    * This is only avaiable in use_slam-mode, (else an empty cloud will be returned)
    */
   base::samples::Pointcloud getPointCloud();
+  uw_localization::SimpleGrid getSimpleGrid();
 
 private:
   FilterConfig filter_config;
