@@ -15,11 +15,11 @@ log_center = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-200
                                 "/media/WINDOWS/LOGS/SAUC-E12/20120706-2003_Day1_sonar_angle_5_0_gain_0_9_centered/sonar_rear.0.log")
 =end
 
-#=begin
+=begin
 log_bottom = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/sonar.0.log",
                                "/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/avalon_back_base_control.0.log",
                                 "/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/sonar_rear.0.log")
-#=end                               
+=end                               
 =begin
 log_top = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_Day1_sonar_angle_2_5_gain_0_9_top_basin/sonar.0.log",
                                "/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_Day1_sonar_angle_2_5_gain_0_9_top_basin/avalon_back_base_control.0.log",
@@ -27,18 +27,19 @@ log_top = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_D
 
 =end
 
-=begin
+#=begin
 log_traj = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/sonar.0.log",
                                     "/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/avalon_back_base_control.0.log",
                                     "/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/sonar_rear.0.log")
-=end
+#=end
 
-log = log_bottom
+log = log_traj
 
 puts "3"
 
 #Orocos.run "AvalonSimulation" ,:wait => 10000, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
-Orocos.run "uw_particle_localization_test","orientation_correction_test", "sonar_wall_hough",
+Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localization::OrientationCorrection" => "orientation_correction",
+    "uw_particle_localization::Task" => "uw_particle_localization",
     "sonar_feature_estimator::Task"=> "sonar_feature_estimator", "joint_converter::Task"  => "joint_converter",
 #    :wait => 10000, :valgrind => ["orientation_correction_test","orientation_correction"]   , :valgrind_options => ['--undef-value-errors=no'] do
     :wait => 10000, :valgrind => false   , :valgrind_options => ['--undef-value-errors=no'] do
@@ -69,8 +70,8 @@ Orocos.run "uw_particle_localization_test","orientation_correction_test", "sonar
     actuators.status_motors.connect_to joint_converter.motor_status
 
     pos.debug = true
-    pos.init_position = [0.0, 0.0, 0.0]
-    pos.init_variance = [120.0, 50.0, 1.0]
+    pos.init_position = [30.0, 0.0, 0.0]
+    pos.init_variance = [1.0, 1.0, 1.0]  #[60.0, 50.0, 1.0]
 
     pos.static_motion_covariance = [0.2,0.0,0.0, 0.0,0.2,0.0, 0.0,0.0,0.0]
     pos.pure_random_motion = false
@@ -118,6 +119,22 @@ Orocos.run "uw_particle_localization_test","orientation_correction_test", "sonar
     pos.hough_timeout_interspersal = 0.0
     
     pos.aggregator_max_latency = 0.5
+    
+    pos.use_slam = true
+    pos.use_mapping_only = true
+    pos.particle_number = 200 #500
+    pos.feature_confidence = 0.8
+    pos.feature_grid_resolution = 1.0
+    pos.feature_empty_cell_confidence = 0.6
+    pos.feature_confidence_threshold = 0.3
+    pos.feature_output_confidence_threshold = 0.5
+    pos.feature_observation_count_threshold = 3
+    pos.feature_filter_threshold = 0.3
+    pos.feature_observation_range = 40.0
+    pos.feature_observation_minimum_range = 1.5
+    pos.sonar_vertical_angle = 0.52    
+    
+    
     #pos.particle_number = 1
     
     
@@ -193,6 +210,7 @@ Orocos.run "uw_particle_localization_test","orientation_correction_test", "sonar
     
     Vizkit.display feature
     Vizkit.display pos
+    #Vizkit.display hough
     #Vizkit.display joint_converter
     #Vizkit.display feature
     #Vizkit.display hough

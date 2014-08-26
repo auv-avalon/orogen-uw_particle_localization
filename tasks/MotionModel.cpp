@@ -91,74 +91,77 @@ void MotionModel::orientation_samplesCallback(const base::Time& time, const base
 
 void MotionModel::thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& joint){
   
-      base::samples::Joints j = joint;
-      
-      if(joint.hasNames()){
-      
-        for(int i = 0; i < joint.size() && i < config.joint_names.size(); i++){
-          
-            try{
-              j.elements[i] = joint[config.joint_names[i]]; 
-            }
-            catch(...){
-            }   
-        }  
-      }
-      
-    if(!last_orientation.time.isNull() && !lastThrusterTime.isNull() ) {
-        base::Vector6d Xt;
-        base::Vector3d u_t1;
-        double dt = (j.time - lastThrusterTime).toSeconds();
+      if(last_orientation.hasValidOrientation()){
+  
+        base::samples::Joints j = joint;
         
-        if(dt < 5.0 && dt >= 0.0){
-          
-          if(advanced_model){
-                      
-            //std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
-            dynamic_model->setPosition(motion_pose.position);
-            dynamic_model->setLinearVelocity(motion_pose.velocity);
-            dynamic_model->setAngularVelocity(base::Vector3d::Zero());
-            dynamic_model->setOrientation(last_orientation.orientation);
-            dynamic_model->setSamplingtime(dt);
+        if(joint.hasNames()){
+        
+          for(int i = 0; i < joint.size() && i < config.joint_names.size(); i++){
             
-            dynamic_model->setPWMLevels(j);        
-            
-            u_t1 = dynamic_model->getLinearVelocity();  
-;
-          }else{
-            
-            Xt.block<3,1>(0,0) = motion_pose.velocity;
-            Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
-            
-            base::Vector6d V = motion_model.transition(Xt, dt, j);
-            u_t1 = V.block<3,1>(0,0);      
-          }
-
-          base::Vector3d v_avg = (motion_pose.velocity + u_t1) / 2.0;
-          
-          if(base::samples::RigidBodyState::isValidValue(u_t1) && last_orientation.hasValidOrientation() ){
-            
-            motion_pose.position = motion_pose.position + last_orientation.orientation * (v_avg * dt);
-            motion_pose.velocity = u_t1;       
-	    motion_pose.cov_velocity = _velocity_covariance.value().asDiagonal();
-	    motion_pose.cov_position = motion_pose.cov_position + motion_pose.cov_velocity * dt;
-          
-          }else{
-            std::cout << "Error in motion_model. Velocity or orientation is unset." << std::endl;
-            if(!last_orientation.hasValidOrientation())
-              std::cout << "Invalid orientation" << std::endl;
-          }
-        }else{
-          std::cout << "Timestampdifference between thruster-samples to big" << std::endl;
-          std::cout << lastThrusterTime.toString() << std::endl;
-          std::cout << j.time.toString() << std::endl;
+              try{
+                j.elements[i] = joint[config.joint_names[i]]; 
+              }
+              catch(...){
+              }   
+          }  
         }
         
-    }     
-      
-      lastThrusterTime = joint.time;      
-      motion_pose.orientation = last_orientation.orientation;
-       
+      if(!last_orientation.time.isNull() && !lastThrusterTime.isNull() ) {
+          base::Vector6d Xt;
+          base::Vector3d u_t1;
+          double dt = (j.time - lastThrusterTime).toSeconds();
+          
+          if(dt < 5.0 && dt >= 0.0){
+            
+            if(advanced_model){
+                        
+              //std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
+              dynamic_model->setPosition(motion_pose.position);
+              dynamic_model->setLinearVelocity(motion_pose.velocity);
+              dynamic_model->setAngularVelocity(base::Vector3d::Zero());
+              dynamic_model->setOrientation(last_orientation.orientation);
+              dynamic_model->setSamplingtime(dt);
+              
+              dynamic_model->setPWMLevels(j);        
+              
+              u_t1 = dynamic_model->getLinearVelocity();  
+  ;
+            }else{
+              
+              Xt.block<3,1>(0,0) = motion_pose.velocity;
+              Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
+              
+              base::Vector6d V = motion_model.transition(Xt, dt, j);
+              u_t1 = V.block<3,1>(0,0);      
+            }
+
+            base::Vector3d v_avg = (motion_pose.velocity + u_t1) / 2.0;            
+
+            if(base::samples::RigidBodyState::isValidValue(u_t1) && last_orientation.hasValidOrientation() ){
+              
+              motion_pose.position = motion_pose.position + last_orientation.orientation * (v_avg * dt);
+              motion_pose.velocity = u_t1;
+              motion_pose.cov_velocity = _velocity_covariance.value().asDiagonal();
+              motion_pose.cov_position = motion_pose.cov_position + motion_pose.cov_velocity * dt;              
+            
+            }else{
+              std::cout << "Error in motion_model. Velocity or orientation is unset." << std::endl;
+              if(!last_orientation.hasValidOrientation())
+                std::cout << "Invalid orientation" << std::endl;
+            }
+
+          }else{
+            std::cout << "Timestampdifference between thruster-samples to big" << std::endl;
+            std::cout << lastThrusterTime.toString() << std::endl;
+            std::cout << j.time.toString() << std::endl;
+          }
+          
+      }     
+        
+        lastThrusterTime = joint.time;      
+        motion_pose.orientation = last_orientation.orientation;
+      }       
 }
 
 void MotionModel::updateHook()

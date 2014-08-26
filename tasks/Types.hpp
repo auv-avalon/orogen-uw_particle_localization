@@ -31,6 +31,9 @@ struct Stats {
     
     /** Number of depth features per particle */
     double depth_features_per_particle;
+    
+    //True, if the last used dynamic step was the dvl. false, if the motion model was used
+    bool used_dvl;
 };
 
 

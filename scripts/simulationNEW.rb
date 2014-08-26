@@ -13,7 +13,9 @@ Orocos.initialize
 widget = Vizkit.load "simulator.ui"
 
 #Orocos.run "AvalonSimulation" ,:wait => 10000, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
-Orocos.run "AvalonSimulation", "uw_particle_localization_test", "sonar_wall_hough", "orientation_correction_test" ,"sonar_feature_estimator::Task"=> "sonar_feature_estimator",:wait => 100, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
+Orocos.run "AvalonSimulation", "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localization::OrientationCorrection" => "orientation_correction",
+    "uw_particle_localization::Task" => "uw_particle_localization", 
+    "sonar_feature_estimator::Task"=> "sonar_feature_estimator", :wait => 100, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
     simulation = TaskContext.get 'avalon_simulation'
     
       white_light = TaskContext.get 'white_light'
@@ -313,11 +315,12 @@ values = ActuatorsConfig.new()
     
     sonar.sonar_beam.connect_to feature.sonar_input
     imu.pose_samples.connect_to pos.orientation_samples
-    imu.pose_samples.connect_to pos.echosounder_samples
+    #imu.pose_samples.connect_to pos.speed_samples
+    #imu.pose_samples.connect_to pos.echosounder_samples
     #ori.pose_samples.connect_to feature.orientation_sample
     feature.features_out.connect_to pos.obstacle_samples
     actuators.status.connect_to pos.thruster_samples
-    hough.position.connect_to pos.pose_update
+    #hough.position.connect_to pos.pose_update
     
     puts "Conection start"
     
@@ -326,10 +329,10 @@ values = ActuatorsConfig.new()
     
     puts "Connection end"
     
-    #feature.configure
-    #feature.start
-    #pos.configure
-    #pos.start
+    feature.configure
+    feature.start
+    pos.configure
+    pos.start
     #hough.configure
     #hough.start
     #oriCor.configure
@@ -348,7 +351,7 @@ values = ActuatorsConfig.new()
 
     #Vizkit.display feature
     Vizkit.display pos
-    Vizkit.display hough
+    #Vizkit.display hough
     #Vizkit.display actuators
     
     Vizkit.exec

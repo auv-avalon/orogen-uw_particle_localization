@@ -197,6 +197,7 @@ private:
 
   std::list<double> perception_history;
   double perception_history_sum;
+  bool used_dvl;
   
   //the origin of the coordinate system as utm-coordinate
   base::Vector3d utm_origin;

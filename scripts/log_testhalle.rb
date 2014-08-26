@@ -28,9 +28,9 @@ log = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/sonar_testhalle_boden/201406
 
 puts "3"
 
-# "uw_particle_localization::OrientationCorrection" 
-#Orocos.run "AvalonSimulation" ,:wait => 10000, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
-Orocos.run "uw_particle_localization_test", "sonar_wall_hough", "orientation_correction_test",
+
+Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localization::OrientationCorrection" => "orientation_correction",
+    "uw_particle_localization::Task" => "uw_particle_localization", 
     "sonar_feature_estimator::Task"=> "sonar_feature_estimator", #"uw_particle_localization::MotionModel" => "motion_model",
 #    :wait => 10000, :valgrind => ["orientation_correction_test", "orientation_correction"]   , :valgrind_options => ['--undef-value-errors=no'] do
     :wait => 10000, :valgrind => false   , :valgrind_options => ['--undef-value-errors=no'] do
@@ -96,7 +96,7 @@ Orocos.run "uw_particle_localization_test", "sonar_wall_hough", "orientation_cor
     pos.sonar_position = [[0.6, 0.0, 0.0]]
     pos.laser_samples_period = 0.01
     pos.echosounder_samples_period = 0.01
-    
+       
 
     pos.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default"])
     pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/auv_avalon/orogen/uw_particle_localization/maps/testhalle.yml")
@@ -112,9 +112,21 @@ Orocos.run "uw_particle_localization_test", "sonar_wall_hough", "orientation_cor
     #pos.particle_number = 1
     pos.use_best_feature_only = true
     pos.max_velocity_drift = 0.1
-    pos.feature_observation_range = 10
+    pos.feature_observation_range = 15
     pos.feature_weight_reduction = 0.9
-    pos.feature_filter_threshold = 0.0
+    pos.use_slam = true
+    pos.use_mapping_only = true
+    pos.particle_number = 200 #500
+    pos.feature_grid_resolution = 1.0
+    pos.feature_confidence = 0.85
+    pos.feature_empty_cell_confidence = 0.6
+    pos.feature_observation_range = 15
+    pos.feature_observation_minimum_range = 2    
+    pos.feature_confidence_threshold = 0.3
+    pos.feature_output_confidence_threshold = 0.5
+    pos.feature_filter_threshold = 0.3
+    pos.feature_observation_count_threshold = 7    
+    pos.sonar_vertical_angle = 0.52
     
   
     #motion.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::MotionModel.yml", ["default"])
@@ -273,7 +285,7 @@ Orocos.run "uw_particle_localization_test", "sonar_wall_hough", "orientation_cor
     puts "started"
     
     
-    #Vizkit.display feature
+    Vizkit.display feature
     #Vizkit.display pos.particles
     Vizkit.display pos
     #Vizkit.display hough

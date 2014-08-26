@@ -268,6 +268,8 @@ void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::Rig
     base::Vector3d v_noisy;
     base::Vector3d u_velocity;
 
+    used_dvl = true;
+    
     if(filter_config.pure_random_motion)
         u_velocity = base::Vector3d(0.0, 0.0, 0.0);
     else
@@ -299,6 +301,8 @@ void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::Joi
 {
     Vector6d Xt;
     base::Time sample_time = Ut.time;
+    
+    used_dvl = false;
     
     if(sample_time.isNull())
       sample_time=base::Time::now();
@@ -918,6 +922,7 @@ uw_localization::Stats ParticleLocalization::getStats() const
     stats.uncertainty_degree = perception_history_sum / filter_config.perception_history_number;
     stats.effective_sample_size = effective_sample_size;
     stats.particle_generation = generation;
+    stats.used_dvl = used_dvl;
     
     if(particles.size() > 0){
       stats.obstacle_features_per_particle = particles.front().obstacle_cells.size();
@@ -1331,6 +1336,7 @@ uw_localization::SimpleGrid ParticleLocalization::getSimpleGrid(){
     
   }
   
+  result.time = base::Time::now();
   return result;; 
   
 }
