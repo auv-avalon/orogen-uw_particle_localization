@@ -269,18 +269,20 @@ void Task::updateHook()
           base::samples::Pointcloud pc;
           
           if(_use_slam.get()){
-            pc = localizer->getPointCloud();
-            _grid_map.write( localizer->getSimpleGrid() );
+           uw_localization::SimpleGrid grid;
+           localizer->getSimpleGrid(grid);
+            _grid_map.write( grid);
           }
           else{
             pc = grid_map->getCloud();
+            pc.time = base::Time::now();
+            _depth_grid.write( pc);            
+            
           }
           
           _environment.write(map->getEnvironment());
-          _particles.write(localizer->getParticleSet());
-            
-          pc.time = base::Time::now();
-          _depth_grid.write( pc);
+          _particles.write(localizer->getParticleSet());            
+
           last_map_update = base::Time::now();
        }
        
@@ -306,14 +308,21 @@ void Task::updateHook()
      pose.velocity = pose.orientation * pose.velocity;
      motion.velocity = motion.orientation * motion.velocity;
      full_motion.velocity = full_motion.orientation * full_motion.velocity;
-       
 
+     //Corect position covariance by a threshold
+     for(int i = 0; i < 3; i++){
+      
+        if(pose.cov_position(i,i) < _position_covariance_threshold.get()){
+          pose.cov_position(i,i) = _position_covariance_threshold.get();
+        }       
+     }     
+     
+     
      if(!pose.time.isNull()){
 
         _pose_samples.write(pose);
         lastRBS = pose;
      }
-      
       
      if(!motion.time.isNull())
        _dead_reckoning_samples.write(motion);

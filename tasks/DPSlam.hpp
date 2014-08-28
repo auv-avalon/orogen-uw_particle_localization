@@ -72,7 +72,7 @@ namespace uw_localization{
      * Get a pointcloud-representation of one particle-map
      */
     base::samples::Pointcloud getCloud(PoseSlamParticle &X);
-    uw_localization::SimpleGrid getSimpleGrid(PoseSlamParticle &X);
+    void getSimpleGrid(PoseSlamParticle &X, uw_localization::SimpleGrid &grid);
     
     /**
      * Reduces the weight of the particles

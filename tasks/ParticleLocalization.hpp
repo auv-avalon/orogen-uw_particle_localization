@@ -177,7 +177,7 @@ public:
    * This is only avaiable in use_slam-mode, (else an empty cloud will be returned)
    */
   base::samples::Pointcloud getPointCloud();
-  uw_localization::SimpleGrid getSimpleGrid();
+  void getSimpleGrid(uw_localization::SimpleGrid &grid);
 
 private:
   FilterConfig filter_config;

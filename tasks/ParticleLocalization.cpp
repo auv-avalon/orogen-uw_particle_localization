@@ -1296,10 +1296,9 @@ base::samples::Pointcloud ParticleLocalization::getPointCloud(){
 }
 
 
-uw_localization::SimpleGrid ParticleLocalization::getSimpleGrid(){
+void ParticleLocalization::getSimpleGrid(uw_localization::SimpleGrid &grid){
   
-  uw_localization::SimpleGrid result;
-  
+    
   if(filter_config.use_slam){
     
     double best_conf = 0.0;
@@ -1328,17 +1327,16 @@ uw_localization::SimpleGrid ParticleLocalization::getSimpleGrid(){
     if(best_conf > 0.0){
       //std::cout << "GetCloud" << std::endl;
       //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
-      result = dp_slam.getSimpleGrid(*best_it);
+      dp_slam.getSimpleGrid(*best_it, grid);
     }
     else if(best_invalid_conf > -1.0){
-      result = dp_slam.getSimpleGrid(*best_invalid_it);
+      dp_slam.getSimpleGrid(*best_invalid_it, grid);
     }
     
   }
   
-  result.time = base::Time::now();
-  return result;; 
-  
+  grid.time = base::Time::now();
+   
 }
 
 

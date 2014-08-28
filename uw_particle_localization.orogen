@@ -250,6 +250,9 @@ task_context "Task" do
 	doc("Factor for the sonar covariance.").
 	doc("This factor is used to size up the covariance, when the sonar leads up to a corner")
 	
+   property("position_covariance_threshold", "double", 1.0).
+      doc("Output variances below this threshold will be set the value of the threshold")
+	
 #------- Dynamic model parameter
 
     property("advanced_motion_model" , "bool" , false).
