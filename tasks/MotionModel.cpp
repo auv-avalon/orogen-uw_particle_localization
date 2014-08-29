@@ -79,6 +79,8 @@ bool MotionModel::startHook()
     
     motion_pose.position = base::Vector3d::Zero();
     motion_pose.velocity = base::Vector3d::Zero();
+    motion_pose.cov_velocity = _velocity_covariance.value().asDiagonal();
+    motion_pose.cov_position = _velocity_covariance.value().asDiagonal();
     
     return true;
 }
