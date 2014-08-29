@@ -15,11 +15,11 @@ log_center = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-200
                                 "/media/WINDOWS/LOGS/SAUC-E12/20120706-2003_Day1_sonar_angle_5_0_gain_0_9_centered/sonar_rear.0.log")
 =end
 
-=begin
+#=begin
 log_bottom = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/sonar.0.log",
                                "/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/avalon_back_base_control.0.log",
                                 "/media/WINDOWS/LOGS/SAUC-E12/20120706-1946_Day1_sonar_angle_2_5_gain_0_9_bottom_basin/sonar_rear.0.log")
-=end                               
+#=end                               
 =begin
 log_top = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_Day1_sonar_angle_2_5_gain_0_9_top_basin/sonar.0.log",
                                "/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_Day1_sonar_angle_2_5_gain_0_9_top_basin/avalon_back_base_control.0.log",
@@ -27,19 +27,19 @@ log_top = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120706-1958_D
 
 =end
 
-#=begin
+=begin
 log_traj = Orocos::Log::Replay.open("/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/sonar.0.log",
                                     "/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/avalon_back_base_control.0.log",
                                     "/media/WINDOWS/LOGS/SAUC-E12/20120707-1600_Day2_Manual_trajectory/sonar_rear.0.log")
-#=end
+=end
 
-log = log_traj
+log = log_bottom
 
 puts "3"
 
 #Orocos.run "AvalonSimulation" ,:wait => 10000, :valgrind => false, :valgrind_options => ['--undef-value-errors=no'] do 
 Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localization::OrientationCorrection" => "orientation_correction",
-    "uw_particle_localization::Task" => "uw_particle_localization",
+    "uw_particle_localization::Task" => "uw_particle_localization", "sonar_feature_detector::Task" => "sonar_feature_detector",
     "sonar_feature_estimator::Task"=> "sonar_feature_estimator", "joint_converter::Task"  => "joint_converter",
 #    :wait => 10000, :valgrind => ["orientation_correction_test","orientation_correction"]   , :valgrind_options => ['--undef-value-errors=no'] do
     :wait => 10000, :valgrind => false   , :valgrind_options => ['--undef-value-errors=no'] do
@@ -58,6 +58,13 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     oriCor = TaskContext.get 'orientation_correction'
     feature = Orocos::TaskContext.get 'sonar_feature_estimator'
     joint_converter = Orocos::TaskContext.get 'joint_converter'
+    sonar_detector = TaskContext.get "sonar_feature_detector"
+    
+    sonar_detector.map_origin = [[0.0, 25.0]]
+    sonar_detector.map_span = [[60, 50]]
+    sonar_detector.minimum_wall_distance = 3.0
+    sonar_detector.optimal_object_size = 2.0
+    sonar_detector.minimum_object_cells = 2    
     
    
     feature.derivative_history_length = 3
@@ -80,6 +87,7 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     pos.minimum_perceptions = 3
     pos.effective_sample_size_threshold = 0.8
     pos.hough_interspersal_ratio = 0.05
+    pos.sonar_minimum_distance = 2.0
     pos.sonar_maximum_distance = 100.0
     pos.sonar_covariance = 1.0
     pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/auv_avalon/orogen/uw_particle_localization/maps/nurc.yml")
@@ -193,6 +201,8 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     ori.pose_samples.connect_to oriCor.orientation_input
     hough.position_quality.connect_to oriCor.orientation_offset
     
+    pos.grid_map.connect_to sonar_detector.grid_maps
+    
     puts "Connection end"
     
     feature.configure
@@ -203,12 +213,14 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     pos.start
     hough.configure
     hough.start
+    sonar_detector.start
     #oriCor.configure
     #oriCor.start
     puts "started"
     
     
-    Vizkit.display feature
+    #Vizkit.display feature
+    Vizkit.display sonar_detector
     Vizkit.display pos
     #Vizkit.display hough
     #Vizkit.display joint_converter

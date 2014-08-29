@@ -30,7 +30,7 @@ puts "3"
 
 
 Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localization::OrientationCorrection" => "orientation_correction",
-    "uw_particle_localization::Task" => "uw_particle_localization", 
+    "uw_particle_localization::Task" => "uw_particle_localization", "sonar_feature_detector::Task" => "sonar_feature_detector",
     "sonar_feature_estimator::Task"=> "sonar_feature_estimator", #"uw_particle_localization::MotionModel" => "motion_model",
 #    :wait => 10000, :valgrind => ["orientation_correction_test", "orientation_correction"]   , :valgrind_options => ['--undef-value-errors=no'] do
     :wait => 10000, :valgrind => false   , :valgrind_options => ['--undef-value-errors=no'] do
@@ -46,6 +46,7 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     pos = TaskContext.get 'uw_particle_localization'
     oriCor = TaskContext.get 'orientation_correction'
     feature = Orocos::TaskContext.get 'sonar_feature_estimator'
+    sonar_detector = TaskContext.get 'sonar_feature_detector'
     #motion = Orocos::TaskContext.get 'motion_model'    
    
     feature.derivative_history_length = 1
@@ -98,7 +99,7 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     pos.echosounder_samples_period = 0.01
        
 
-    pos.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default"])
+    pos.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default", "slam_testhalle"])            
     pos.yaml_map = File.join("#{ENV['AUTOPROJ_CURRENT_ROOT']}/auv_avalon/orogen/uw_particle_localization/maps/testhalle.yml")
     #pos.apply_conf_file("/home/fabio/avalon/bundles/avalon/config/orogen/uw_particle_localization::Task.yml", ["default"])
     pos.orientation_offset = Math::PI / 2.0 # 1.53 + (Math::PI / 4.0)# Math::PI / 2.0  #0# -2.47 - (Math::PI / 2.0) #0.47951
@@ -112,6 +113,7 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     #pos.particle_number = 1
     pos.use_best_feature_only = true
     pos.max_velocity_drift = 0.1
+=begin
     pos.feature_observation_range = 15
     pos.feature_weight_reduction = 0.9
     pos.use_slam = true
@@ -127,7 +129,8 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     pos.feature_filter_threshold = 0.3
     pos.feature_observation_count_threshold = 7    
     pos.sonar_vertical_angle = 0.52
-    
+    pos.position_covariance_threshold = 1.0
+=end  
   
     #motion.apply_conf_file("#{ENV['AUTOPROJ_CURRENT_ROOT']}/bundles/avalon/config/orogen/uw_particle_localization::MotionModel.yml", ["default"])
     #motion.apply_conf_file("/home/fabio/avalon/bundles/avalon/config/orogen/uw_particle_localization::MotionModel.yml", ["default"])
@@ -162,12 +165,18 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
   
   oriCor.buffer_size = 20
   oriCor.min_buffer_size = 6
+  
+  sonar_detector.map_origin = [[11.5, 10.0]]
+  sonar_detector.map_span = [[23, 20]]
+  sonar_detector.minimum_wall_distance = 2.5
+  sonar_detector.optimal_object_size = 2.0
+  sonar_detector.minimum_object_cells = 2
     
   sonar.sonar_beam.connect_to hough.sonar_samples, :type => :buffer, :size => 100
   ori.pose_samples.connect_to hough.orientation_samples
   pos.dead_reckoning_samples.connect_to hough.pose_samples
-  
-
+  pos.grid_map.connect_to sonar_detector.grid_maps
+  pos.pose_samples.connect_to sonar_detector.pose_samples
     
     sonar.sonar_beam.connect_to feature.sonar_input
     
@@ -278,6 +287,7 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     pos.start
     hough.configure
     hough.start
+    sonar_detector.start
     #motion.configure
     #motion.start
     #oriCor.configure
@@ -285,9 +295,10 @@ Orocos.run "sonar_wall_hough::Task" => "sonar_wall_hough", "uw_particle_localiza
     puts "started"
     
     
-    Vizkit.display feature
+    #Vizkit.display feature
     #Vizkit.display pos.particles
     Vizkit.display pos
+    Vizkit.display sonar_detector
     #Vizkit.display hough
     #Vizkit.display motion
     #Vizkit.display hough.lines

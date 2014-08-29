@@ -1331,6 +1331,8 @@ void ParticleLocalization::getSimpleGrid(uw_localization::SimpleGrid &grid){
     }
     else if(best_invalid_conf > -1.0){
       dp_slam.getSimpleGrid(*best_invalid_it, grid);
+    }else if(particles.size() > 0){
+      dp_slam.getSimpleGrid(particles.front(), grid);
     }
     
   }
