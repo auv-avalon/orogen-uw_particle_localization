@@ -72,13 +72,13 @@ namespace uw_localization{
      * Get a pointcloud-representation of one particle-map
      */
     base::samples::Pointcloud getCloud(PoseSlamParticle &X);
-    void getSimpleGrid(PoseSlamParticle &X, uw_localization::SimpleGrid &grid);
+    int getSimpleGrid(PoseSlamParticle &X, uw_localization::SimpleGrid &grid);
     
     /**
      * Reduces the weight of the particles
      * The reduce-event is triggered, when the sum of the scan angle reaches max_sum
      */
-    void reduceFeatures(double angle, double max_sum = 4 * M_PI);
+    void reduceFeatures(double angle, double max_sum = 3 * M_PI);
     
   };
   

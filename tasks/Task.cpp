@@ -119,6 +119,7 @@ bool Task::startHook()
       grid_map = new DepthObstacleGrid( base::Vector2d(-map->getTranslation().x(), -map->getTranslation().y() ),
                               1.2 * base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ), _feature_grid_resolution.get());
       grid_map->initGrid();
+      grid_map->initDepthObstacleConfig(-8.0, 0.0, 2.0);
       config.env = &env;
       config.useMap = true;
      }
@@ -274,9 +275,9 @@ void Task::updateHook()
             _grid_map.write( grid);
           }
           else{
-            pc = grid_map->getCloud();
-            pc.time = base::Time::now();
-            _depth_grid.write( pc);            
+            uw_localization::SimpleGrid grid;
+            grid_map->getSimpleGrid(grid, _feature_output_confidence_threshold.get() , _feature_observation_count_threshold.get());
+            _grid_map.write( grid);
             
           }
           
@@ -415,8 +416,9 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
 
       }
       
-      if(!base::isNaN( lastRBS.cov_position(0,0)) && !base::isInfinity( lastRBS.cov_position(0,0)) )  
+      if( (!_use_slam.get() )  && !base::isNaN( lastRBS.cov_position(0,0)) && !base::isInfinity( lastRBS.cov_position(0,0)) )  {
         localizer->setObstacles(features, *grid_map, lastRBS);
+      }
         
   }
   //std::cout << "Calc time obstacle samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
@@ -579,7 +581,7 @@ void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples
           localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);
         
         if(!_use_slam.get()){
-          grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) );  
+          grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) + _echosounder_variance.get() );  
         }
         else if(_single_depth_map.get()){
           localizer->observeDepth(lastRBS.position, lastRBS.cov_position, current_depth - rbs.position[2] );

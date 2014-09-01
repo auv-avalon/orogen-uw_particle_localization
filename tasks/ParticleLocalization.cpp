@@ -20,7 +20,8 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
     PoseSlamParticle::pose = &vehicle_pose;
     utm_origin = base::Vector3d::Zero();
     utm_origin[0] = -1;
-    dynamic_model = 0;    
+    dynamic_model = 0;
+    max_features_per_cell = 0;
 }
 
 ParticleLocalization::~ParticleLocalization()
@@ -923,6 +924,7 @@ uw_localization::Stats ParticleLocalization::getStats() const
     stats.effective_sample_size = effective_sample_size;
     stats.particle_generation = generation;
     stats.used_dvl = used_dvl;
+    stats.max_features_per_cell = max_features_per_cell;
     
     if(particles.size() > 0){
       stats.obstacle_features_per_particle = particles.front().obstacle_cells.size();
@@ -1190,6 +1192,8 @@ void ParticleLocalization::setParticlesValid(){
 
 void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs){
   
+  std::cout << "Set obstacles" << std::endl;
+  
   Eigen::AngleAxis<double> sonar_yaw(z.angle, Eigen::Vector3d::UnitZ()); 
   Eigen::AngleAxis<double> abs_yaw(rbs.getYaw(), Eigen::Vector3d::UnitZ());
   Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);
@@ -1219,7 +1223,9 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
     else
       confidence = 1.0;
     
+    std::cout << "obstacle: " << AbsZ.transpose() << std::endl;
     m.setObstacle(AbsZ.x(), AbsZ.y(), true, confidence);
+    
     base::Vector2d z_temp = m.getGridCoord(AbsZ.x(), AbsZ.y()); //Grid cell of the observation
     
     //Remove all corresponding cells
@@ -1239,13 +1245,20 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
   //Remove not observed obstacles from map
   //std::cout << grid_cells.size() << " grid cells left after filtering" << std::endl;
   for(std::vector<Eigen::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
-    
+    std::cout << "Remove obstacle: " << it_grid->transpose() << std::endl;
     m.setObstacle(it_grid->x(), it_grid->y(), false, filter_config.feature_weight_reduction); 
     
   }  
   
   //m.reduce_weights(1.0 / (360.0* 8.0));
 }
+
+void ParticleLocalization::setDepth(const double &depth, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs){
+  
+  m.setDepth(rbs.position.x(), rbs.position.y(), depth, filter_config.echosounder_variance);
+  
+}
+
 
 void ParticleLocalization::observeDepth(const Eigen::Vector3d &pose, const Eigen::Matrix3d pos_covar, double depth){
   dp_slam.observeDepth(pose, pos_covar, depth);
@@ -1327,12 +1340,12 @@ void ParticleLocalization::getSimpleGrid(uw_localization::SimpleGrid &grid){
     if(best_conf > 0.0){
       //std::cout << "GetCloud" << std::endl;
       //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
-      dp_slam.getSimpleGrid(*best_it, grid);
+      max_features_per_cell = dp_slam.getSimpleGrid(*best_it, grid);
     }
     else if(best_invalid_conf > -1.0){
-      dp_slam.getSimpleGrid(*best_invalid_it, grid);
+      max_features_per_cell = dp_slam.getSimpleGrid(*best_invalid_it, grid);
     }else if(particles.size() > 0){
-      dp_slam.getSimpleGrid(particles.front(), grid);
+      max_features_per_cell = dp_slam.getSimpleGrid(particles.front(), grid);
     }
     
   }

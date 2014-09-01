@@ -169,6 +169,7 @@ public:
   void setParticlesValid();
   
   void setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs);
+  void setDepth(const double &depth, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs);
   
   void observeDepth(const Eigen::Vector3d &pose, const Eigen::Matrix3d pos_covar, double depth);
   
@@ -198,6 +199,7 @@ private:
   std::list<double> perception_history;
   double perception_history_sum;
   bool used_dvl;
+  int max_features_per_cell;
   
   //the origin of the coordinate system as utm-coordinate
   base::Vector3d utm_origin;

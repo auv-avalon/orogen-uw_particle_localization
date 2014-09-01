@@ -32,6 +32,9 @@ struct Stats {
     /** Number of depth features per particle */
     double depth_features_per_particle;
     
+    /** Maximum number of features, stored in one cell */
+    double max_features_per_cell;
+    
     /**True, if the last used dynamic step was the dvl. false, if the motion model was used */
     bool used_dvl;
 };

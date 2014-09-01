@@ -304,22 +304,28 @@ base::samples::Pointcloud DPSlam::getCloud(PoseSlamParticle &X){
   
 }
 
-void DPSlam::getSimpleGrid(PoseSlamParticle &X, uw_localization::SimpleGrid &grid){
+int DPSlam::getSimpleGrid(PoseSlamParticle &X, uw_localization::SimpleGrid &grid){
   
-  map->getSimpleGrid(grid, X.depth_cells, X.obstacle_cells, config.feature_output_confidence_threshold, config.feature_observation_count_threshold);
+  return map->getSimpleGrid(grid, X.depth_cells, X.obstacle_cells, config.feature_output_confidence_threshold, config.feature_observation_count_threshold);
   
 }
 
 
 void DPSlam::reduceFeatures(double angle, double max_sum){
   
+//  std::cout << "DP-Reduce features, angle: " << angle << " max_sum: " << max_sum << std::endl;
+//  std::cout << "LastAngle: " << lastAngle << " sumAngle: " << sumAngle << std::endl;
+  
   double diff = 0.0;
   
-  if(isnan(lastAngle)){    
-    
     //We need a new scan-angle
     if(lastAngle == angle)
       return;    
+    
+    if(std::isnan(lastAngle)){
+      lastAngle = angle;
+      return;
+    }
     
     diff = std::fabs(lastAngle - angle);
     
@@ -331,12 +337,12 @@ void DPSlam::reduceFeatures(double angle, double max_sum){
     
     sumAngle += diff;
     
+//    std::cout << "Diff: " << diff << " sumAngle: " << sumAngle << std::endl;
+    
     if(sumAngle > max_sum){
       map->reduceFeatures(config.feature_confidence_threshold, config.feature_observation_count_threshold );
       sumAngle = 0.0;
     }    
-    
-  }  
 
   lastAngle = angle;
     
