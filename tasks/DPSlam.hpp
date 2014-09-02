@@ -21,6 +21,8 @@ namespace uw_localization{
     double lastAngle;
     double sumAngle;
     
+    base::Vector2d span, position;
+    
   public:
     
     DPSlam();
@@ -58,7 +60,7 @@ namespace uw_localization{
     /**
      * Depth-observation for a generall, non-particle map
      */
-    double observeDepth(const base::Vector3d &pos, const base::Matrix3d &pos_covar, const double &depth);
+    void observeDepth(const base::Vector3d &pos, const base::Matrix3d &pos_covar, const double &depth);
     
     /**
      * Rate a given particle

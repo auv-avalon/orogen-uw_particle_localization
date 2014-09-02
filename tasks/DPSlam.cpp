@@ -17,6 +17,8 @@ DPSlam::~DPSlam(){
 void DPSlam::init(base::Vector2d position, base::Vector2d span, double resolution, const FilterConfig config){
   
   this->config = config;
+  this->position = position;
+  this->span = span;
   delete map;
   std::cout << "Center: " << position << std::endl;
   map = new DPMap(position, span, resolution);  
@@ -32,7 +34,7 @@ void DPSlam::initalize_statics(NodeMap *map){
   this->map->initalizeStatics(map);
 }
 
-double DPSlam::observeDepth(const base::Vector3d &pos, const base::Matrix3d &pos_covar, const double &depth){
+void DPSlam::observeDepth(const base::Vector3d &pos, const base::Matrix3d &pos_covar, const double &depth){
   
   double var = pos_covar.norm();
   
@@ -45,30 +47,29 @@ double DPSlam::observe(PoseSlamParticle &X, const double &depth){
   Eigen::Vector2d pos = map->getGridCoord(X.p_position.x(), X.p_position.y());
   
   //Search for correspondig cell
-  for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it = X.depth_cells.begin(); it != X.depth_cells.end(); it++){
-    
-    //We found a match
-    if(it->first == pos){
-      int64_t id = map->setDepth(pos.x(), pos.y(), depth, config.echosounder_variance , it->second);
+  std::map< std::pair<double, double> , std::pair<Eigen::Vector2d,int64_t > >::iterator it 
+          = X.depth_cells.find( std::make_pair(pos.x(), pos.y()) );
+
+  if(it != X.depth_cells.end()){  
+
+      int64_t id = map->setDepth(pos.x(), pos.y(), depth, config.echosounder_variance , it->second.second);
       
-      if(id != 0 && id != it->second){
-        it->second = id;
+      if(id != 0 && id != it->second.second){
+        it->second.second = id;
       }
       
       if(id == 0){
         X.depth_cells.erase(it);
       }
       
-      return X.main_confidence;
-    }
-    
+      return X.main_confidence;    
   }
   
   //We found no match, set new feature!
   int64_t id = map->setDepth(pos.x(), pos.y(), depth, config.echosounder_variance , 0);
  
   if(id != 0)
-    X.depth_cells.push_back( std::make_pair(pos, id) );
+    X.depth_cells[ std::make_pair(pos.x(), pos.y())  ] = std::make_pair(pos, id);
   
   return X.main_confidence;
   
@@ -157,26 +158,27 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
       
       bool found_match = false;
       //std::cout << "Obstacle " << feature_discrete.transpose() << std::endl;
-      for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it = X.obstacle_cells.begin(); it != X.obstacle_cells.end(); it++){
-        
-        if(feature_discrete == it->first){
+      
+      std::map< std::pair<double, double> , std::pair<Eigen::Vector2d,int64_t > >::iterator it 
+          = X.obstacle_cells.find( std::make_pair( feature_discrete.x(), feature_discrete.y()) ); 
+      
+      if(it != X.obstacle_cells.end()){        
+
           int64_t id = map->setObstacle(feature_discrete.x(), feature_discrete.y(), true,
-                                        config.feature_confidence , vehicle_depth - vertical_span, vehicle_depth + vertical_span, it->second);
+                                        config.feature_confidence , vehicle_depth - vertical_span,
+                                        vehicle_depth + vertical_span, it->second.second);
            //std::cout << "UPdate Obstacle" << std::endl;
           
           //We have got a valid feature
           if(id != 0){
-            it->second = id;
+            it->second.second = id;
             feature_count++;
           }
           else{ //Feature could not be set, maybe it was deleted or invalid
             X.obstacle_cells.erase(it);
           }
           
-          found_match = true;
-          break;
-        }
-        
+          found_match = true;       
                 
       } 
       
@@ -187,7 +189,7 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
         feature_count++;
         
         if(id != 0){
-          X.obstacle_cells.push_back(std::make_pair(feature_discrete, id));
+          X.obstacle_cells[ std::make_pair(feature_discrete.x(), feature_discrete.y()) ] = std::make_pair(feature_discrete, id);
         }
       }
   }
@@ -200,20 +202,22 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
     double vertical_span = dist * std::sin(config.sonar_vertical_angle);
     
     
-    //search for correspondig observations    
-    for(std::list<std::pair<Eigen::Vector2d,int64_t > >::iterator it_o = X.obstacle_cells.begin(); it_o != X.obstacle_cells.end(); it_o++){
-      
-      //we found a correpondig feature
-      if(it_o->first == *it){
+    //search for correspondig observations
+    std::map< std::pair<double, double> , std::pair<Eigen::Vector2d, int64_t> >::iterator it_o
+        = X.obstacle_cells.find( std::make_pair(it->x(), it->y() ) );
+    
+    //we found a correpondig feature
+    if(it_o != X.obstacle_cells.end() ){      
         
         //Feature is inside our observation range -> update confidence
         if(dist <= config.feature_observation_range){
         
           int64_t id = map->setObstacle(it->x(), it->y(), false,
-                                      config.feature_empty_cell_confidence, vehicle_depth - vertical_span, vehicle_depth + vertical_span, it_o->second);
+                                      config.feature_empty_cell_confidence, vehicle_depth - vertical_span,
+                                      vehicle_depth + vertical_span, it_o->second.second);
         
           if(id != 0){
-            it_o->second = id;          
+            it_o->second.second = id;          
           }
           else{
             X.obstacle_cells.erase(it_o);
@@ -221,13 +225,10 @@ double DPSlam::observe(PoseSlamParticle &X, const sonar_detectors::ObstacleFeatu
         
         }else{//Feature is outside observation rannge -> mark it, so we now, that it is still used
           
-          map->touchObstacleFeature(it->x(), it->y(), it_o->second);
+          map->touchObstacleFeature(it->x(), it->y(), it_o->second.second);
           
         }
-        
-        break; //We found our observation, no more searching needed
-        
-      }
+           
     }
     
   } 
