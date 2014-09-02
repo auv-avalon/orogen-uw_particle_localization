@@ -1051,15 +1051,6 @@ void ParticleLocalization::debug(const base::Vector3d& pos, double conf, PointSt
 	info.status = status;
     }  
   
-}  
-
-void ParticleLocalization::teleportParticles(const base::samples::RigidBodyState& pose)
-{
-    std::list<PoseSlamParticle>::iterator it;
-    for(it = particles.begin(); it != particles.end(); ++it) {
-        it->p_position = pose.position;
-        it->main_confidence = 1.0 / particles.size();
-    }
 }
 
 
@@ -1181,18 +1172,10 @@ void ParticleLocalization::filterZeros(){
   
 }
 
-void ParticleLocalization::setParticlesValid(){
-
-  for( std::list<PoseSlamParticle>::iterator it = particles.begin(); it != particles.end(); it++){
-    it->valid = true;
-  }
-  
-  
-}
 
 void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs){
   
-  std::cout << "Set obstacles" << std::endl;
+  //std::cout << "Set obstacles" << std::endl;
   
   Eigen::AngleAxis<double> sonar_yaw(z.angle, Eigen::Vector3d::UnitZ()); 
   Eigen::AngleAxis<double> abs_yaw(rbs.getYaw(), Eigen::Vector3d::UnitZ());
@@ -1223,7 +1206,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
     else
       confidence = 1.0;
     
-    std::cout << "obstacle: " << AbsZ.transpose() << std::endl;
+    //std::cout << "obstacle: " << AbsZ.transpose() << std::endl;
     m.setObstacle(AbsZ.x(), AbsZ.y(), true, confidence);
     
     base::Vector2d z_temp = m.getGridCoord(AbsZ.x(), AbsZ.y()); //Grid cell of the observation
@@ -1245,7 +1228,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
   //Remove not observed obstacles from map
   //std::cout << grid_cells.size() << " grid cells left after filtering" << std::endl;
   for(std::vector<Eigen::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
-    std::cout << "Remove obstacle: " << it_grid->transpose() << std::endl;
+    //std::cout << "Remove obstacle: " << it_grid->transpose() << std::endl;
     m.setObstacle(it_grid->x(), it_grid->y(), false, filter_config.feature_weight_reduction); 
     
   }  
@@ -1353,8 +1336,6 @@ void ParticleLocalization::getSimpleGrid(uw_localization::SimpleGrid &grid){
   grid.time = base::Time::now();
    
 }
-
-
 
 
 }

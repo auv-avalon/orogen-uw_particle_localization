@@ -385,7 +385,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 
 void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& sample)
 {
-  //base::Time temp = base::Time::now();
+  base::Time temp = base::Time::now();
   sonar_detectors::ObstacleFeatures features = sample;
   
   filter_sample(features);
@@ -421,7 +421,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
       }
         
   }
-  //std::cout << "Calc time obstacle samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
+  std::cout << "Calc time obstacle samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
 }
 
 

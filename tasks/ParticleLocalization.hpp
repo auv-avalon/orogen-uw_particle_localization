@@ -56,6 +56,7 @@ public:
   virtual base::Vector3d velocity(const PoseSlamParticle& X) const { return X.pose->velocity; }
   virtual base::samples::RigidBodyState orientation(const PoseSlamParticle& X) const { return *(X.pose); }
   virtual bool isValid(const PoseSlamParticle& X) const {return X.valid; }
+  virtual void setValid(PoseSlamParticle &X, bool flag){ X.valid = flag; }
 
   virtual double confidence(const PoseSlamParticle& X) const { return X.main_confidence; }
   virtual void   setConfidence(PoseSlamParticle& X, double weight) { X.main_confidence = weight; }
@@ -141,8 +142,6 @@ public:
   const base::samples::RigidBodyState& dead_reckoning() const { return motion_pose; }
   const base::samples::RigidBodyState& full_dead_reckoning() const { return full_motion_pose;}
 
-  void teleportParticles(const base::samples::RigidBodyState& position);
-
   void setSonarDebug(DebugWriter<uw_localization::PointInfo>* debug) {
       sonar_debug = debug;
   }
@@ -162,11 +161,6 @@ public:
    * Filters particles with zero-confidence
    */
   void filterZeros();
-  
-  /**
-   * Sets all particles in valid-mode. This method should be called after a resampling
-   */
-  void setParticlesValid();
   
   void setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs);
   void setDepth(const double &depth, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs);
