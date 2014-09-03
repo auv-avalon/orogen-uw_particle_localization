@@ -264,6 +264,11 @@ underwaterVehicle::Parameters ParticleLocalization::initializeDynamicModel(UwVeh
   return params;  
 }
 
+void ParticleLocalization::updateConfig(const FilterConfig& config){
+  filter_config = config;
+  dp_slam.update_config(config);
+}
+
 void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::RigidBodyState& U, const NodeMap& map)
 {
     base::Vector3d v_noisy;
@@ -1207,7 +1212,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
       confidence = 1.0;
     
     //std::cout << "obstacle: " << AbsZ.transpose() << std::endl;
-    m.setObstacle(AbsZ.x(), AbsZ.y(), true, confidence);
+    m.setObstacle(AbsZ.x(), AbsZ.y(), true, filter_config.feature_confidence);
     
     base::Vector2d z_temp = m.getGridCoord(AbsZ.x(), AbsZ.y()); //Grid cell of the observation
     
@@ -1229,7 +1234,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
   //std::cout << grid_cells.size() << " grid cells left after filtering" << std::endl;
   for(std::vector<Eigen::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
     //std::cout << "Remove obstacle: " << it_grid->transpose() << std::endl;
-    m.setObstacle(it_grid->x(), it_grid->y(), false, filter_config.feature_weight_reduction); 
+    m.setObstacle(it_grid->x(), it_grid->y(), false, filter_config.feature_empty_cell_confidence); 
     
   }  
   
@@ -1238,7 +1243,7 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
 
 void ParticleLocalization::setDepth(const double &depth, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs){
   
-  m.setDepth(rbs.position.x(), rbs.position.y(), depth, filter_config.echosounder_variance);
+  m.setDepth(rbs.position.x(), rbs.position.y(), depth, filter_config.echosounder_variance + rbs.cov_position(0,0) );
   
 }
 

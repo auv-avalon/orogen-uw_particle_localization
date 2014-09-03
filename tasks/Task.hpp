@@ -100,6 +100,12 @@ namespace uw_particle_localization {
            * @param sample: Features to be filtered
            */
           void filter_sample(sonar_detectors::ObstacleFeatures& sample);
+          
+          /**
+           * Update the config-struct for changed properties
+           * Change only the covariances, slam-properties 
+           */
+          void updateConfig();
 
     public:
         Task(std::string const& name = "uw_particle_localization::Task");

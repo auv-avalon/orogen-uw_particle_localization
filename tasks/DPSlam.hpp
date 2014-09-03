@@ -43,6 +43,8 @@ namespace uw_localization{
      */
     void initalize_statics(NodeMap *map);
     
+    void update_config(const FilterConfig& config) {this->config = config; } 
+    
     /**
      * Observe the depth for one particle
      * @param X: the position and map particle

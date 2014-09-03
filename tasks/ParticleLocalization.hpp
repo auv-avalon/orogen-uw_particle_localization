@@ -51,6 +51,8 @@ public:
   void init_slam(NodeMap *map);
   virtual void initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& cov, double yaw, double yaw_cov);
   static underwaterVehicle::Parameters initializeDynamicModel(UwVehicleParameter p, FilterConfig filter_config);
+  
+  void updateConfig(const FilterConfig& config);
 
   virtual base::Position position(const PoseSlamParticle& X) const { return X.p_position; }
   virtual base::Vector3d velocity(const PoseSlamParticle& X) const { return X.pose->velocity; }

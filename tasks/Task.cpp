@@ -120,6 +120,8 @@ bool Task::startHook()
                               1.2 * base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ), _feature_grid_resolution.get());
       grid_map->initGrid();
       grid_map->initDepthObstacleConfig(-8.0, 0.0, 2.0);
+      grid_map->initThresholds(_feature_confidence_threshold.get(), _feature_observation_count_threshold.get());
+      grid_map->initalizeStatics(map);
       config.env = &env;
       config.useMap = true;
      }
@@ -281,6 +283,7 @@ void Task::updateHook()
             
           }
           
+          updateConfig();
           _environment.write(map->getEnvironment());
           _particles.write(localizer->getParticleSet());            
 
@@ -385,7 +388,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 
 void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors::ObstacleFeatures& sample)
 {
-  base::Time temp = base::Time::now();
+  //base::Time temp = base::Time::now();
   sonar_detectors::ObstacleFeatures features = sample;
   
   filter_sample(features);
@@ -421,7 +424,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
       }
         
   }
-  std::cout << "Calc time obstacle samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
+  //std::cout << "Calc time obstacle samples: " << base::Time::now().toSeconds() - temp.toSeconds() << std::endl;
 }
 
 
@@ -874,4 +877,34 @@ void Task::filter_sample(sonar_detectors::ObstacleFeatures& sample){
   //std::cout << " after: " << sample.features.size();
   
 }
+
+void Task::updateConfig(){
+  
+    config.feature_weight_reduction = _feature_weight_reduction.get();
+    config.feature_observation_range = _feature_observation_range.get();
+    config.feature_observation_minimum_range = _feature_observation_minimum_range.get();
+    config.feature_filter_threshold = _feature_filter_threshold.get();
+    config.feature_confidence = _feature_confidence.get();
+    config.feature_empty_cell_confidence = _feature_empty_cell_confidence.get();
+    config.feature_confidence_threshold = _feature_confidence_threshold.get();
+    config.feature_output_confidence_threshold = _feature_output_confidence_threshold.get();
+    config.feature_observation_count_threshold = _feature_observation_count_threshold.get();
+    config.echosounder_variance = _echosounder_variance.get();  
+  
+    config.sonar_maximum_distance = _sonar_maximum_distance.value();
+    config.sonar_minimum_distance = _sonar_minimum_distance.value();
+    config.sonar_covariance = _sonar_covariance.value();
+    config.pipeline_covariance = _pipeline_covariance.value();  
+    
+    config.sonar_vertical_angle = _sonar_vertical_angle.value();
+    config.sonar_covariance_reflection_factor = _sonar_covariance_reflection_factor.value();
+    config.sonar_covariance_corner_factor = _sonar_covariance_corner_factor.value();     
+
+    config.gps_covarianz = _gps_covarianz.value();
+    config.gps_interspersal_ratio = _gps_interspersal_ratio.value();    
+    
+    localizer->updateConfig(config);
+    grid_map->initThresholds(_feature_confidence_threshold.get(), _feature_observation_count_threshold.get());  
+}
+  
 
