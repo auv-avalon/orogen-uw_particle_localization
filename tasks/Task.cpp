@@ -121,7 +121,25 @@ bool Task::startHook()
       grid_map->initGrid();
       grid_map->initDepthObstacleConfig(-8.0, 0.0, 2.0);
       grid_map->initThresholds(_feature_confidence_threshold.get(), _feature_observation_count_threshold.get());
-      grid_map->initalizeStatics(map);
+      grid_map->initializeStatics(map);
+      config.use_initial_depthmap = false;
+      /*
+      if(!_yaml_depth_map.value().empty()){
+        
+        if(grid_map->initializeDepth(_yaml_depth_map.value(), 0.0001) ){
+        
+          config.use_initial_depthmap = true;
+          
+        }
+        else{
+            config.use_initial_depthmap = false;
+        }
+        
+      }else{
+        config.use_initial_depthmap = false;
+      }*/
+      
+      
       config.env = &env;
       config.useMap = true;
      }
@@ -363,6 +381,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
     
   if(perception_state_machine(ts)){
   
+    //Observe data for all particels
     double Neff = localizer->observeAndDebug(scan, *map, _sonar_importance.value());
 
     if(localizer->hasStats()) {
@@ -371,6 +390,7 @@ void Task::laser_samplesCallback(const base::Time& ts, const base::samples::Lase
 
     number_sonar_perceptions++;
 
+    //If we had enough observations and a good particle diffusion -> resample
     if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
             && Neff < _effective_sample_size_threshold.value()) {
       localizer->resample();
@@ -401,8 +421,15 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
   last_scan_angle = features.angle;
   sum_scan += std::fabs(scan_diff);   
   
-  if(perception_state_machine(ts)){
+  //If we also get laser_samples -> use the obstacle samples only!
+  if(_laser_samples.connected()){
+      if( (!_use_slam.get() )  && !base::isNaN( lastRBS.cov_position(0,0)) && !base::isInfinity( lastRBS.cov_position(0,0)) )  {
+        localizer->setObstacles(features, *grid_map, lastRBS);
+      }
+  
+  }else if(perception_state_machine(ts)){
 
+      //Calculated observations for all particles
       double Neff = localizer->observeAndDebug(features, *map, _sonar_importance.value());
 
       if(localizer->hasStats()) {
@@ -411,6 +438,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
 
       number_sonar_perceptions++;
 
+      //If we had a valid observation and enough observations -> resample
       if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
             && Neff < _effective_sample_size_threshold.value()) {
         localizer->resample();
@@ -419,6 +447,7 @@ void Task::obstacle_samplesCallback(const base::Time& ts, const sonar_detectors:
 
       }
       
+      //If we have a known position and slam is deactivated -> add observation to a single grid map
       if( (!_use_slam.get() )  && !base::isNaN( lastRBS.cov_position(0,0)) && !base::isInfinity( lastRBS.cov_position(0,0)) )  {
         localizer->setObstacles(features, *grid_map, lastRBS);
       }
@@ -524,7 +553,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
 
     if(status.hasNames()){
     
-      for(int i = 0; i < status.size() && i < config.joint_names.size(); i++){
+      for(unsigned int i = 0; i < status.size() && i < config.joint_names.size(); i++){
         
           try{
             j.elements[i] = status[config.joint_names[i]]; 
@@ -547,7 +576,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
 
 void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
     
-  double Neff = localizer->observeAndDebug(rbs,*map,_gps_importance.value());
+  localizer->observeAndDebug(rbs,*map,_gps_importance.value());
   
   number_gps_perceptions++;
   

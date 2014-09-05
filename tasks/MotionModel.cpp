@@ -99,7 +99,7 @@ void MotionModel::thruster_samplesCallback(const base::Time& ts, const base::sam
         
         if(joint.hasNames()){
         
-          for(int i = 0; i < joint.size() && i < config.joint_names.size(); i++){
+          for(unsigned int i = 0; i < joint.size() && i < config.joint_names.size(); i++){
             
               try{
                 j.elements[i] = joint[config.joint_names[i]]; 

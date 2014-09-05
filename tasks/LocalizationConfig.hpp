@@ -28,8 +28,8 @@ M convertProperty(const std::vector<double>& v) {
 
 struct FilterConfig {
     // General properties
-    int particle_number;
-    int perception_history_number;
+    unsigned int particle_number;
+    unsigned int perception_history_number;
     double hough_interspersal_ratio;
     double effective_sample_size_threshold;
     int minimum_perceptions;
@@ -113,7 +113,7 @@ struct FilterConfig {
     bool use_slam;
     bool use_mapping_only;
     bool single_depth_map;
-
+    bool use_initial_depthmap;
     
 };
 

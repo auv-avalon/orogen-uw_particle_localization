@@ -195,7 +195,7 @@ private:
   std::list<double> perception_history;
   double perception_history_sum;
   bool used_dvl;
-  int max_features_per_cell;
+  unsigned int max_features_per_cell;
   
   //the origin of the coordinate system as utm-coordinate
   base::Vector3d utm_origin;

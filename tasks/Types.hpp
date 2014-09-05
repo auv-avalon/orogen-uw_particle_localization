@@ -27,13 +27,13 @@ struct Stats {
     unsigned int particle_generation;
     
     /** Number of obstacle features per particle */
-    double obstacle_features_per_particle;
+    unsigned int obstacle_features_per_particle;
     
     /** Number of depth features per particle */
-    double depth_features_per_particle;
+    unsigned int depth_features_per_particle;
     
     /** Maximum number of features, stored in one cell */
-    double max_features_per_cell;
+    unsigned int max_features_per_cell;
     
     /**True, if the last used dynamic step was the dvl. false, if the motion model was used */
     bool used_dvl;

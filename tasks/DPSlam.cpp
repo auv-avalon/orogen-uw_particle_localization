@@ -305,7 +305,7 @@ base::samples::Pointcloud DPSlam::getCloud(PoseSlamParticle &X){
   
 }
 
-int DPSlam::getSimpleGrid(PoseSlamParticle &X, uw_localization::SimpleGrid &grid){
+unsigned int DPSlam::getSimpleGrid(PoseSlamParticle &X, uw_localization::SimpleGrid &grid){
   
   return map->getSimpleGrid(grid, X.depth_cells, X.obstacle_cells, config.feature_output_confidence_threshold, config.feature_observation_count_threshold);
   

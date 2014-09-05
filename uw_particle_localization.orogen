@@ -146,6 +146,9 @@ task_context "Task" do
 
    property("yaml_map", "/std/string").
 	doc("start map for localization algorithm")
+	
+   property("yaml_depth_map", "/std/string").
+        doc("Start depth map")
 
    property("sonar_maximum_distance", "double", 20.0).
         doc("set maximum distance for filtering sonar samples")

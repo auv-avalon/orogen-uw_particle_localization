@@ -153,7 +153,7 @@ double OrientationCorrection::calcMedian(boost::circular_buffer<double> *buffer)
     std::list<double>::iterator jt = sorted_list.begin();
     
     //since there is no random access to lists, iterate to the middle element
-    for(int i = 0; i < sorted_list.size()/2; i++){
+    for(unsigned int i = 0; i < sorted_list.size()/2; i++){
       jt++;
       
     }

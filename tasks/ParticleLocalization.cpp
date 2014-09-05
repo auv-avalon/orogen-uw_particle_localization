@@ -784,9 +784,9 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const sonar_detecto
   }  
   
   double best_diff = INFINITY;
-  PointStatus best_state;
-  boost::tuple<Node*, double, Eigen::Vector3d> best_distance;
-  double best_z;
+  PointStatus best_state = OKAY;
+  boost::tuple<Node*, double, Eigen::Vector3d> best_distance(0, 0, Eigen::Vector3d::Zero()) ;
+  double best_z = INFINITY;
   base::Vector3d best_zPoint;
   
   //Select feature with the lowest modeled difference
@@ -899,6 +899,17 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const double& Z, De
 
   if(filter_config.use_slam && (!filter_config.single_depth_map) )
     dp_slam.observe(X, Z);
+  
+  if(!filter_config.use_slam && filter_config.use_initial_depthmap){
+    
+    double depth = M.getDepth(X.p_position.x(), X.p_position.y());
+    
+    if(!isnan(depth)){
+      
+      return gaussian1d(0.0, filter_config.echosounder_variance, depth - Z);
+    }
+    
+  }    
   
   return X.main_confidence;
   
@@ -1204,12 +1215,6 @@ void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures&
     Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(distance , 0.0, 0.0);
     Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + rbs.position;
     
-    double confidence;
-    
-    if(filter_config.feature_filter_threshold > 0.0)
-      confidence = it->confidence;
-    else
-      confidence = 1.0;
     
     //std::cout << "obstacle: " << AbsZ.transpose() << std::endl;
     m.setObstacle(AbsZ.x(), AbsZ.y(), true, filter_config.feature_confidence);
