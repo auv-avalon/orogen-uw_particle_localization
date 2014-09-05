@@ -332,10 +332,11 @@ void Task::updateHook()
      full_motion.velocity = full_motion.orientation * full_motion.velocity;
 
      //Corect position covariance by a threshold
+     double sigma_square = std::pow(_position_covariance_threshold.value(), 2);
      for(int i = 0; i < 3; i++){
-      
-        if(pose.cov_position(i,i) < _position_covariance_threshold.get()){
-          pose.cov_position(i,i) = _position_covariance_threshold.get();
+     
+        if(pose.cov_position(i,i) < sigma_square){
+          pose.cov_position(i,i) = sigma_square;
         }       
      }     
      
