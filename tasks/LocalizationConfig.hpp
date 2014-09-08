@@ -67,6 +67,7 @@ struct FilterConfig {
     
     Eigen::Vector3d buoyCamPosition;
     Eigen::Quaternion<double> buoyCamRotation;
+    Eigen::Quaterniond dvlRotation;
     
     double yaw_offset;
     

@@ -221,6 +221,9 @@ task_context "Task" do
   property("buoy_cam_rotation", "base/Vector3d").
 	doc("Rotation of the buoy detection cam in the body frame")
 	
+  property("dvl_rotation", "base/Vector3d").
+      doc("Rotation of the dvl")
+	
    
    #GPS-settings------------------------------------------------------------------------------
    

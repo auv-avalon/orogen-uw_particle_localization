@@ -28,7 +28,7 @@ Task::Task(std::string const& name)
   _param_centerOfBuoyancy.set(v);
   _param_centerOfGravity.set(v);
   
-  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline;
+  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline, v_dvl_rotation;;
   v_sonar << -0.5, 0.0, 0.0;
   _sonar_position.set(v_sonar);
   v_gps.setZero();
@@ -39,6 +39,8 @@ Task::Task(std::string const& name)
   _buoy_cam_rotation.set(v_buoy_rotation);
   v_pipeline << -0.7, 0.0, -2.0;
   _pipeline_position.set(v_pipeline);
+  v_dvl_rotation << 0.0, 0.0, 0.25 * M_PI;
+  _dvl_rotation.set(v_dvl_rotation);
   
   localizer = 0;
   map = 0;
@@ -66,7 +68,7 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
   _param_centerOfBuoyancy.set(v);
   _param_centerOfGravity.set(v);
   
-  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline;
+  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline, v_dvl_rotation;
   v_sonar << -0.5, 0.0, 0.0;
   _sonar_position.set(v_sonar);
   v_gps.setZero();
@@ -77,6 +79,8 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
   _buoy_cam_rotation.set(v_buoy_rotation);
   v_pipeline << -0.7, 0.0, -2.0;
   _pipeline_position.set(v_pipeline); 
+  v_dvl_rotation << 0.0, 0.0, 0.25 * M_PI;
+  _dvl_rotation.set(v_dvl_rotation);  
   
   localizer = 0;
   map = 0;
@@ -117,13 +121,13 @@ bool Task::startHook()
       }
       env = map->getEnvironment();
       grid_map = new DepthObstacleGrid( base::Vector2d(-map->getTranslation().x(), -map->getTranslation().y() ),
-                              1.2 * base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ), _feature_grid_resolution.get());
+                              base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ), _feature_grid_resolution.get());
       grid_map->initGrid();
       grid_map->initDepthObstacleConfig(-8.0, 0.0, 2.0);
       grid_map->initThresholds(_feature_confidence_threshold.get(), _feature_observation_count_threshold.get());
       grid_map->initializeStatics(map);
       config.use_initial_depthmap = false;
-      /*
+      
       if(!_yaml_depth_map.value().empty()){
         
         if(grid_map->initializeDepth(_yaml_depth_map.value(), 0.0001) ){
@@ -137,7 +141,7 @@ bool Task::startHook()
         
       }else{
         config.use_initial_depthmap = false;
-      }*/
+      }
       
       
       config.env = &env;
@@ -227,7 +231,8 @@ bool Task::startHook()
     
     config.buoyCamPosition = _buoy_cam_position.get();
     config.buoyCamRotation = eulerToQuaternion( _buoy_cam_rotation.get());    
-     
+    config.dvlRotation = eulerToQuaternion( _dvl_rotation.get()); 
+    
     config.filterZeros = _filter_zeros.get();
     
     config.use_markov = _use_markov.get();
@@ -527,6 +532,9 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
     //base::Time temp = base::Time::now();
     if(base::samples::RigidBodyState::isValidValue(rbs.velocity)){
   
+      base::samples::RigidBodyState state = rbs;
+      state.velocity = config.dvlRotation * rbs.velocity;
+      
       localizer->setCurrentVelocity(rbs);
     
       if(orientation_sample_recieved){

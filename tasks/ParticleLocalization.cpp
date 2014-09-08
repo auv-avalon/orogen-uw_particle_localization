@@ -80,7 +80,7 @@ UwVehicleParameter ParticleLocalization::VehicleParameter(FilterConfig filter_co
 void ParticleLocalization::init_slam(NodeMap *map){
   
   dp_slam.init( base::Vector2d(-map->getTranslation().x(), -map->getTranslation().y() ),
-                              1.2 * base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ),
+                              base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ),
                 filter_config.feature_grid_resolution , filter_config);
   
   dp_slam.initalize_statics(map);
