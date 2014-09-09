@@ -160,7 +160,7 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     if(filter_config.advanced_motion_model){
       
       underwaterVehicle::Parameters params = initializeDynamicModel(VehicleParameter(filter_config), filter_config);
-      dynamic_model = new underwaterVehicle::DynamicModel(0.1, 5, 0.0);
+      dynamic_model = new underwaterVehicle::DynamicModel(0.1, 5, 0.0, NULL, 12, 6);
       dynamic_model->init_param(params);
       dynamic_model_params = params;
     }else{      

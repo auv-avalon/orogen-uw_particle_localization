@@ -70,7 +70,7 @@ bool MotionModel::startHook()
     
     if(advanced_model){
       underwaterVehicle::Parameters params = uw_localization::ParticleLocalization::initializeDynamicModel(uw_param, config);
-      dynamic_model = new underwaterVehicle::DynamicModel(0.1, 5, 0.0);
+      dynamic_model = new underwaterVehicle::DynamicModel(0.1, 5, 0.0, NULL, 12, 6);
       dynamic_model->init_param(params);      
     }
     else{
