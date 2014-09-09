@@ -621,8 +621,11 @@ void Task::echosounder_samplesCallback(const base::Time& ts, const base::samples
         else
           localizer->observe(current_depth - rbs.position[2], *grid_map, 1.0);
         
-        if(!_use_slam.get()){
-          grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) + _echosounder_variance.get() );  
+        if(!_use_slam.get() ){
+          
+          if(lastRBS.cov_position(0,0) <= _position_covariance_threshold.get() && lastRBS.cov_position(1,1) <= _position_covariance_threshold.get() ){
+            grid_map->setDepth(lastRBS.position.x(), lastRBS.position.y(), current_depth - rbs.position[2], lastRBS.cov_position(0,0) + _echosounder_variance.get() );
+          }
         }
         else if(_single_depth_map.get()){
           localizer->observeDepth(lastRBS.position, lastRBS.cov_position, current_depth - rbs.position[2] );
