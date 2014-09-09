@@ -535,10 +535,10 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
       base::samples::RigidBodyState state = rbs;
       state.velocity = config.dvlRotation * rbs.velocity;
       
-      localizer->setCurrentVelocity(rbs);
+      localizer->setCurrentVelocity(state);
     
       if(orientation_sample_recieved){
-        localizer->update(rbs, *map);
+        localizer->update(state, *map);
               
       }else{
         changeState(NO_ORIENTATION);
