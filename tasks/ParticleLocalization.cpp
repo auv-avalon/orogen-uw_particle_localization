@@ -328,6 +328,8 @@ void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::Joi
               //UPdate motion model
 	      dynamic_model->setPosition(X.p_position);
 	      dynamic_model->setLinearVelocity(X.p_velocity);
+              dynamic_model->setAngularVelocity(base::Vector3d::Zero());
+              dynamic_model->setOrientation(vehicle_pose.orientation);
 	      dynamic_model->setSamplingtime(dt);
 	      dynamic_model->setPWMLevels(Ut);	
 	      
@@ -374,7 +376,7 @@ void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::Joi
           }        
           
           
-	  }
+        }
       }
     }
     
