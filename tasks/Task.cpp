@@ -560,6 +560,21 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
     base::samples::Joints j = status;
     last_motion = ts; 
 
+    //If we have no 6 thruster, fill up the joints with zeros
+    if(j.size() < 6){
+      
+      unsigned int size = j.size();
+      j.elements.resize(6);
+      j.names.resize(6);
+      
+      for(; size < 6; size++){
+        
+        j.elements[size].raw = 0.0;
+        
+      }
+      
+    }
+    
     if(status.hasNames()){
     
       for(unsigned int i = 0; i < status.size() && i < config.joint_names.size(); i++){
