@@ -1,18 +1,18 @@
-metrics: [23, 20, 20]
-reference: [-11.5, -10, -10]
+metrics: [23.5, 20, 20]
+reference: [-11.75, -10, -10]
 root:
   wall:
-    - line_from: [-11.5, -9.5, 0.0]
-      line_to:   [-11.5,  9.5, 0.0]
+    - line_from: [-11.75, -9.5, 0.0]
+      line_to:   [-11.75,  9.5, 0.0]
       height:    -20
-    - line_from: [11.5, -10, 0.0]
-      line_to:   [11.5,  10, 0.0]
+    - line_from: [11.75, -10, 0.0]
+      line_to:   [11.75,  10, 0.0]
       height:    -20
-    - line_from: [-11.5, -10, 0.0]
-      line_to:   [ 11.5, -10, 0.0]
+    - line_from: [-11.75, -10, 0.0]
+      line_to:   [ 11.75, -10, 0.0]
       height:    -20
-    - line_from: [-11.5,  9.5, 0.0]
-      line_to:   [ 11.5,  9.5, 0.0]
+    - line_from: [-11.75,  9.5, 0.0]
+      line_to:   [ 11.75,  9.5, 0.0]
       height:    -20
   box: #first part of the pipeline segment
     - position: [-4.0, 3.0, 0.0]
