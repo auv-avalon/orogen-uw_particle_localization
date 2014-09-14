@@ -290,7 +290,7 @@ void Task::updateHook()
    
      if(_debug.value() && !_yaml_map.value().empty()){
              
-       if(base::Time::now().toSeconds() - last_map_update.toSeconds() > 2.0){
+       if(base::Time::now().toSeconds() - last_map_update.toSeconds() > 0.1){
         
           base::samples::Pointcloud pc;
           
@@ -303,6 +303,10 @@ void Task::updateHook()
             uw_localization::SimpleGrid grid;
             grid_map->getSimpleGrid(grid, _feature_output_confidence_threshold.get() , _feature_observation_count_threshold.get());
             _grid_map.write( grid);
+            
+            if(!_yaml_depth_output_map.value().empty()){
+              grid_map->saveYML(_yaml_depth_output_map.get());
+            }
             
           }
           
@@ -561,7 +565,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
     last_motion = ts; 
 
     //If we have no 6 thruster, fill up the joints with zeros
-    if(j.size() < 6){
+    /*if(j.size() < 6){
       
       unsigned int size = j.size();
       j.elements.resize(6);
@@ -573,7 +577,7 @@ void Task::thruster_samplesCallback(const base::Time& ts, const base::samples::J
         
       }
       
-    }
+    }*/
     
     if(status.hasNames()){
     
