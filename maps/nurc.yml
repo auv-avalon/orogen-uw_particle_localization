@@ -1,24 +1,24 @@
 #metrics: [120.0, 50.0, 12.1467]
 #reference: [-60.0, -25.0, -12.1467]
 metrics: [60, 50, 12.1467]
-reference: [0.0, -25.0, -12.1467]
+reference: [-60, 0.0, -10.0]
 root:
   wall:
 #    - line_from: [-60.0, -25.0, 0.0] #wall not visible in sonar
 #      line_to:   [-60.0,  25.0, 0.0]
 #      height:    -12.1467
-    - line_from: [60.0, -25.0, 0.0]
-      line_to:   [60.0,  25.0, 0.0]
+    - line_from: [0.0, 50.0, 0.0]
+      line_to:   [0.0,  0.0, 0.0]
       height:    -12.1467
-    - line_from: [-60.0, -25.0, 0.0]
-      line_to:   [ 60.0, -25.0, 0.0]
+    - line_from: [-60, 50.0, 0.0]
+      line_to:   [ 0.0, 50.0, 0.0]
       height:    -12.1467
-    - line_from: [-60.0,  25.0, 0.0]
-      line_to:   [ 60.0,  25.0, 0.0]
+    - line_from: [-60.0,  0.0, 0.0]
+      line_to:   [ 0.0,  0.0, 0.0]
       height:    -12.1467
 #  buoy:
 #    - mean: [-4.0, -1.0, -1.0]
 #      cov:  [1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,1.0]
   box:
-    - position: [ 42.5, 5.0 ,0.0]
+    - position: [ 17.5, 30.0 ,0.0]
       span: [15.0, 0.2, 20]
