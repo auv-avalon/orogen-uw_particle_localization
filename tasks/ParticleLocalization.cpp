@@ -477,6 +477,12 @@ const base::Time& ParticleLocalization::getTimestamp(const base::samples::Joints
     return U.time;
 }
 
+base::Time ParticleLocalization::getCurrentTimestamp(){
+  
+  return vehicle_pose.time;
+  
+}
+
 double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance)
 {
     zeroConfidenceCount = 0;
@@ -1345,7 +1351,7 @@ void ParticleLocalization::getSimpleGrid(uw_localization::SimpleGrid &grid){
     
   }
   
-  grid.time = base::Time::now();
+  grid.time = vehicle_pose.time;
    
 }
 

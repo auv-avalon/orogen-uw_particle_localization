@@ -301,6 +301,7 @@ void Task::updateHook()
           }
           else{
             uw_localization::SimpleGrid grid;
+            grid.time = localizer->getCurrentTimestamp();
             grid_map->getSimpleGrid(grid, _feature_output_confidence_threshold.get() , _feature_observation_count_threshold.get());
             _grid_map.write( grid);
             
@@ -498,7 +499,7 @@ void Task::orientation_samplesCallback(const base::Time& ts, const base::samples
     }
 
     if(!last_perception.isNull() && (ts - last_perception).toSeconds() > _reset_timeout.value()) {
-        localizer->initialize(_particle_number.value(), base::Vector3d(0.0, 0.0, 0.0), map->getLimitations(), 
+        localizer->initialize(_particle_number.value(), config.init_position, map->getLimitations(), 
                 base::getYaw(rbs.orientation), 0.0);
 	std::cout << "Initialize" << std::endl;
         last_perception = ts;

@@ -68,6 +68,7 @@ public:
 
   virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& u);
   virtual const base::Time& getTimestamp(const base::samples::Joints& u);
+  base::Time getCurrentTimestamp();
 
   virtual double perception(PoseSlamParticle& x, const base::samples::LaserScan& z, NodeMap& m);
   virtual double perception(PoseSlamParticle& x, const controlData::Pipeline& z, NodeMap& m);
