@@ -92,7 +92,9 @@ void MotionModel::orientation_samplesCallback(const base::Time& time, const base
 }
 
 void MotionModel::thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& joint){
-  
+    
+    motion_pose.time = ts;  
+
       if(last_orientation.hasValidOrientation()){
   
         base::samples::Joints j = joint;
