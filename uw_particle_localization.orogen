@@ -84,8 +84,10 @@ task_context "Task" do
 #   input_port("battery_status", "/battery_management/batteryInformation").
 #	doc("Status of the batteries for use in the motion model")
 	
-   input_port("buoy_samples", "/avalon/feature/Buoy").
+   input_port("buoy_samples_orange", "/avalon/feature/Buoy").
 	doc("buoy sample of the buoy-detection")
+	
+   input_port("buoy_samples_white", "/avalon/feature/Buoy")	
 	
     input_port("thruster_samples", "base/samples/Joints").
 	  doc("Samples of thruster actions").
@@ -369,7 +371,6 @@ task_context "Task" do
        align_port "pipeline_samples", 0.1
        #align_port "pose_update", 0.1
        align_port "gps_pose_samples", 0.1
-       align_port "buoy_samples", 0.1
        align_port "echosounder_samples", 0.1
        align_port "obstacle_samples", 0.1
    end
@@ -381,7 +382,8 @@ task_context "Task" do
    port_driven :pipeline_samples
    port_driven :pose_update
    port_driven :gps_pose_samples
-   port_driven :buoy_samples
+   port_driven :buoy_samples_white
+   port_driven :buoy_samples_orange
    port_driven :echosounder_samples
    port_driven :obstacle_samples
    

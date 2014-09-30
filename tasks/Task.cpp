@@ -287,6 +287,15 @@ void Task::updateHook()
        
        pose_updateCallback(rbs.time, rbs);       
      }
+     
+     avalon::feature::Buoy buoy;
+     while(_buoy_samples_orange.read(buoy) == RTT::NewData){
+       buoy_samplesCallback(buoy.time, buoy);
+     }
+   
+     while(_buoy_samples_white.read(buoy) == RTT::NewData){
+       buoy_samplesCallback(buoy.time, buoy);
+     }   
    
      if(_debug.value() && !_yaml_map.value().empty()){
              
@@ -297,12 +306,22 @@ void Task::updateHook()
           if(_use_slam.get()){
            uw_localization::SimpleGrid grid;
            localizer->getSimpleGrid(grid);
+        
             _grid_map.write( grid);
           }
           else{
             uw_localization::SimpleGrid grid;
             grid.time = localizer->getCurrentTimestamp();
             grid_map->getSimpleGrid(grid, _feature_output_confidence_threshold.get() , _feature_observation_count_threshold.get());
+            
+            /*
+            SimpleGridElement elem;
+            grid.getCell(-10, 10, elem);
+            
+            elem.buoy_object = true;
+            elem.buoy_color = base::Vector3d(1.0, 0.0, 0.0);            
+            grid.setCell(-10, 10, elem);*/
+            
             _grid_map.write( grid);
             
             if(!_yaml_depth_output_map.value().empty()){
@@ -619,6 +638,28 @@ void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::R
 
 void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buoy& buoy){
   last_perception = ts;
+  
+   if(!_use_slam.get() ){
+          
+      if(lastRBS.cov_position(0,0) <= _position_covariance_threshold.get() && lastRBS.cov_position(1,1) <= _position_covariance_threshold.get() ){
+        
+        BuoyColor bc;
+        
+        if(buoy.color == avalon::feature::WHITE){
+          bc = WHITE;
+        }else if(buoy.color == avalon::feature::ORANGE){
+          bc = ORANGE;
+        }
+        else{
+          bc = UNKNOWN;
+        }
+        
+        base::Vector3d buoyPose = lastRBS.position + (lastRBS.orientation * buoy.world_coord);
+        
+        grid_map->setBuoy(buoyPose.x(), buoyPose.y(), bc , buoy.probability);
+      }
+  }  
+  
   
   //double effective_sample_size = localizer->observe(buoy, *map, _buoy_importance.value());
   
