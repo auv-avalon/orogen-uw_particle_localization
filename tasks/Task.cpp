@@ -643,6 +643,10 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
           
       if(lastRBS.cov_position(0,0) <= _position_covariance_threshold.get() && lastRBS.cov_position(1,1) <= _position_covariance_threshold.get() ){
         
+        if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
+          return;
+        }
+        
         BuoyColor bc;
         
         if(buoy.color == avalon::feature::WHITE){
@@ -650,7 +654,7 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
         }else if(buoy.color == avalon::feature::ORANGE){
           bc = ORANGE;
         }
-        else{
+        else if(buoy.color == avalon::feature::UNKNOWN){
           bc = UNKNOWN;
         }
         
