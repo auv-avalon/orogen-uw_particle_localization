@@ -51,7 +51,8 @@ namespace uw_particle_localization {
           bool position_jump_detected;
           double sum_scan;
           double last_scan_angle;
-          bool found_buoy;
+          bool found_buoy_white;
+          bool found_buoy_orange;
            
           /**
            * Changes the state of the task

@@ -274,7 +274,8 @@ bool Task::startHook()
      position_jump_detected = false;
      last_scan_angle = 0.0;
      
-     found_buoy = false;
+     found_buoy_orange = false;
+     found_buoy_white = false;
      
      return true;
 }
@@ -292,11 +293,33 @@ void Task::updateHook()
      
      avalon::feature::Buoy buoy;
      while(_buoy_samples_orange.read(buoy) == RTT::NewData){
-       buoy_samplesCallback(buoy.time, buoy);
+       
+       if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
+          found_buoy_orange = false;
+          continue;
+       }
+       
+       if(!found_buoy_orange){
+       
+        buoy_samplesCallback(buoy.time, buoy);
+        found_buoy_orange = true;
+       }
      }
    
      while(_buoy_samples_white.read(buoy) == RTT::NewData){
-       buoy_samplesCallback(buoy.time, buoy);
+       
+       if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
+         found_buoy_white = false;
+         continue;
+       }
+       
+       if(!found_buoy_white){
+         
+         buoy_samplesCallback(buoy.time, buoy);
+         found_buoy_white = true;
+         
+       }
+              
      }   
    
      if(_debug.value() && !_yaml_map.value().empty()){
@@ -646,15 +669,8 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
       if(lastRBS.cov_position(0,0) <= _position_covariance_threshold.get() && lastRBS.cov_position(1,1) <= _position_covariance_threshold.get() ){
         
         if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
-          found_buoy = false;
           return;
         }
-        
-        if(found_buoy){
-          return;
-        }
-        
-        found_buoy = true;
         
         BuoyColor bc;
         
