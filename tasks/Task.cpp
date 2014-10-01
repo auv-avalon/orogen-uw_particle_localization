@@ -33,7 +33,7 @@ Task::Task(std::string const& name)
   _sonar_position.set(v_sonar);
   v_gps.setZero();
   _gps_position.set(v_gps);
-  v_buoy_cam << 0.7, 0.0, 0.0;
+  v_buoy_cam << 0.5, 0.0, 0.0;
   _buoy_cam_position.set(v_buoy_cam);
   v_buoy_rotation.setZero();
   _buoy_cam_rotation.set(v_buoy_rotation);
@@ -320,7 +320,12 @@ void Task::updateHook()
          
        }
               
-     }   
+     }
+     
+     bool structure;
+     while(_structur_samples.read(structure) == RTT::NewData){
+       
+     }
    
      if(_debug.value() && !_yaml_map.value().empty()){
              
@@ -683,7 +688,7 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
           bc = UNKNOWN;
         }
         
-        base::Vector3d buoyPose = lastRBS.position + (lastRBS.orientation * buoy.world_coord);
+        base::Vector3d buoyPose = lastRBS.position + (lastRBS.orientation * config.buoyCamPosition);
         
         grid_map->setBuoy(buoyPose.x(), buoyPose.y(), bc , buoy.probability);
       }

@@ -104,6 +104,10 @@ task_context "Task" do
     input_port("obstacle_samples", "sonar_detectors/ObstacleFeatures").
           doc("list of obstacle features, estimated by the sonar").
           needs_reliable_connection
+          
+    input_port("structur_samples", "bool").
+          doc("Boolean of the structure-detection").
+          needs_reliable_connection
    
    # ----------------------------------------------------------------------
    # properties
@@ -386,6 +390,7 @@ task_context "Task" do
    port_driven :buoy_samples_orange
    port_driven :echosounder_samples
    port_driven :obstacle_samples
+   port_driven :structur_samples
    
    runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS_NO_DVL", "INVALID_VALUES"
    
