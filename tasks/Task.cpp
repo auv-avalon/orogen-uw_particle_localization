@@ -274,6 +274,8 @@ bool Task::startHook()
      position_jump_detected = false;
      last_scan_angle = 0.0;
      
+     found_buoy = false;
+     
      return true;
 }
 
@@ -644,8 +646,15 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
       if(lastRBS.cov_position(0,0) <= _position_covariance_threshold.get() && lastRBS.cov_position(1,1) <= _position_covariance_threshold.get() ){
         
         if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
+          found_buoy = false;
           return;
         }
+        
+        if(found_buoy){
+          return;
+        }
+        
+        found_buoy = true;
         
         BuoyColor bc;
         
