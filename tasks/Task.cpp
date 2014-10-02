@@ -294,7 +294,7 @@ void Task::updateHook()
      avalon::feature::Buoy buoy;
      while(_buoy_samples_orange.read(buoy) == RTT::NewData){
        
-       if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
+       if(buoy.color == avalon::feature::NO_BUOY){
           found_buoy_orange = false;
           continue;
        }
@@ -308,7 +308,7 @@ void Task::updateHook()
    
      while(_buoy_samples_white.read(buoy) == RTT::NewData){
        
-       if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
+       if(buoy.color == avalon::feature::NO_BUOY){
          found_buoy_white = false;
          continue;
        }
@@ -324,7 +324,7 @@ void Task::updateHook()
      
      bool structure;
      while(_structur_samples.read(structure) == RTT::NewData){
-       
+       structure_samplesCallback(base::Time::now(), structure);
      }
    
      if(_debug.value() && !_yaml_map.value().empty()){
@@ -667,13 +667,12 @@ void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::R
 
 
 void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buoy& buoy){
-  last_perception = ts;
   
    if(!_use_slam.get() ){
           
       if(lastRBS.cov_position(0,0) <= _position_covariance_threshold.get() && lastRBS.cov_position(1,1) <= _position_covariance_threshold.get() ){
         
-        if(buoy.color == avalon::feature::NO_BUOY || buoy.validation < 100){
+        if(buoy.color == avalon::feature::NO_BUOY){
           return;
         }
         
@@ -690,12 +689,35 @@ void Task::buoy_samplesCallback(const base::Time& ts, const avalon::feature::Buo
         
         base::Vector3d buoyPose = lastRBS.position + (lastRBS.orientation * config.buoyCamPosition);
         
-        grid_map->setBuoy(buoyPose.x(), buoyPose.y(), bc , buoy.probability);
+        if(grid_map->setBuoy(buoyPose.x(), buoyPose.y(), bc , buoy.probability, true)){
+          std::cout << "BOJE!" << "(" << ts.toString() << "," << buoyPose.x() << "," << buoyPose.y() << "," << buoyPose.z() << ",FOUND_BUOY)" << std::endl;
+        }
+        
       }
   }  
   
   
   //double effective_sample_size = localizer->observe(buoy, *map, _buoy_importance.value());
+  
+}
+
+void Task::structure_samplesCallback(const base::Time& ts, const bool& structure){
+  
+  if(structure){
+    
+   if(!_use_slam.get() ){
+          
+      if(lastRBS.cov_position(0,0) <= _position_covariance_threshold.get() && lastRBS.cov_position(1,1) <= _position_covariance_threshold.get() ){
+     
+        base::Vector3d buoyPose = lastRBS.position + (lastRBS.orientation * config.buoyCamPosition);
+        
+        grid_map->setBuoy(buoyPose.x(), buoyPose.y(), YELLOW, 0.9, true);
+      }
+  }    
+    
+    
+    
+  }  
   
 }
 

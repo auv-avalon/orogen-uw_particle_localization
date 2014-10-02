@@ -72,6 +72,7 @@ namespace uw_particle_localization {
           virtual void buoy_samplesCallback(const base::Time&, const avalon::feature::Buoy&);
           virtual void echosounder_samplesCallback(const base::Time&, const base::samples::RigidBodyState& rbs);
           virtual void obstacle_samplesCallback(const base::Time&, const sonar_detectors::ObstacleFeatures& features);
+          virtual void structure_samplesCallback(const base::Time& ts, const bool& structure);
 
           uw_localization::ParticleLocalization* localizer;
           uw_localization::NodeMap* map;
