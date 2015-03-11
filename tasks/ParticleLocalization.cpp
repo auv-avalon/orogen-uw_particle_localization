@@ -966,7 +966,7 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
     PoseSlamParticle worst = particles.back();
     
     base::Vector3d limit = m.getLimitations();
-    MultiNormalRandom<3> Pose = Random::multi_gaussian(p.position, p.cov_position);
+    MultiNormalRandom<3> Pose = Random::multi_gaussian<3>(p.position, p.cov_position);
     UniformRealRandom pos_x = Random::uniform_real(-(limit.x() / 2.0) , (limit.x() / 2.0) );
     UniformRealRandom pos_y = Random::uniform_real(-(limit.y() / 2.0) , (limit.y() / 2.0) );    
     int count = 0;
