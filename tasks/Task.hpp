@@ -8,7 +8,7 @@
 //#include <battery_management/BatteryManagementTypes.hpp>
 #include <vector>
 #include <list>
-#include "tasks/LocalizationConfig.hpp"
+#include "LocalizationConfig.hpp"
 #include <uw_localization/maps/grid_map.hpp>
 #include <uw_localization/maps/depth_obstacle_grid.hpp>
 #include <uw_localization/types/map.hpp>

@@ -7,6 +7,7 @@
 #include <uwv_dynamic_model/uwv_dynamic_model.h>
 #include <uw_localization/model/uw_motion_model.hpp>
 #include <base/Eigen.hpp>
+#include "LocalizationConfig.hpp"
 
 namespace uw_particle_localization {
 
