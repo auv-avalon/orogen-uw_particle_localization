@@ -18,6 +18,6 @@ INSTALL(TARGETS ${UW_PARTICLE_LOCALIZATION_TASKLIB_NAME}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib/orocos)
 
-INSTALL(FILES ${UW_PARTICLE_LOCALIZATION_TASKLIB_HEADERS} ParticleLocalization.hpp LocalizationConfig.hpp Fir.hpp DPSlam.hpp
+INSTALL(FILES ${UW_PARTICLE_LOCALIZATION_TASKLIB_HEADERS} ParticleLocalization.hpp Fir.hpp DPSlam.hpp
     DESTINATION include/orocos/uw_particle_localization)
 
