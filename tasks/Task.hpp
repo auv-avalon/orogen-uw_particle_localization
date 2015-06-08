@@ -9,8 +9,6 @@
 #include <vector>
 #include <list>
 #include "LocalizationConfig.hpp"
-#include <uw_localization/maps/grid_map.hpp>
-#include <uw_localization/maps/depth_obstacle_grid.hpp>
 #include <uw_localization/types/map.hpp>
 
 namespace aggregator {
@@ -65,23 +63,15 @@ namespace uw_particle_localization {
           virtual void laser_samplesCallback(const base::Time& ts, const base::samples::LaserScan& scan);
           virtual void orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
           virtual void speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-          virtual void thruster_samplesCallback(const base::Time& ts, const base::samples::Joints& rbs);
           virtual void pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-          virtual void pipeline_samplesCallback(const base::Time& ts, const controlData::Pipeline& pipeline);
           virtual void gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-          virtual void buoy_samplesCallback(const base::Time&, const avalon::feature::Buoy&);
-          virtual void echosounder_samplesCallback(const base::Time&, const base::samples::RigidBodyState& rbs);
-          virtual void obstacle_samplesCallback(const base::Time&, const sonar_detectors::ObstacleFeatures& features);
-          virtual void structure_samplesCallback(const base::Time& ts, const bool& structure);
 
           uw_localization::ParticleLocalization* localizer;
           uw_localization::NodeMap* map;
-          uw_localization::DepthObstacleGrid* grid_map;
           uw_localization::Environment env;
           uw_localization::FilterConfig config;
           
           void write(const uw_localization::PointInfo& sample);
-          bool initMotionConfig();
           
           /**
            * Statemachine for perception states
@@ -97,12 +87,6 @@ namespace uw_particle_localization {
            */
           void validate_particles();
           
-          /**
-           * Filter out duplicate features. If a feature is found multiple times, the feature with the highest confidence is choosen
-           * We assume, that duplicate features are succeed to each other, to reduce computation time
-           * @param sample: Features to be filtered
-           */
-          void filter_sample(sonar_detectors::ObstacleFeatures& sample);
           
           /**
            * Update the config-struct for changed properties

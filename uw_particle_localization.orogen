@@ -2,23 +2,18 @@ name "uw_particle_localization"
 
 using_library "uw_localization"
 using_library "machine_learning"
-using_library "uwv_dynamic_model"
 using_library "sonar_detectors"
 using_task_library "sonar_wall_hough"
 using_task_library "sonar_feature_estimator"
 
 import_types_from "base"
-import_types_from "visual_detectors/Types.hpp"
 import_types_from "tasks/Types.hpp"
 import_types_from "LocalizationConfig.hpp"
-import_types_from "offshore_pipeline_detector"
 import_types_from "uw_localization/types/particle.hpp"
 import_types_from "uw_localization/types/info.hpp"
 #import_types_from "uw_localization/types/map.hpp"
 import_types_from "uw_localization/types/environment.hpp"
-#import_types_from "uw_localization/maps/grid_map.hpp"
 import_types_from "uw_localization/types/map.hpp"
-#import_types_from "battery_management"
 import_types_from "sonar_wall_hough/tasks/DebugTypes.hpp"
 import_types_from "sonar_feature_estimator/FeatureEstimationDebugTypes.hpp"
 import_types_from "sonar_detectors/SonarDetectorTypes.hpp"
@@ -50,12 +45,7 @@ task_context "Task" do
 
    output_port("stats", "/uw_localization/Stats").
         doc("various values representing current localization state")
-        
-   output_port("depth_grid", "/base/samples/Pointcloud")
-   
-   output_port("grid_map", "/uw_localization/SimpleGrid")
-   
-   output_port("debug_filtered_obstacles", "sonar_detectors/ObstacleFeatures")
+
 
    # ----------------------------------------------------------------------
    # input samples 
@@ -69,45 +59,21 @@ task_context "Task" do
         doc("current motion sample retrieved from our motion model").
         needs_reliable_connection   
 
-   input_port('pipeline_samples', '/controlData::Pipeline').
-        doc("visual pipeline samples from bottom_camera when pipeline detected").
-        needs_reliable_connection
-
    input_port("pose_update", "/base/samples/RigidBodyState").
         doc("position samples from another localization").
         needs_reliable_connection
         
    input_port("gps_pose_samples", "/base/samples/RigidBodyState").
 	doc("Position Information estimated by GPS").
-	needs_reliable_connection
-   
-#   input_port("battery_status", "/battery_management/batteryInformation").
-#	doc("Status of the batteries for use in the motion model")
-	
-   input_port("buoy_samples_orange", "/avalon/feature/Buoy").
-	doc("buoy sample of the buoy-detection")
-	
-   input_port("buoy_samples_white", "/avalon/feature/Buoy")	
-	
-    input_port("thruster_samples", "base/samples/Joints").
-	  doc("Samples of thruster actions").
-	  needs_reliable_connection
+	needs_reliable_connection	
 	  
     input_port("orientation_samples", "/base/samples/RigidBodyState").
 	  doc("current orientation of the vehicle").
 	  needs_reliable_connection
 	  
-    input_port("echosounder_samples", "base/samples/RigidBodyState").
-          doc("Echosounder samples of the vehicle").
-          needs_reliable_connection
+
           
-    input_port("obstacle_samples", "sonar_detectors/ObstacleFeatures").
-          doc("list of obstacle features, estimated by the sonar").
-          needs_reliable_connection
-          
-    input_port("structur_samples", "bool").
-          doc("Boolean of the structure-detection").
-          needs_reliable_connection
+
    
    # ----------------------------------------------------------------------
    # properties
@@ -189,8 +155,6 @@ task_context "Task" do
    property("pipeline_importance", "double", 0.5).
         doc("sets importance ratio for pipeline perception updates")
         
-   property("buoy_importance", "double", 0.5).
-	doc("sets importance ratio for buoy detection updates")
 
    property("perception_history_number", "int", 8).
         doc("set history size for determing uncertainty_degree of best measurement samples")
@@ -217,18 +181,10 @@ task_context "Task" do
    
    property("sonar_position", "base/Vector3d").
 	doc("transformation of the sonar, with respect to the origin of avalon")
-	
-   property("pipeline_position", "base/Vector3d").
-	doc("transformation of the pipeline-camera, with respect to the origin of avalon")
-	
+		
    property("gps_position", "base/Vector3d").
 	doc("transformation of the gps sensor, with respect to the origin of avalon")
-	
-  property("buoy_cam_position", "base/Vector3d").
-	doc("transformation of the buoy detection cam, with respect to the origin of avalon")
-	
-  property("buoy_cam_rotation", "base/Vector3d").
-	doc("Rotation of the buoy detection cam in the body frame")
+
 	
   property("dvl_rotation", "base/Vector3d").
       doc("Rotation of the dvl")
@@ -267,100 +223,10 @@ task_context "Task" do
 	
    property("position_covariance_threshold", "double", 1.0).
       doc("Output variances below this sigma threshold will be set the value of the threshold")
-	
-#------- Dynamic model parameter
-
-    property("advanced_motion_model" , "bool" , false).
-	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")
-	
-    property("max_velocity_drift", "double", 1.0).
-       doc("Maximum velocity drift threshold in the dynamic-step, in m/s").
-       doc("The maximum difference between the dead reckoning velocity and the randomized particle velocity")
-    
-    property("param_length" , "double" , 1.4).
-	doc("length of avalon")
-	
-    property("param_radius" , "double" , 0.15).
-	doc("radius of avalon")
-
-    property("param_mass" , "double" , 65.0).
-	doc("mass of avalon")
-	
-    property("param_thrusterCoefficient" , "/std/vector<double>" ).
-	doc("Truster Coefficents, given as an row-wise 3x6 Matrix").
-	doc("First row: constant factor").
-	doc("Second row: linear factor").
-	doc("Third row: square factor")
-	
-    property("param_thrusterVoltage" ,"double" , 25.4).
-	doc("Thruster Volatage")
-
-    property("param_TCM" , "/std/vector<double>" ).
-	doc("Thruster Coefficient Matrix, which sets the direction of the thruster force")
-    
-    property("param_linDamp" , "base/MatrixXd")
-    property("param_sqDamp" , "base/MatrixXd")
-    property("param_linDampNeg" , "base/MatrixXd")
-    property("param_sqDampNeg" , "base/MatrixXd")
-    
-    property("param_centerOfGravity", "base/Vector3d")
-    property("param_centerOfBuoyancy", "base/Vector3d")
-    
-    property("param_floating" , "bool" , true).
-	doc("true, if density of avalon = density of water")
-	
-    property("joint_names" ,"std/vector<string>")	        
+	        
         
     
-    #---- Slam properties
-    
-    property("use_slam", "bool", false).
-      doc("Use dp-slam algorithm for additional mapping")
-      
-    property("use_mapping_only", "bool", true).
-      doc("Use dp-slam for mapping nly, created maps are not used for lokalisation").
-      doc("Takes only effect, if use_slam is true")
-      
-    property("single_depth_map", "bool", true).
-      doc("Use only a single depth map, instead of a map for all particle")
-      
-    property("echosounder_variance", "double", 0.5).
-      doc("Variance of the echosounder samples")
-    
-    property("feature_weight_reduction", "double", 0.8).
-      doc("Reducce the weight of features by this value")
-      
-    property("feature_observation_range", "double", 10.0).
-      doc("Only reduce feature_weights inside this range")
-      
-    property("feature_observation_minimum_range", "double", 1.0).
-      doc("Only use features inside this range")
-      
-    property("feature_grid_resolution", "double", 0.5).
-      doc("Size of one grid-cell in meter")
-    
-    property("feature_filter_threshold", "double", 0.0).
-      doc("Only use input-features with values obove ths threshold").
-      doc("If value is 0, no features will be filtered")
-      
-    property("feature_confidence", "double", 0.5).
-      doc("Confidence of single sonar features.").
-      doc("This value should be between 0 and 1")
-      
-    property("feature_empty_cell_confidence", "double", 0.5).
-      doc("Confidence, that an observed cell is empty").
-      doc("This value should be between 0 and 1")
-    
-    property("feature_confidence_threshold", "double", 0.2).
-      doc("Only use map-features above this threshold for the map").
-      doc("Features below this value will be removed during filtering")
-      
-    property("feature_output_confidence_threshold", "double", 0.5).
-      doc("Only features above this threshold will be shown in the output-map")
-      
-    property("feature_observation_count_threshold", "int", 5).
-      doc("If we observed a feature this many time without removing it, this feature will be saved")
-    
+   
             
         
    # ----------------------------------------------------------------------
@@ -371,26 +237,16 @@ task_context "Task" do
        align_port "laser_samples", 0.1
        align_port "orientation_samples", 0.01
        align_port "speed_samples", 0.01
-       align_port "thruster_samples", 0.01
-       align_port "pipeline_samples", 0.1
-       #align_port "pose_update", 0.1
        align_port "gps_pose_samples", 0.1
-       align_port "echosounder_samples", 0.1
-       align_port "obstacle_samples", 0.1
+
    end
  
    port_driven :laser_samples
    port_driven :orientation_samples
-   port_driven :thruster_samples
    port_driven :speed_samples
-   port_driven :pipeline_samples
    port_driven :pose_update
    port_driven :gps_pose_samples
-   port_driven :buoy_samples_white
-   port_driven :buoy_samples_orange
-   port_driven :echosounder_samples
-   port_driven :obstacle_samples
-   port_driven :structur_samples
+
    
    runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS_NO_DVL", "INVALID_VALUES"
    
@@ -432,75 +288,7 @@ task_context "OrientationCorrection" do
   port_driven
 end
 
-#####################
-# This Task provides a dynamic model for underwater vehicle.
-# It can be used for a deadreckoning localization approach
-######################
-task_context "MotionModel" do
 
-    
-    input_port("thruster_samples", "base/samples/Joints").
-	  doc("Samples of thruster actions").
-	  needs_reliable_connection
-	  
-    input_port("orientation_samples", "/base/samples/RigidBodyState").
-	  doc("current orientation of the vehicle").
-	  needs_reliable_connection
-    
-    output_port("pose_samples", "/base/samples/RigidBodyState").triggered_on("orientation_samples")
-  
-  
-    #---Motion model parameter----------------------------------------------------------------    
-    
-    property("advanced_motion_model" , "bool" , false).
-	doc("uses the advanced motion model implemented in modul dagon/uwv_dynamic_model")    
-    
-    property("param_length" , "double" , 1.4).
-	doc("length of avalon")
-	
-    property("param_radius" , "double" , 0.15).
-	doc("radius of avalon")
-
-    property("param_mass" , "double" , 65.0).
-	doc("mass of avalon")
-	
-    property("param_thrusterCoefficient" , "/std/vector<double>" ).
-	doc("Truster Coefficents, given as an row-wise 3x6 Matrix").
-	doc("First row: constant factor").
-	doc("Second row: linear factor").
-	doc("Third row: square factor")
-	
-    property("param_thrusterVoltage" ,"double" , 25.4).
-	doc("Thruster Volatage")
-
-    property("param_TCM" , "/std/vector<double>" ).
-	doc("Thruster Coefficient Matrix, which sets the direction of the thruster force")
-    
-    property("param_linDamp" , "base/MatrixXd")
-    property("param_sqDamp" , "base/MatrixXd")
-    property("param_linDampNeg" , "base/MatrixXd")
-    property("param_sqDampNeg" , "base/MatrixXd")
-    
-    property("param_centerOfGravity", "base/Vector3d")
-    property("param_centerOfBuoyancy", "base/Vector3d")
-    
-    property("param_floating" , "bool" , true).
-	doc("true, if density of avalon = density of water")
-	
-    property("joint_names" ,"std/vector<string>")
-    
-    property("velocity_covariance", "base/Vector3d").
-	doc("covariance of the estimated velocities.")
-    
-    stream_aligner do
-        max_latency 1.0
-        align_port "thruster_samples", 0.01
-        align_port "orientation_samples", 0.01
-    end
-          
-    port_driven
-   
-end
 
 ###############################################################################################################
 # This Task provides a full rigid body state, by fusion of direct sensor input and localization-data

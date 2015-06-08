@@ -7,86 +7,25 @@ using namespace machine_learning;
 
 namespace uw_localization {
 
-base::samples::RigidBodyState* PoseSlamParticle::pose = 0;
+base::samples::RigidBodyState* PoseParticle::pose = 0;
 
 ParticleLocalization::ParticleLocalization(const FilterConfig& config) 
-    : ParticleFilter<PoseSlamParticle>(), filter_config(config),
+    : ParticleFilter<PoseParticle>(), filter_config(config),
     StaticSpeedNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_speed_covariance)),
-    StaticMotionNoise(Random::multi_gaussian(Eigen::Vector3d(0.0, 0.0, 0.0), config.static_motion_covariance)),
     perception_history_sum(0.0),
     sonar_debug(0)
 {
     first_perception_received = false;
-    PoseSlamParticle::pose = &vehicle_pose;
+    PoseParticle::pose = &vehicle_pose;
     utm_origin = base::Vector3d::Zero();
     utm_origin[0] = -1;
-    dynamic_model = 0;
-    max_features_per_cell = 0;
 }
 
 ParticleLocalization::~ParticleLocalization()
 { 
-  if(filter_config.advanced_motion_model){
-    delete dynamic_model;
-    dynamic_model = 0;
-  }
+
 }
 
-
-UwVehicleParameter ParticleLocalization::VehicleParameter(FilterConfig filter_config)
-{
-    UwVehicleParameter p;
-
-    p.Length = filter_config.param_length;
-    p.Radius = filter_config.param_radius;
-    p.Mass = filter_config.param_mass;
-
-    p.ThrusterCoefficient << filter_config.param_thrusterCoefficient[0], filter_config.param_thrusterCoefficient[1], filter_config.param_thrusterCoefficient[2],
-		  filter_config.param_thrusterCoefficient[3], filter_config.param_thrusterCoefficient[4], filter_config.param_thrusterCoefficient[5];
-		  
-    p.LinearThrusterCoefficient << filter_config.param_linearThrusterCoefficient[0], filter_config.param_linearThrusterCoefficient[1],
-				    filter_config.param_linearThrusterCoefficient[2],  filter_config.param_linearThrusterCoefficient[3],
-				    filter_config.param_linearThrusterCoefficient[4], filter_config.param_linearThrusterCoefficient[5];
-		  
-    p.SquareThrusterCoefficient << filter_config.param_squareThrusterCoefficient[0], filter_config.param_squareThrusterCoefficient[1],
-				    filter_config.param_squareThrusterCoefficient[2],  filter_config.param_squareThrusterCoefficient[3],
-				    filter_config.param_squareThrusterCoefficient[4],  filter_config.param_squareThrusterCoefficient[5];
-    p.ThrusterVoltage = filter_config.param_thrusterVoltage;
-    
-    p.TCM = MatrixTCM::Zero();    
-    for(int i=0; i<3;i++){
-      for(int j=0; j<6;j++){
-	p.TCM(j,i) = filter_config.param_TCM[i*6+j];
-      }
-    }     
-
-    /*
-    p.TCM << 0.0, 0.0, 1.0, // 0.0, -0.92, 0.0, // HEAVE
-             0.0, 0.0, 1.0, //0.0, 0.205, 0.0, // HEAVE
-             1.0, 0.0, 0.0, //0.0, 0.0, -0.17, // SURGE
-             1.0, 0.0, 0.0, //0.0, 0.0, 0.17, // SURGE
-             0.0, 1.0, 0.0, //0.0, 0.0, -0.81, // SWAY
-             0.0, 1.0, 0.0; //0.0, 0.0, 0.04;  // SWAY
-    */
-             
-    p.DampingX << filter_config.param_sqDamp(0,0) , filter_config.param_linDamp(0,0);
-    p.DampingY << filter_config.param_sqDamp(1,1) , filter_config.param_linDamp(1,1);
-    p.DampingZ << filter_config.param_sqDamp(2,2) , filter_config.param_linDamp(2,2);
-    p.floating = filter_config.param_floating;
-        
-    return p;
-}
-
-void ParticleLocalization::init_slam(NodeMap *map){
-  
-  dp_slam.init( base::Vector2d(-map->getTranslation().x(), -map->getTranslation().y() ),
-                              base::Vector2d(map->getLimitations().x(), map->getLimitations().y() ),
-                filter_config.feature_grid_resolution , filter_config);
-  
-  dp_slam.initalize_statics(map);
-  
-  
-}
 
 
 void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, const Eigen::Vector3d& var, double yaw, double yaw_cov)
@@ -105,13 +44,13 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     UniformRealRandom pos_z = Random::uniform_real(pos.z() - var1.z() * 0.5, pos.z() + var1.z() * 0.5 );
 
     bool first_init = true; //Is this the first time, the initialization is called
-    PoseSlamParticle best; // Best particle
+    PoseParticle best; // Best particle
     
     //We already have particles -> the filter was initialized before
     if(particles.size() > 0){
       first_init = false;
       
-      particles.sort(compare_particles<PoseSlamParticle>);
+      particles.sort(compare_particles<PoseParticle>);
       best = particles.front();
      
     }
@@ -121,16 +60,9 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     perception_history_sum = 0.0;
 
     for(int i = 0; i < numbers; i++) {
-        PoseSlamParticle pp;
+        PoseParticle pp;
         pp.p_position = base::Vector3d(pos_x(), pos_y(), pos_z());
         pp.p_velocity = base::Vector3d(0.0, 0.0, 0.0);
-        
-        //We already have used particles -> use the best map for the new particles
-        if(!first_init){
-          pp.depth_cells = best.depth_cells;
-          pp.obstacle_cells = best.obstacle_cells;
-          
-        }
         
         pp.main_confidence = 1.0 / numbers;
         pp.valid = true;
@@ -157,119 +89,14 @@ void ParticleLocalization::initialize(int numbers, const Eigen::Vector3d& pos, c
     best_sonar_measurement.confidence = 0.0;
     lastActuatorTime = base::Time();
     
-    if(filter_config.advanced_motion_model){
-      
-      underwaterVehicle::Parameters params = initializeDynamicModel(VehicleParameter(filter_config), filter_config);
-      dynamic_model = new underwaterVehicle::DynamicModel(0.1, 5, 0.0, NULL, 12, 6);
-      dynamic_model->init_param(params);
-      dynamic_model_params = params;
-    }else{      
-      motion_model.init(VehicleParameter(filter_config));
-    }
 }
 
-underwaterVehicle::Parameters ParticleLocalization::initializeDynamicModel(UwVehicleParameter p, FilterConfig filter_config){
-  
-  underwaterVehicle::Parameters params;
-  
-  params.uwv_mass = p.Mass;
-  params.uwv_volume = M_PI*std::pow(p.Radius,2.0)*p.Length;
-  params.uwv_float =filter_config.param_floating;
-  
-  params.distance_body2centerofbuoyancy = filter_config.param_centerOfBuoyancy;
-  params.distance_body2centerofgravity = filter_config.param_centerOfGravity;
-  
-  params.waterDensity = kWaterDensity;
-  params.gravity = kGravity;
-  
-  params.thrusterVoltage = p.ThrusterVoltage;
-  
-  params.thruster_coefficients_pwm = filter_config.param_thrusterCoefficient;
-  params.linear_thruster_coefficients_pwm = filter_config.param_linearThrusterCoefficient;
-  params.square_thruster_coefficients_pwm = filter_config.param_squareThrusterCoefficient;
-  
-  //double values[] = {7.48,0,0,0,0,0,  0,16.29,0,0,0,0,  0,0,16.29,0,0,0,  0,0,0,0.61,0,0,  0,0,0,0,1.67,0,  0,0,0,0,0,1.67};
-  //params.mass_matrix = std::vector<double>(values, values + sizeof(values)/sizeof(double));
-  
-  base::Matrix6d mass_matrix = base::Matrix6d::Zero(); 
-    
-  //Setting index (1,1) = inertia mass + added mass
-  //inertia mass = mass; added mass = 0.1 * mass
-  mass_matrix(0,0) = filter_config.param_mass + 0.1 * filter_config.param_mass; 
-  
-  //Setting index (2,2)
-  //inertia mass = mass; added mass = waterdensity * PI * radius^2 * length 
-  mass_matrix(1,1) = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
-  
-  //Setting index (3,3)
-  //inertia mass = mass; added mass = waterdensity * PI * radius^2 * length 
-  mass_matrix(2,2) = filter_config.param_mass + M_PI * std::pow(filter_config.param_radius,2.0) * kWaterDensity * filter_config.param_length;
-  
-  //Setting index (4,4) -> Roll
-  //inertia mass = mass; added mass = 0 
-  mass_matrix(3,3) = filter_config.param_mass;
-  
-  //Setting index (5,5) -> Pitch
-  //inertia mass = mass; added mass = 1/12 * pi * waterdensity * radius^2 * length^3
-  mass_matrix(4,4) =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0); 
-
-    //Setting index (6,6) -> Yaw
-  //inertia mass = mass; added mass = 1/12 * pi * waterdensity * radius^2 * length^3
-  mass_matrix(5,5) =  filter_config.param_mass + (1.0/12.0) * M_PI * kWaterDensity * std::pow(filter_config.param_radius,2.0) * std::pow(filter_config.param_length,3.0);
-  
-  filter_config.param_mass = p.Mass; 
-  params.massMatrix = mass_matrix;
-  params.massMatrixNeg = mass_matrix;
-
-  //Damping Coefficients
-  params.linDampMatrix = base::Matrix6d::Zero();
-  params.linDampMatrixNeg = base::Matrix6d::Zero();
-  params.quadDampMatrix = base::Matrix6d::Zero();
-  params.quadDampMatrixNeg = base::Matrix6d::Zero();
-  
-  params.linDampMatrix = filter_config.param_linDamp;
-  params.linDampMatrixNeg = filter_config.param_linDampNeg;
-  params.quadDampMatrix = filter_config.param_sqDamp;
-  params.quadDampMatrixNeg = filter_config.param_sqDampNeg;  
-    
-  //Initialize Thruster mapping
-  params.number_of_thrusters = 6;
-  
-  params.thruster_control_matrix.clear();
-  params.thruster_control_matrix.resize(36,0.0);
-  //Filling thruster controll matrix
-  //Change coefficients from line-wise to col-wise
-  for(int i=0; i<6; i++){
-    for(int j=0; j<6; j++){
-      params.thruster_control_matrix[i*6+j] = filter_config.param_TCM[j*6+i];
-    }
-  }  
-  
-  params.sim_per_cycle = 5;
-  params.plant_order = 12; //3 directions, 3 orientation angles, 3 linear velocities, 3 angular velocities
-  params.ctrl_order = 6; //6 thruster inputs
-  params.samplingtime = 0.1;  
-  
-  //Setting inital position
-  params.initial_condition[0] = filter_config.init_position[0];
-  params.initial_condition[1] = filter_config.init_position[1];
-  params.initial_condition[2] = filter_config.init_position[2];
-  
-  //Initial orientation and speed is 0
-  for(int i=3;i<12;i++)
-    params.initial_condition[i] = 0.0;
-  
-  params.initial_time = 0.0;
-  
-  return params;  
-}
 
 void ParticleLocalization::updateConfig(const FilterConfig& config){
   filter_config = config;
-  dp_slam.update_config(config);
 }
 
-void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::RigidBodyState& U, const NodeMap& map)
+void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBodyState& U, const NodeMap& map)
 {
     base::Vector3d v_noisy;
     base::Vector3d u_velocity;
@@ -303,166 +130,7 @@ void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::Rig
     X.p_position.z() = vehicle_pose.position.z();
 }
 
-void ParticleLocalization::dynamic(PoseSlamParticle& X, const base::samples::Joints& Ut, const NodeMap& map)
-{
-    Vector6d Xt;
-    base::Time sample_time = Ut.time;
-    
-    used_dvl = false;
-    
-    if(sample_time.isNull())
-      sample_time=base::Time::now();
-    
-    if( !X.timestamp.isNull() ) {
-        double dt = (sample_time - X.timestamp).toSeconds();
-	
-	if(dt < 5.0){ //Only use dynamic_model for small timesteps, to prevent an overflow
-	
-	  base::Vector3d v_noisy;
-	  base::Vector3d u_velocity;
 
-	    if(filter_config.pure_random_motion) {
-		u_velocity = base::Vector3d(0.0, 0.0, 0.0);
-	    }else if(filter_config.advanced_motion_model){	  	  
-
-              //UPdate motion model
-	      dynamic_model->setPosition(X.p_position);
-	      dynamic_model->setLinearVelocity(X.p_velocity);
-              dynamic_model->setAngularVelocity(base::Vector3d::Zero());
-              dynamic_model->setOrientation(vehicle_pose.orientation);
-	      dynamic_model->setSamplingtime(dt);
-	      dynamic_model->setPWMLevels(Ut);	
-	      
-	      u_velocity = dynamic_model->getLinearVelocity();
-	      
-	    }else{  
-	      Xt << X.p_velocity.x(), X.p_velocity.y(), X.p_velocity.z(), 
-		  X.p_position.x(), X.p_position.y(), X.p_position.z();
-
-		Vector6d V = motion_model.transition(Xt, dt, Ut);
-
-		u_velocity = V.block<3, 1>(0, 0);	   
-	    }   
-	  
-	  //Motion noise. Noise depends on the delta-time. For a long time intervall, there is more noise
-	  v_noisy = u_velocity + (StaticMotionNoise() * dt); 
-
-	  base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
-	  
-	  if(vehicle_pose.hasValidOrientation() && !std::isnan(v_avg[0]) && !std::isnan(v_avg[1]) 
-		  && base::samples::RigidBodyState::isValidValue(v_noisy) ){
-            
-            base::Vector3d pos = X.p_position + vehicle_pose.orientation * (v_avg * dt);
-          
-            //Only exept new position, if new position is part of world
-            if(map.belongsToWorld(pos)){
-              X.p_position = pos;
-            }
-            else{
-              X.valid = false; //Particle left world, something went wrong
-            }
-            
-	    X.p_velocity = v_noisy;
-          
-          //Cut off velocity ddift
-          for(int i = 0; i < 3; i++){
-            
-            if(X.p_velocity[i] < motion_pose.velocity[i] - filter_config.max_velocity_drift)
-              X.p_velocity[i] = motion_pose.velocity[i] - filter_config.max_velocity_drift;
-            
-            if(X.p_velocity[i] > motion_pose.velocity[i] + filter_config.max_velocity_drift)
-              X.p_velocity[i] = motion_pose.velocity[i] + filter_config.max_velocity_drift;
-            
-          }        
-          
-          
-        }
-      }
-    }
-    
-    X.p_position.z() = vehicle_pose.position.z();
-    X.timestamp = sample_time;
-}
- 
-
-void ParticleLocalization::update_dead_reckoning(const base::samples::Joints& Ut)
-{   
-    base::Time sample_time = Ut.time;
-    if(sample_time.isNull())
-      sample_time = base::Time::now(); 
-    
-    if( !lastActuatorTime.isNull() ) {
-        Vector6d Xt;
-	base::Vector3d u_t1;
-	double dt = (Ut.time - lastActuatorTime).toSeconds();
-	
-	if(dt < 5.0 && dt >= 0.0){
-	  
-	  if(filter_config.advanced_motion_model){
-		      
-	    //std::cout << "Velocity: " << motion_pose.velocity[0] << " " << motion_pose.velocity[1] << std::endl;
-	    dynamic_model->setPosition(motion_pose.position);
-	    dynamic_model->setLinearVelocity(motion_pose.velocity);
-	    dynamic_model->setAngularVelocity(base::Vector3d::Zero());
-	    dynamic_model->setOrientation(vehicle_pose.orientation);
-	    dynamic_model->setSamplingtime(dt);
-	    
-	    dynamic_model->setPWMLevels(Ut);	   
-	    
-	    u_t1 = dynamic_model->getLinearVelocity();	
-	    
-	    //Full dead reckoning
-	    dynamic_model->setPosition(full_motion_pose.position);
-	    dynamic_model->setLinearVelocity(full_motion_pose.velocity);
-	    dynamic_model->setAngularVelocity(full_motion_pose.angular_velocity);
-	    dynamic_model->setOrientation(full_motion_pose.orientation);
-	    
-	    dynamic_model->setPWMLevels(Ut);
-	    
-	    full_motion_pose.position = dynamic_model->getPosition();
-	    full_motion_pose.velocity = dynamic_model->getLinearVelocity();
-	    full_motion_pose.angular_velocity = dynamic_model->getAngularVelocity();
-	    full_motion_pose.orientation = dynamic_model->getOrientation_in_Quat();
-	    full_motion_pose.time = Ut.time;
-	    
-	    
-	    //std::cout << "new Velocity: " << u_t1[0] << " " << u_t1[1] << std::endl ;
-	  }else{
-	    
-	    Xt.block<3,1>(0,0) = motion_pose.velocity;
-	    Xt.block<3,1>(3,0) = base::Vector3d(0.0, 0.0, 0.0);
-	    
-	    Vector6d V = motion_model.transition(Xt, dt, Ut);
-	    u_t1 = V.block<3,1>(0,0);	   
-	  }
-
-	  base::Vector3d v_avg = (motion_pose.velocity + u_t1) / 2.0;
-	  
-	  if(base::samples::RigidBodyState::isValidValue(u_t1) && vehicle_pose.hasValidOrientation() && vehicle_pose.hasValidVelocity()){
-	    
-	    motion_pose.position = motion_pose.position + vehicle_pose.orientation * (v_avg * dt);
-	    motion_pose.velocity = u_t1;	 
-	  
-	  }else{
-	    std::cout << "Error in motion_model. Velocity or orientation is unset." << std::endl;
-	    if(!vehicle_pose.hasValidOrientation())
-	      std::cout << "Invalid orientation" << std::endl;
-	  }
-	}else{
-          std::cout << "Timestampdifference between thruster-samples to big or negative" << std::endl;
-          std::cout << "Last: " << lastActuatorTime << " actual: " << Ut.time << std::endl; 
-	}
-	
-    } 
-    
-    lastActuatorTime = sample_time;
-    motion_pose.time = base::Time::now();
-    
-    motion_pose.velocity.z() = vehicle_pose.velocity.z();
-    vehicle_pose.velocity.x() = motion_pose.velocity.x();
-    vehicle_pose.velocity.y() = motion_pose.velocity.y();
-    
-}
 
 
 
@@ -514,35 +182,6 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
 }
 
 
-double ParticleLocalization::observeAndDebug(const sonar_detectors::ObstacleFeatures& z, NodeMap& m, double importance)
-{
-    zeroConfidenceCount = 0;
-    measurement_incomplete = false;
-    
-    double effective_sample_size;
-    
-    if(filter_config.use_markov)
-      effective_sample_size = observe_markov(z, m, importance);
-    else      
-      effective_sample_size = observe(z, m, importance);
-    
-    best_sonar_measurement.time = z.time;
-
-    sonar_debug->write(best_sonar_measurement);
-
-    if(best_sonar_measurement.status == OKAY)
-        addHistory(best_sonar_measurement);
-
-    best_sonar_measurement.confidence = -1.0;
-    
-    if(zeroConfidenceCount > 0 && filter_config.filterZeros)
-      filterZeros();
-
-    if(measurement_incomplete)
-      return INFINITY; //If we have no complete meassurement, we do not want to resample!!!
-    
-    return effective_sample_size;
-}
 
 
 
@@ -590,7 +229,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState
 
 
 
-double ParticleLocalization::perception(PoseSlamParticle& X, const base::samples::LaserScan& Z, NodeMap& M)
+double ParticleLocalization::perception(PoseParticle& X, const base::samples::LaserScan& Z, NodeMap& M)
 {
     uw_localization::PointInfo info;
     info.time = X.timestamp;
@@ -676,191 +315,9 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const base::samples
     return probability;
 }
 
-double ParticleLocalization::perception(PoseSlamParticle& X, const sonar_detectors::ObstacleFeatures& Z, NodeMap& M){
- 
-    //Check if particle is part of the map
-    if(!M.belongsToWorld(X.p_position)) {
-        debug(0.0, X.p_position, 0.0, NOT_IN_WORLD);
-        zeroConfidenceCount++;
-        return 0.0;
-    }  
-  
-  //Check if there are valid features
-  if(Z.features.empty()){
-   
-     double p = X.main_confidence;
-     debug(0.0, X.p_position, p, OUT_OF_RANGE);
-     return p;
-  }
-  
-  if(filter_config.use_slam){
-    double val = dp_slam.observe(X, Z, base::getYaw(vehicle_pose.orientation), vehicle_pose.position.z());
-        
-    if(!filter_config.use_mapping_only){
-    
-      if(val == 0.0)
-        return X.main_confidence;
-      
-      return val;
-    }
-  }
-  
-  
-    double angle = Z.angle;
-    double yaw = base::getYaw(vehicle_pose.orientation);
-    // Sonar transformations
-    Eigen::AngleAxis<double> sonar_yaw(angle, Eigen::Vector3d::UnitZ()); 
-    Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());    
-    Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);  
-  
-  
-  bool valid_range = false;
-  bool valid_map = false;
-  std::list<double> distance_diffs;
-  std::list<PointStatus> states;
-  std::list< boost::tuple<Node*, double, Eigen::Vector3d> > distances;
-  std::list<double> z_distances;
-  std::list<base::Vector3d> z_points;
-  
-  //Calculate perception for every feature
-  for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it = Z.features.begin(); it != Z.features.end(); it++){
-    
-    //If the confidence is zero, ignore feature
-    if(it->confidence <= 0.0)
-      continue;
-    
-    double z_distance = it->range / 1000.0;
-    
-    // check if current laser scan is in a valid range
-    if(z_distance == base::samples::TOO_FAR 
-            || z_distance > filter_config.sonar_maximum_distance 
-            || z_distance < filter_config.sonar_minimum_distance)
-    {
-        continue;
-    }    
-    
-    //At least, on feature is in valid range
-    valid_range = true;
-    
-    Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(z_distance, 0.0, 0.0);
-    Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + X.p_position;
-    
-    //Calculate perception model
-    boost::tuple<Node*, double, Eigen::Vector3d> distance = M.getNearestDistance("root.wall", AbsZ, X.p_position);
-    boost::tuple<Node*, double, Eigen::Vector3d> distance_box = M.getNearestDistance("root.box",
-                                  Eigen::Vector3d(0.0, filter_config.sonar_vertical_angle/2.0, yaw + angle), X.p_position);
-    
-    double dist_diff = std::fabs(z_distance - distance.get<1>());
-    double dist_diff_box = std::fabs(z_distance - distance_box.get<1>());
-    
-    if(distance.get<1>() == INFINITY && distance_box.get<1>() == INFINITY)
-      continue;
-    
-    //At least one feature can be modeled
-    valid_map = true;
-    
-    //Select best modeled perception
-    if(dist_diff > dist_diff_box){
-      distance_diffs.push_back(dist_diff_box);
-      states.push_back(OBSTACLE);
-      distances.push_back(distance_box);
-    }
-    else{
-      distance_diffs.push_back(dist_diff);
-      states.push_back(OKAY);
-      distances.push_back(distance);
-    }      
-
-      z_distances.push_back(z_distance);
-      z_points.push_back(AbsZ);
-
-  }
-  
-  //There were no valid features
-  if(!valid_range){
-     double p = X.main_confidence;
-     debug(0.0, X.p_position, p, OUT_OF_RANGE);
-     return p;    
-  }
-  
-  //No features could be modeled
-  if(!valid_map){
-      measurement_incomplete = true;
-      debug(0.0, X.p_position, X.main_confidence, MAP_INVALID);
-      return X.main_confidence;    
-    
-  }  
-  
-  double best_diff = INFINITY;
-  PointStatus best_state = OKAY;
-  boost::tuple<Node*, double, Eigen::Vector3d> best_distance(0, 0, Eigen::Vector3d::Zero()) ;
-  double best_z = INFINITY;
-  base::Vector3d best_zPoint;
-  
-  //Select feature with the lowest modeled difference
-  std::list<PointStatus>::iterator state_it = states.begin();
-  std::list< boost::tuple<Node*, double, Eigen::Vector3d> >::iterator dist_it= distances.begin();
-  std::list< double>::iterator it_z = z_distances.begin();
-  std::list<base::Vector3d>::iterator it_zpoint = z_points.begin();
-  for(std::list<double>::iterator it = distance_diffs.begin(); it != distance_diffs.end(); it++, state_it++, dist_it++, it_z++, it_zpoint++){
-    if(*it < best_diff){
-      best_diff = *it;
-      best_state = *state_it;
-      best_distance = *dist_it;
-      best_z = *it_z;
-      best_zPoint = *it_zpoint;
-    }
-    
-  }  
-  
-  //Rate the best feature
-  double probability;
-  
-  if(filter_config.use_best_feature_only){ //Rate only the best feature
-    probability = gaussian1d(0.0, filter_config.sonar_covariance, best_diff);
-  }  
-  else{ //Rate all features, multiply probabilities
-    
-    probability = 1.0;
-    
-    for(std::list<double>::iterator it = distance_diffs.begin(); it != distance_diffs.end(); it++){
-      probability *= gaussian1d(0.0, filter_config.sonar_covariance, *it);      
-    }    
-  }
-    
-  debug(best_z, best_distance.get<1>() ,angle + yaw  ,best_distance.get<2>(), best_zPoint, X.p_position, probability, best_state);
-  
-  first_perception_received = true;
-  
- return probability; 
-}
 
 
-
-double ParticleLocalization::perception(PoseSlamParticle& X, const controlData::Pipeline& Z, NodeMap& M) 
-{
-    double yaw = base::getYaw(vehicle_pose.orientation);
-    Eigen::AngleAxis<double> abs_yaw(yaw, Eigen::Vector3d::UnitZ());
-
-    Eigen::Vector3d AbsZ = (abs_yaw * filter_config.pipelineToAvalon) + X.p_position;
-
-    boost::tuple<Node*, double, Eigen::Vector3d> distance;
-    if(Z.inspection_state == controlData::END_OF_PIPE){
-        distance = M.getNearestDistance("root.end_of_pipe", AbsZ, X.p_position);
-	
-    }else if(Z.inspection_state == controlData::FOUND_PIPE || Z.inspection_state == controlData::FOLLOW_PIPE || Z.inspection_state){
-        distance = M.getNearestDistance("root.pipeline", AbsZ, X.p_position);
-    }
-
-    double probability = gaussian1d(0.0, filter_config.pipeline_covariance, distance.get<1>());
-    
-    first_perception_received = true;
-
-    return probability;
-}
-
-
-double ParticleLocalization::perception(PoseSlamParticle& X, const base::Vector3d& Z, NodeMap& M)
+double ParticleLocalization::perception(PoseParticle& X, const base::Vector3d& Z, NodeMap& M)
 {
     Eigen::Matrix<double,2,1> pos;
     pos << X.p_position[0] , X.p_position[1];
@@ -887,41 +344,7 @@ double ParticleLocalization::perception(PoseSlamParticle& X, const base::Vector3
     return probability;
 }
 
-double ParticleLocalization::perception(PoseSlamParticle& X, const avalon::feature::Buoy& Z, NodeMap& M){
   
-  Eigen::Vector3d cameraInWorld = X.p_position + (vehicle_pose.orientation * filter_config.buoyCamPosition);
-  Eigen::Vector3d buoyToCam = vehicle_pose.orientation * (filter_config.buoyCamRotation * Z.world_coord);
-  Eigen::Vector3d buoyInWorld = cameraInWorld + buoyToCam;
-  
-  double distance = M.getNearestDistance("root.buoy", buoyInWorld, X.p_position).get<1>();
-  
-  double probability = gaussian1d(0.0, filter_config.buoy_covariance, distance);
-  
-  first_perception_received = true;
-  
-  return probability;
-}
-
-
-double ParticleLocalization::perception(PoseSlamParticle& X, const double& Z, DepthObstacleGrid& M){
-
-  if(filter_config.use_slam && (!filter_config.single_depth_map) )
-    dp_slam.observe(X, Z);
-  
-  if(!filter_config.use_slam && filter_config.use_initial_depthmap){
-    
-    double depth = M.getDepth(X.p_position.x(), X.p_position.y());
-    
-    if(!isnan(depth)){
-      
-      return gaussian1d(0.0, filter_config.echosounder_variance, depth - Z);
-    }
-    
-  }    
-  
-  return X.main_confidence;
-  
-}  
   
 void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
 {
@@ -948,12 +371,6 @@ uw_localization::Stats ParticleLocalization::getStats() const
     stats.effective_sample_size = effective_sample_size;
     stats.particle_generation = generation;
     stats.used_dvl = used_dvl;
-    stats.max_features_per_cell = max_features_per_cell;
-    
-    if(particles.size() > 0){
-      stats.obstacle_features_per_particle = particles.front().obstacle_cells.size();
-      stats.depth_features_per_particle = particles.front().depth_cells.size();
-    }
       
     return stats;
 }
@@ -962,8 +379,8 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
 {
     reduceParticles(1.0 - ratio);
 
-    PoseSlamParticle best = particles.front();
-    PoseSlamParticle worst = particles.back();
+    PoseParticle best = particles.front();
+    PoseParticle worst = particles.back();
     
     base::Vector3d limit = m.getLimitations();
     MultiNormalRandom<3> Pose = Random::multi_gaussian<3>(p.position, p.cov_position);
@@ -972,7 +389,7 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
     int count = 0;
     
     for(size_t i = particles.size(); i < filter_config.particle_number; i++) {
-        PoseSlamParticle pp;
+        PoseParticle pp;
         
         if(random_uniform){
           pp.p_position[0] = pos_x();
@@ -985,11 +402,6 @@ void ParticleLocalization::interspersal(const base::samples::RigidBodyState& p, 
         pp.p_velocity = best.p_velocity;
         pp.p_position[2] = best.p_position[2];
         
-        if(filter_config.use_slam){
-        
-          pp.depth_cells = best.depth_cells;
-          pp.obstacle_cells = best.obstacle_cells;
-        }
           
         pp.main_confidence = worst.main_confidence / 10000.0; //Choose a realy small value
         
@@ -1136,12 +548,6 @@ void ParticleLocalization::setCurrentDepth(const base::samples::RigidBodyState& 
   
 }
 
-void ParticleLocalization::setThrusterVoltage(double voltage){
-  if(filter_config.advanced_motion_model)
-    dynamic_model->setThrusterVoltage(voltage);
-  else
-    motion_model.setThrusterVoltage(voltage); 
-}
 
 
 double ParticleLocalization::angleDiffToCorner(double sonar_orientation, base::Vector3d position, Environment* env){
@@ -1182,7 +588,7 @@ void ParticleLocalization::filterZeros(){
     UniformRealRandom pos_z = Random::uniform_real(pos.z() - var.z() * 0.5, pos.z() + var.z() * 0.5 );  
   
     int count = 0;
-    std::list<PoseSlamParticle>::iterator it;
+    std::list<PoseParticle>::iterator it;
     for(it = particles.begin(); it != particles.end(); ++it) {
         
       //if particle is outside the map, calculate new random position
@@ -1197,163 +603,6 @@ void ParticleLocalization::filterZeros(){
 }
 
 
-void ParticleLocalization::setObstacles(const sonar_detectors::ObstacleFeatures& z, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs){
-  
-  //std::cout << "Set obstacles" << std::endl;
-  
-  Eigen::AngleAxis<double> sonar_yaw(z.angle, Eigen::Vector3d::UnitZ()); 
-  Eigen::AngleAxis<double> abs_yaw(rbs.getYaw(), Eigen::Vector3d::UnitZ());
-  Eigen::Affine3d SonarToAvalon(filter_config.sonarToAvalon);
-  
-  std::vector<Eigen::Vector2d> grid_cells = m.getGridCells( Eigen::Vector2d( rbs.position.x(), rbs.position.y()), z.angle + rbs.getYaw()
-                                                          , filter_config.sonar_minimum_distance, filter_config.feature_observation_range, false);
-  
-  //std::cout << "Got " << grid_cells.size() << " grid cells" << std::endl;
-  for(std::vector<sonar_detectors::ObstacleFeature>::const_iterator it = z.features.begin(); it != z.features.end(); it++){
-    
-    double distance = it->range / 1000.0;
-    
-    if(filter_config.feature_filter_threshold > 0.0 && it->confidence < filter_config.feature_filter_threshold)
-      continue;
-    
-    if(distance > filter_config.sonar_maximum_distance || distance < filter_config.sonar_minimum_distance
-      || distance < filter_config.feature_observation_minimum_range)
-      continue;
-    
-    Eigen::Vector3d RelativeZ = sonar_yaw * SonarToAvalon * base::Vector3d(distance , 0.0, 0.0);
-    Eigen::Vector3d AbsZ = (abs_yaw * RelativeZ) + rbs.position;
-    
-    
-    //std::cout << "obstacle: " << AbsZ.transpose() << std::endl;
-    m.setObstacle(AbsZ.x(), AbsZ.y(), true, filter_config.feature_confidence);
-    
-    base::Vector2d z_temp = m.getGridCoord(AbsZ.x(), AbsZ.y()); //Grid cell of the observation
-    
-    //Remove all corresponding cells
-    for(std::vector<Eigen::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
-      
-      if(z_temp == *it_grid){
-        it_grid = grid_cells.erase(it_grid);
-        
-        if(it_grid == grid_cells.end())
-          break;
-        
-      }
-      
-    } 
-  }
-    
-  //Remove not observed obstacles from map
-  //std::cout << grid_cells.size() << " grid cells left after filtering" << std::endl;
-  for(std::vector<Eigen::Vector2d>::iterator it_grid = grid_cells.begin(); it_grid != grid_cells.end(); it_grid++){
-    //std::cout << "Remove obstacle: " << it_grid->transpose() << std::endl;
-    m.setObstacle(it_grid->x(), it_grid->y(), false, filter_config.feature_empty_cell_confidence); 
-    
-  }  
-  
-  //m.reduce_weights(1.0 / (360.0* 8.0));
-}
-
-void ParticleLocalization::setDepth(const double &depth, DepthObstacleGrid& m, const base::samples::RigidBodyState& rbs){
-  
-  m.setDepth(rbs.position.x(), rbs.position.y(), depth, filter_config.echosounder_variance + rbs.cov_position(0,0) );
-  
-}
-
-
-void ParticleLocalization::observeDepth(const Eigen::Vector3d &pose, const Eigen::Matrix3d pos_covar, double depth){
-  dp_slam.observeDepth(pose, pos_covar, depth);
-}
-
-base::samples::Pointcloud ParticleLocalization::getPointCloud(){
-  
-  base::samples::Pointcloud pc;
-  
-  if(filter_config.use_slam){
-    
-    double best_conf = 0.0;
-    double best_invalid_conf = -1.0;
-    std::list<PoseSlamParticle>::iterator best_it = particles.begin();
-    std::list<PoseSlamParticle>::iterator best_invalid_it = particles.begin();
-    
-    //Search for best particle
-    //If all particles are invalid, select best invalid particle 
-    for(std::list<PoseSlamParticle>::iterator it = particles.begin(); it != particles.end(); it++){
-      
-      if(it->main_confidence > best_conf && it->valid){
-        best_conf = it->main_confidence;
-        best_it = it;
-        
-      }else if(!it->valid && it->main_confidence > best_invalid_conf){
-        
-        best_invalid_conf = it->main_confidence;
-        best_invalid_it = it;
-        
-      }      
-      
-    }
-    
-    //We need a valid particle
-    if(best_conf > 0.0){
-      //std::cout << "GetCloud" << std::endl;
-      //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
-      pc = dp_slam.getCloud(*best_it);
-    }
-    else if(best_invalid_conf > -1.0){
-      pc = dp_slam.getCloud(*best_invalid_it);
-    }
-    
-  }
-  
-  return pc; 
-  
-}
-
-
-void ParticleLocalization::getSimpleGrid(uw_localization::SimpleGrid &grid){
-  
-    
-  if(filter_config.use_slam){
-    
-    double best_conf = 0.0;
-    double best_invalid_conf = -1.0;
-    std::list<PoseSlamParticle>::iterator best_it = particles.begin();
-    std::list<PoseSlamParticle>::iterator best_invalid_it = particles.begin();
-    
-    //Search for best particle
-    //If all particles are invalid, select best invalid particle 
-    for(std::list<PoseSlamParticle>::iterator it = particles.begin(); it != particles.end(); it++){
-      
-      if(it->main_confidence > best_conf && it->valid){
-        best_conf = it->main_confidence;
-        best_it = it;
-        
-      }else if(!it->valid && it->main_confidence > best_invalid_conf){
-        
-        best_invalid_conf = it->main_confidence;
-        best_invalid_it = it;
-        
-      }      
-      
-    }
-    
-    //We need a valid particle
-    if(best_conf > 0.0){
-      //std::cout << "GetCloud" << std::endl;
-      //std::cout << "Depth: " << best_it->depth_cells.size() << " ,Obstacles: " << best_it->obstacle_cells.size() << std::endl;
-      max_features_per_cell = dp_slam.getSimpleGrid(*best_it, grid);
-    }
-    else if(best_invalid_conf > -1.0){
-      max_features_per_cell = dp_slam.getSimpleGrid(*best_invalid_it, grid);
-    }else if(particles.size() > 0){
-      max_features_per_cell = dp_slam.getSimpleGrid(particles.front(), grid);
-    }
-    
-  }
-  
-  grid.time = vehicle_pose.time;
-   
-}
 
 
 }
