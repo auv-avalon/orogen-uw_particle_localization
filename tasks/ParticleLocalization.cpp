@@ -113,7 +113,7 @@ void ParticleLocalization::dynamic(PoseParticle& X, const base::samples::RigidBo
 
       base::Vector3d v_avg = (X.p_velocity + v_noisy) / 2.0;
       
-      base::Vector3d pos = X.p_position + vehicle_pose.orientation * (v_avg * dt);
+      base::Vector3d pos = X.p_position + (v_avg * dt);
       
       if(map.belongsToWorld(pos)){      
         X.p_position = pos;
