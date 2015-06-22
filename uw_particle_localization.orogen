@@ -61,17 +61,17 @@ task_context "Task" do
 
    input_port("pose_update", "/base/samples/RigidBodyState").
         doc("position samples from another localization").
-        needs_reliable_connection
-        
-   input_port("gps_pose_samples", "/base/samples/RigidBodyState").
-	doc("Position Information estimated by GPS").
-	needs_reliable_connection	
+        needs_reliable_connection	
 	  
     input_port("orientation_samples", "/base/samples/RigidBodyState").
 	  doc("current orientation of the vehicle").
 	  needs_reliable_connection
 	  
-
+   input_port("usbl_pose_samples", "/base/samples/RigidBodyState").
+	doc("Usbl position information")
+	
+   input_port("usbl_angle_samples", "uw_localization/AngleWithTimestamp").
+	doc("Dummy port for usbl angle information")
           
 
    
@@ -118,12 +118,6 @@ task_context "Task" do
 
    property("yaml_map", "/std/string").
 	doc("start map for localization algorithm")
-	
-   property("yaml_depth_map", "/std/string").
-        doc("Start depth map")
-        
-   property("yaml_depth_output_map", "/std/string").
-        doc("Save the depth map in this file")
 
    property("sonar_maximum_distance", "double", 20.0).
         doc("set maximum distance for filtering sonar samples")
@@ -133,12 +127,6 @@ task_context "Task" do
 
    property("sonar_covariance", "double", 2.0).
         doc("sets sonar covariance for defining measurement uncertainty")
-
-   property("pipeline_covariance", "double", 1.0).
-        doc("sets pipeline covariance for defining measurement uncertainty")
-        
-   property("buoy_covariance", "double", 1.0).
-	doc("set buoy detetction covariance for defining measurement uncertainty")
 
    property("pure_random_motion", "bool", false).
         doc("ignore velocity in speed samples for dynamic update")
@@ -151,9 +139,12 @@ task_context "Task" do
 
    property("sonar_importance", "double", 1.0).
 	doc("sets importance ratio for sonar perception updates")
-
-   property("pipeline_importance", "double", 0.5).
-        doc("sets importance ratio for pipeline perception updates")
+	
+   property("usbl_importance", "double", 1.0)
+   
+   property("usbl_range_variance", "double", 1.0)
+   
+   property("usbl_angle_variance", "double", 0.1)
         
 
    property("perception_history_number", "int", 8).
@@ -181,30 +172,15 @@ task_context "Task" do
    
    property("sonar_position", "base/Vector3d").
 	doc("transformation of the sonar, with respect to the origin of avalon")
-		
-   property("gps_position", "base/Vector3d").
-	doc("transformation of the gps sensor, with respect to the origin of avalon")
 
 	
   property("dvl_rotation", "base/Vector3d").
       doc("Rotation of the dvl")
-	
-   
-   #GPS-settings------------------------------------------------------------------------------
-   
-   
-   
-   property("utm_relative_angle", "double", 0).
-	doc("gives the angle difference between the coordinate-system and the utm-north") 
       
-   property("gps_covarianz", "double", 1.0).
-	doc("sets gps covariance for defining measurement uncertainty")
+  property("usbl_position", "base/Vector3d")
+  property("usbl_rotation", "base/Vector3d")
 	
-    property("gps_importance" , "double", 1.0).
-	doc("sets importance ratio for gps perception updates")
-	
-    property("gps_interspersal_ratio" , "double", 0.01).
-	doc("ratio for generating new particle after each gps_sample")	
+
 	
    #Covarianz modification---------------------------------------------------------------------
    
@@ -223,10 +199,7 @@ task_context "Task" do
 	
    property("position_covariance_threshold", "double", 1.0).
       doc("Output variances below this sigma threshold will be set the value of the threshold")
-	        
-        
-    
-   
+	           
             
         
    # ----------------------------------------------------------------------
@@ -237,7 +210,8 @@ task_context "Task" do
        align_port "laser_samples", 0.1
        align_port "orientation_samples", 0.01
        align_port "speed_samples", 0.01
-       align_port "gps_pose_samples", 0.1
+       align_port "usbl_pose_samples", 0.1
+       align_port "usbl_angle_samples", 0.1
 
    end
  
@@ -245,7 +219,7 @@ task_context "Task" do
    port_driven :orientation_samples
    port_driven :speed_samples
    port_driven :pose_update
-   port_driven :gps_pose_samples
+
 
    
    runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS_NO_DVL", "INVALID_VALUES"

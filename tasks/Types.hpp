@@ -8,11 +8,18 @@
 #ifndef UW_PARTICLE_LOCALIZATION_TYPES_HPP_
 #define UW_PARTICLE_LOCALIZATION_TYPES_HPP_
 
-#include <base/eigen.h>
-#include <base/time.h>
+#include <base/Eigen.hpp>
+#include <base/Time.hpp>
+#include <base/Angle.hpp>
 
 namespace uw_localization {
 
+struct AngleWithTimestamp{
+
+  base::Time time;
+  base::Angle angle;
+};  
+  
 struct Stats {
     /** current time */
     base::Time timestamp;

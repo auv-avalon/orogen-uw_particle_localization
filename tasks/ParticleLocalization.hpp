@@ -33,7 +33,8 @@ namespace uw_localization {
 class ParticleLocalization : public ParticleFilter<PoseParticle>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState, NodeMap>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
-  public Perception<PoseParticle, std::pair<double,double>, NodeMap>
+  public Perception<PoseParticle, base::samples::RigidBodyState, NodeMap>,
+  public Perception<PoseParticle, uw_localization::AngleWithTimestamp, NodeMap>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -59,16 +60,10 @@ public:
   base::Time getCurrentTimestamp();
 
   virtual double perception(PoseParticle& x, const base::samples::LaserScan& z, NodeMap& m);
-
-    
- /**
- * Calculates the propability of a particle using a received gps-position
- * @param X: a Particle
- * @param T: the perception as a gps-position
- * @param M: the nodemap
- * @return the propability of the particle
- */ 
-  virtual double perception(PoseParticle& x, const base::Vector3d& z, NodeMap& m);
+  virtual double perception(PoseParticle& x, const base::samples::RigidBodyState& z, NodeMap& m);
+  virtual double perception(PoseParticle& x, const uw_localization::AngleWithTimestamp& z, NodeMap& m);
+  
+  
 
   
   /**
@@ -78,22 +73,14 @@ public:
    * @param ratio: amount of particles, which will be deleted, in percent
    * @param random_uniform: ignore the position_covariance and interspere random over the environment 
    * @param invalidate_particles: set new particles to invalid -> particles need to be meassured to be valid
-   */
+  */
   void interspersal(const base::samples::RigidBodyState& pos, const NodeMap& m, double ratio, bool random_uniform, bool invalidate_particles);
   
-
   double observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance = 1.0);
-
+  double observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance);
+  double observeAndDebug(const uw_localization::AngleWithTimestamp& z, NodeMap& m, double importance);
   
-  /**
-   * Receives a perception as a gps-position and updates the current particle-set
-   * @param z: Perception as an utm-coordinate
-   * @param m: nodemap of the enviroment, where the perception takes place
-   * @param importance: importace factor of the perception
-   * @return: the effectiv sample size (the average square weight)
-   */
-  double observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance = 1.0);
-
+  
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf, PointStatus Status);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
@@ -156,8 +143,6 @@ private:
   double perception_history_sum;
   bool used_dvl;
   
-  //the origin of the coordinate system as utm-coordinate
-  base::Vector3d utm_origin;
   
   //Number of particles with zero confidence
   int zeroConfidenceCount;

@@ -64,7 +64,8 @@ namespace uw_particle_localization {
           virtual void orientation_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
           virtual void speed_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
           virtual void pose_updateCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
-          virtual void gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+	  virtual void usbl_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs);
+	  virtual void usbl_angle_samplesCallback(const base::Time& ts, const uw_localization::AngleWithTimestamp& rbs);
 
           uw_localization::ParticleLocalization* localizer;
           uw_localization::NodeMap* map;

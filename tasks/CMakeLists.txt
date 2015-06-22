@@ -2,7 +2,7 @@
 
 include(uw_particle_localizationTaskLib)
 ADD_LIBRARY(${UW_PARTICLE_LOCALIZATION_TASKLIB_NAME} SHARED 
-    ${UW_PARTICLE_LOCALIZATION_TASKLIB_SOURCES} ParticleLocalization.cpp DPSlam.cpp)
+    ${UW_PARTICLE_LOCALIZATION_TASKLIB_SOURCES} ParticleLocalization.cpp)
 
 add_dependencies(${UW_PARTICLE_LOCALIZATION_TASKLIB_NAME}
     regen-typekit)

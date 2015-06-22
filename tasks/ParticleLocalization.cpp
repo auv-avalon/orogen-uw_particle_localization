@@ -17,8 +17,7 @@ ParticleLocalization::ParticleLocalization(const FilterConfig& config)
 {
     first_perception_received = false;
     PoseParticle::pose = &vehicle_pose;
-    utm_origin = base::Vector3d::Zero();
-    utm_origin[0] = -1;
+
 }
 
 ParticleLocalization::~ParticleLocalization()
@@ -181,51 +180,24 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
     return effective_sample_size;
 }
 
+double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance){
+  
+  if(filter_config.use_markov)
+    return observe_markov(z, m, importance);
+  else
+    return observe(z, m, importance);
+  
+}
 
-
-
-
-double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance)
-{	
-    if(utm_origin[0]==-1){
-	utm_origin << z.position[0], z.position[1], 0.0;
-    }
-    
-    //Converts the utm-coordinate to our world coordinate system
-    base::Vector3d pose;
-    pose[0] = cos(filter_config.utm_relative_angle)*(z.position[0]-utm_origin[0])
-	  - sin(filter_config.utm_relative_angle)*(z.position[1]-utm_origin[1])
-	  + filter_config.init_position[0];
-    pose[1] = cos(filter_config.utm_relative_angle)*(z.position[1]-utm_origin[1])
-	  + sin(filter_config.utm_relative_angle)*(z.position[0]-utm_origin[0])
-	  + filter_config.init_position[1];    
-    
-    //Sets the covarianz matrix of the rbs
-    base::samples::RigidBodyState newRBS = z;
-    base::Matrix3d cov = base::Matrix3d::Zero();
-    cov << filter_config.gps_covarianz, 0, 0,
-	0, filter_config.gps_covarianz, 0,
-	0, 0, filter_config.gps_covarianz;
-    newRBS.cov_position = cov;
-    
-    newRBS.position[0]=pose[0];
-    newRBS.position[1]=pose[1];
-    
-    //Creates new particle at the gps-position
-    interspersal(newRBS, m, filter_config.gps_interspersal_ratio, false, false);	  
-    
-    double effective_sample_size = observe(pose, m, importance);   
-    
-    best_sonar_measurement.time = z.time;
-    
-    if(best_sonar_measurement.status == OKAY)
-      addHistory(best_sonar_measurement);
-    
-    best_sonar_measurement.confidence = -1.0;
-    timestamp = base::Time::now();
-    
-    return effective_sample_size;
-}  
+double ParticleLocalization::observeAndDebug(const uw_localization::AngleWithTimestamp& z, NodeMap& m, double importance){
+  
+  if(filter_config.use_markov)
+    return observe_markov(z, m, importance);
+  else
+    return observe(z, m, importance);
+  
+  
+}
 
 
 
@@ -316,35 +288,35 @@ double ParticleLocalization::perception(PoseParticle& X, const base::samples::La
 }
 
 
-
-double ParticleLocalization::perception(PoseParticle& X, const base::Vector3d& Z, NodeMap& M)
-{
-    Eigen::Matrix<double,2,1> pos;
-    pos << X.p_position[0] , X.p_position[1];
-    Eigen::Matrix<double,2,2> covar;
-    covar << filter_config.gps_covarianz, 0, 0, filter_config.gps_covarianz;
-    Eigen::Matrix<double,2,1> gps; 
-    gps << Z[0], Z[1];    
-    
-    //check if this particle is part of the world
-    if(filter_config.useMap && !M.belongsToWorld(X.p_position)) {
-        debug(Z, 0.0, NOT_IN_WORLD); 
-        return 0.0;
-    }
-    
-    //double propability = calc_gaussian(pos, covar, gps);
-    
-    double diff=std::sqrt(std::pow(X.p_position[0]-Z[0], 2.0) + std::pow(X.p_position[1]-Z[1], 2.0));
-    double probability = gaussian1d(0, filter_config.gps_covarianz, diff);
-    
-    debug(Z,probability,OKAY);
-    
-    first_perception_received = true;
-    
-    return probability;
-}
-
+double ParticleLocalization::perception(PoseParticle& X, const base::samples::RigidBodyState& Z, NodeMap& M){
   
+  base::Vector3d posZ = Z.position;
+  posZ.z() = 0.0;
+  base::Vector3d ppos2usbl = filter_config.usbl2world.inverse() * X.p_position;
+  ppos2usbl.z() = 0.0;
+
+  base::Vector2d x_polar( ppos2usbl.norm(), std::atan2( ppos2usbl.y(), ppos2usbl.x()) );
+  base::Vector2d z_polar( posZ.norm(), std::atan2( posZ.y(), posZ.x()) );
+
+  base::Matrix2d cov = base::Matrix2d::Identity();
+  cov(0,0) = filter_config.usbl_range_variance;
+  cov(1,1) = filter_config.usbl_angle_variance;
+  
+  return machine_learning::calc_gaussian<2>( z_polar, cov, x_polar);
+  
+}  
+
+
+double ParticleLocalization::perception(PoseParticle& X, const uw_localization::AngleWithTimestamp& Z, NodeMap& M){
+  
+  base::Vector3d ppos2usbl = filter_config.usbl2world.inverse() * X.p_position;
+
+  double x_angle = std::atan2( ppos2usbl.y(), ppos2usbl.x());
+  
+  return machine_learning::gaussian1d(0.0, filter_config.usbl_angle_variance, x_angle - Z.angle.rad) ;
+  
+} 
+
   
 void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
 {

@@ -15,11 +15,9 @@ Task::Task(std::string const& name)
   map = 0;
 
   
-  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline, v_dvl_rotation;;
+  Eigen::Vector3d v_sonar, v_dvl_rotation;;
   v_sonar << -0.5, 0.0, 0.0;
   _sonar_position.set(v_sonar);
-  v_gps.setZero();
-  _gps_position.set(v_gps);
   v_dvl_rotation << 0.0, 0.0, 0.25 * M_PI;
   _dvl_rotation.set(v_dvl_rotation);
   
@@ -35,11 +33,9 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
   map = 0;
 
   
-  Eigen::Vector3d v_sonar, v_gps, v_buoy_cam, v_buoy_rotation, v_pipeline, v_dvl_rotation;;
+  Eigen::Vector3d v_sonar, v_dvl_rotation;;
   v_sonar << -0.5, 0.0, 0.0;
   _sonar_position.set(v_sonar);
-  v_gps.setZero();
-  _gps_position.set(v_gps);
   v_dvl_rotation << 0.0, 0.0, 0.25 * M_PI;
   _dvl_rotation.set(v_dvl_rotation);
   
@@ -89,16 +85,13 @@ bool Task::startHook()
      config.sonar_maximum_distance = _sonar_maximum_distance.value();
      config.sonar_minimum_distance = _sonar_minimum_distance.value();
      config.sonar_covariance = _sonar_covariance.value();
-     config.pipeline_covariance = _pipeline_covariance.value();
+     config.usbl_range_variance = _usbl_range_variance.get();
+     config.usbl_angle_variance = _usbl_angle_variance.get();
      config.pure_random_motion = _pure_random_motion.value();
      
      config.sonar_vertical_angle = _sonar_vertical_angle.value();
      config.sonar_covariance_reflection_factor = _sonar_covariance_reflection_factor.value();
      config.sonar_covariance_corner_factor = _sonar_covariance_corner_factor.value();
-     
-     config.utm_relative_angle = _utm_relative_angle.value();
-     config.gps_covarianz = _gps_covarianz.value();
-     config.gps_interspersal_ratio = _gps_interspersal_ratio.value();
      
      config.yaw_offset = _orientation_offset.get();
 
@@ -115,7 +108,6 @@ bool Task::startHook()
 
      number_sonar_perceptions = 0;
      number_rejected_samples = 0;
-     number_gps_perceptions = 0;
 
      std::cout << "Setup static motion covariance" << std::endl;
 
@@ -138,10 +130,14 @@ bool Task::startHook()
 
     
     config.sonarToAvalon = Eigen::Translation3d(_sonar_position.get());
-
-    config.gpsToAvalon = _gps_position.get();
    
     config.dvlRotation = eulerToQuaternion( _dvl_rotation.get()); 
+    
+    config.usbl2world = Eigen::Affine3d::Identity();
+    config.usbl2world.translation() = _usbl_position.get();
+    config.usbl2world.linear() = ( Eigen::AngleAxisd(_usbl_rotation.get().z(), Eigen::Vector3d::UnitZ())
+	  * Eigen::AngleAxisd(_usbl_rotation.get().y(), Eigen::Vector3d::UnitY())
+	  * Eigen::AngleAxisd(_usbl_rotation.get().x(), Eigen::Vector3d::UnitX()) ).matrix();
     
     config.filterZeros = _filter_zeros.get();
     
@@ -364,18 +360,37 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 }
 
 
-void Task::gps_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
+void Task::usbl_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
     
-  localizer->observeAndDebug(rbs,*map,_gps_importance.value());
+  double Neff = localizer->observeAndDebug(rbs,*map,_usbl_importance.value());
   
-  number_gps_perceptions++;
+  number_sonar_perceptions++;
   
-  if(number_gps_perceptions >= _minimum_perceptions.value()) {
-        localizer->resample();
-        localizer->setParticlesValid();
-        number_gps_perceptions = 0;
+    if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
+            && Neff < _effective_sample_size_threshold.value()) {
+      localizer->resample();
+      validate_particles();
+      number_sonar_perceptions = 0;
+     
     }  
 }
+
+
+void Task::usbl_angle_samplesCallback(const base::Time& ts, const uw_localization::AngleWithTimestamp& rbs){
+    
+  double Neff = localizer->observeAndDebug(rbs,*map,_usbl_importance.value());
+  
+  number_sonar_perceptions++;
+  
+  if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value()) 
+            && Neff < _effective_sample_size_threshold.value()) {
+      localizer->resample();
+      validate_particles();
+      number_sonar_perceptions = 0;
+     
+  } 
+}
+
 
 
 void Task::stopHook()
@@ -492,14 +507,13 @@ void Task::updateConfig(){
     config.sonar_maximum_distance = _sonar_maximum_distance.value();
     config.sonar_minimum_distance = _sonar_minimum_distance.value();
     config.sonar_covariance = _sonar_covariance.value();
-    config.pipeline_covariance = _pipeline_covariance.value();  
-    
+      
     config.sonar_vertical_angle = _sonar_vertical_angle.value();
     config.sonar_covariance_reflection_factor = _sonar_covariance_reflection_factor.value();
     config.sonar_covariance_corner_factor = _sonar_covariance_corner_factor.value();     
 
-    config.gps_covarianz = _gps_covarianz.value();
-    config.gps_interspersal_ratio = _gps_interspersal_ratio.value();    
+     config.usbl_range_variance = _usbl_range_variance.get();
+     config.usbl_angle_variance = _usbl_angle_variance.get();    
     
     localizer->updateConfig(config);
 }

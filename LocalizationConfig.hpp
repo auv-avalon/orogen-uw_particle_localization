@@ -38,10 +38,6 @@ struct FilterConfig {
     base::Vector3d init_position;
     base::Vector3d init_variance;
     
-    double utm_relative_angle;
-    double gps_covarianz;
-    double gps_interspersal_ratio;
-    
     bool use_markov;
     bool avg_particle_position;
     bool use_best_feature_only;
@@ -49,9 +45,6 @@ struct FilterConfig {
     // Sensor uncertainty
     double sonar_maximum_distance;
     double sonar_minimum_distance;
-    double sonar_covariance;
-    double pipeline_covariance;
-    double buoy_covariance;
     
     double sonar_vertical_angle;
     double sonar_covariance_reflection_factor;
@@ -60,14 +53,16 @@ struct FilterConfig {
     Eigen::Matrix3d static_motion_covariance;
     Eigen::Matrix3d static_speed_covariance;
     
+    double sonar_covariance;
+    double usbl_range_variance;
+    double usbl_angle_variance;
+    
     //Sensor transformations
     Eigen::Translation3d sonarToAvalon;
-    Eigen::Vector3d pipelineToAvalon;
-    Eigen::Vector3d gpsToAvalon;
-    
-    Eigen::Vector3d buoyCamPosition;
-    Eigen::Quaternion<double> buoyCamRotation;
+
     Eigen::Quaterniond dvlRotation;
+    
+    Eigen::Affine3d usbl2world;
     
     double yaw_offset;
     
@@ -75,46 +70,12 @@ struct FilterConfig {
     
     bool filterZeros;
     
-    //Motion model Properties
-    double param_length;
-    double param_radius;
-    double param_mass;
-    std::vector<double> param_thrusterCoefficient;
-    std::vector<double> param_linearThrusterCoefficient;
-    std::vector<double> param_squareThrusterCoefficient;
-    double param_thrusterVoltage;
-    std::vector<double> param_TCM;
-    base::Matrix6d param_linDamp;
-    base::Matrix6d param_sqDamp;
-    base::Matrix6d param_linDampNeg;
-    base::Matrix6d param_sqDampNeg;
-    base::Vector3d param_centerOfGravity;
-    base::Vector3d param_centerOfBuoyancy;
-    bool param_floating;
-    
     bool advanced_motion_model;
     double max_velocity_drift;
     Environment* env;
     
     std::vector<std::string> joint_names;
     
-    //slam stuff
-    
-    double feature_weight_reduction;
-    double feature_observation_range;
-    double feature_observation_minimum_range;
-    double feature_grid_resolution;
-    double feature_filter_threshold;
-    double feature_confidence;
-    double feature_empty_cell_confidence;
-    double feature_confidence_threshold;
-    double feature_output_confidence_threshold;
-    int feature_observation_count_threshold;
-    double echosounder_variance;
-    bool use_slam;
-    bool use_mapping_only;
-    bool single_depth_map;
-    bool use_initial_depthmap;
     
 };
 
