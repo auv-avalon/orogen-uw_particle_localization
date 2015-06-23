@@ -445,22 +445,6 @@ void ParticleLocalization::debug(double distance, double desire_distance, double
     }
 }
 
-void ParticleLocalization::debug(const base::Vector3d& pos, double conf, PointStatus status)
-{
-    if(best_sonar_measurement.confidence < conf){
-	uw_localization::PointInfo info;
-	info.distance = 0.0;
-	info.desire_distance = 0.0;
-	info.angle = 0.0;
-	info.desire_point = base::Vector3d(0.0,0.0,0.0);
-	info.real_point = base::Vector3d(0.0,0.0,0.0);
-	info.location = base::Vector3d(pos[0],pos[1],0.0);
-	info.confidence = conf;
-	info.status = status;
-    }  
-  
-}
-
 
 void ParticleLocalization::setCurrentOrientation(const base::samples::RigidBodyState& orientation)
 {

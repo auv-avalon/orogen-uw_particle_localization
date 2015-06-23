@@ -34,10 +34,9 @@ namespace uw_particle_localization {
           base::Time last_hough;
           base::Time last_hough_timeout;
           base::Time last_speed_time;
-          base::Time last_echosounder;
+	  base::Time last_map_update;
           base::samples::RigidBodyState lastRBS;
           base::samples::RigidBodyState lastOrientation;
-          base::Time last_map_update;
 
           double current_depth;
           double current_ground;
@@ -45,12 +44,9 @@ namespace uw_particle_localization {
 
           unsigned number_sonar_perceptions;
           unsigned number_rejected_samples;
-          int number_gps_perceptions;
           bool position_jump_detected;
           double sum_scan;
           double last_scan_angle;
-          bool found_buoy_white;
-          bool found_buoy_orange;
            
           /**
            * Changes the state of the task

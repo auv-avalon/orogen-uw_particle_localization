@@ -84,7 +84,6 @@ public:
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf, PointStatus Status);
   void debug(double distance,  const base::Vector3d& loc, double conf, PointStatus status);
-  void debug(const base::Vector3d& pos, double conf, PointStatus status);
   
   void addHistory(const PointInfo& status);
 
@@ -120,10 +119,6 @@ public:
    */
   void filterZeros();
   
-  void observeDepth(const Eigen::Vector3d &pose, const Eigen::Matrix3d pos_covar, double depth);
-  
-
-
 
 private:
   FilterConfig filter_config;
