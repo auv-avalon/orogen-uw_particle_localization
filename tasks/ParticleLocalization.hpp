@@ -34,7 +34,8 @@ class ParticleLocalization : public ParticleFilter<PoseParticle>,
   public Dynamic<PoseParticle, base::samples::RigidBodyState, NodeMap>,
   public Perception<PoseParticle, base::samples::LaserScan, NodeMap>,
   public Perception<PoseParticle, base::samples::RigidBodyState, NodeMap>,
-  public Perception<PoseParticle, uw_localization::AngleWithTimestamp, NodeMap>
+  public Perception<PoseParticle, uw_localization::AngleWithTimestamp, NodeMap>,
+  public Perception<PoseParticle, base::Position, NodeMap>
 {
 public:
   ParticleLocalization(const FilterConfig& config);
@@ -62,7 +63,7 @@ public:
   virtual double perception(PoseParticle& x, const base::samples::LaserScan& z, NodeMap& m);
   virtual double perception(PoseParticle& x, const base::samples::RigidBodyState& z, NodeMap& m);
   virtual double perception(PoseParticle& x, const uw_localization::AngleWithTimestamp& z, NodeMap& m);
-  
+  virtual double perception(PoseParticle& x, const base::Position& z, NodeMap&);
   
 
   
@@ -79,7 +80,7 @@ public:
   double observeAndDebug(const base::samples::LaserScan& z, NodeMap& m, double importance = 1.0);
   double observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance);
   double observeAndDebug(const uw_localization::AngleWithTimestamp& z, NodeMap& m, double importance);
-  
+  double observeAndDebug(const base::Position& z, NodeMap& m, double importance);
   
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf);
   void debug(double distance, double desire_distance, double angle, const base::Vector3d& desire, const base::Vector3d& real, const base::Vector3d& loc, double conf, PointStatus Status);

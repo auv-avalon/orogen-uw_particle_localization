@@ -362,7 +362,7 @@ void Task::speed_samplesCallback(const base::Time& ts, const base::samples::Rigi
 
 void Task::usbl_pose_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& rbs){
     
-  double Neff = localizer->observeAndDebug(rbs,*map,_usbl_importance.value());
+  double Neff = localizer->observeAndDebug(rbs.position,*map,_usbl_importance.value());
   
   number_sonar_perceptions++;
   
@@ -391,6 +391,22 @@ void Task::usbl_angle_samplesCallback(const base::Time& ts, const uw_localizatio
   } 
 }
 
+
+void Task::visual_marker_samplesCallback(const base::Time& ts, const base::samples::RigidBodyState& sample){
+  
+  double Neff = localizer->observeAndDebug(sample, *map, _visual_marker_importance.value());
+  
+  number_sonar_perceptions++;
+  
+  if(number_sonar_perceptions >= static_cast<size_t>(_minimum_perceptions.value())
+	  && Neff < _effective_sample_size_threshold.value()){
+      localizer->resample();
+      validate_particles();
+      number_sonar_perceptions = 0;        
+  }
+  
+  
+}
 
 
 void Task::stopHook()

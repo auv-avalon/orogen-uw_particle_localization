@@ -72,7 +72,9 @@ task_context "Task" do
 	
    input_port("usbl_angle_samples", "uw_localization/AngleWithTimestamp").
 	doc("Dummy port for usbl angle information")
-          
+	
+   input_port("visual_marker_samples", "/base/samples/RigidBodyState").
+	doc("Position sample in the world_frame, estimated by a visual marker")
 
    
    # ----------------------------------------------------------------------
@@ -145,7 +147,8 @@ task_context "Task" do
    property("usbl_range_variance", "double", 1.0)
    
    property("usbl_angle_variance", "double", 0.1)
-        
+   
+   property("visual_marker_importance", "double", 1.0)        
 
    property("perception_history_number", "int", 8).
         doc("set history size for determing uncertainty_degree of best measurement samples")
@@ -212,6 +215,7 @@ task_context "Task" do
        align_port "speed_samples", 0.01
        align_port "usbl_pose_samples", 0.1
        align_port "usbl_angle_samples", 0.1
+       align_port "visual_marker_samples", 0.1
 
    end
  
@@ -219,7 +223,6 @@ task_context "Task" do
    port_driven :orientation_samples
    port_driven :speed_samples
    port_driven :pose_update
-
 
    
    runtime_states "LOCALIZING", "NO_ORIENTATION", "NO_SONAR", "ABOVE_SURFACE", "NO_HOUGH", "NO_JOINTS_NO_DVL", "INVALID_VALUES"

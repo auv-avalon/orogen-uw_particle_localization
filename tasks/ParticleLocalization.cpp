@@ -180,7 +180,7 @@ double ParticleLocalization::observeAndDebug(const base::samples::LaserScan& z, 
     return effective_sample_size;
 }
 
-double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance){
+double ParticleLocalization::observeAndDebug(const base::Position& z, NodeMap& m, double importance){
   
   if(filter_config.use_markov)
     return observe_markov(z, m, importance);
@@ -195,7 +195,15 @@ double ParticleLocalization::observeAndDebug(const uw_localization::AngleWithTim
     return observe_markov(z, m, importance);
   else
     return observe(z, m, importance);
+    
+}
+
+double ParticleLocalization::observeAndDebug(const base::samples::RigidBodyState& z, NodeMap& m, double importance){
   
+  if(filter_config.use_markov)
+    return observe_markov(z, m, importance);
+  else
+    return observe(z, m, importance);
   
 }
 
@@ -288,9 +296,12 @@ double ParticleLocalization::perception(PoseParticle& X, const base::samples::La
 }
 
 
-double ParticleLocalization::perception(PoseParticle& X, const base::samples::RigidBodyState& Z, NodeMap& M){
+/**
+ * Usbl position measurement
+ */
+double ParticleLocalization::perception(PoseParticle& X, const base::Position& Z, NodeMap& M){
   
-  base::Vector3d posZ = Z.position;
+  base::Vector3d posZ = Z;
   posZ.z() = 0.0;
   base::Vector3d ppos2usbl = filter_config.usbl2world.inverse() * X.p_position;
   ppos2usbl.z() = 0.0;
@@ -306,7 +317,9 @@ double ParticleLocalization::perception(PoseParticle& X, const base::samples::Ri
   
 }  
 
-
+/**
+ * Usbl angle measurement
+ */
 double ParticleLocalization::perception(PoseParticle& X, const uw_localization::AngleWithTimestamp& Z, NodeMap& M){
   
   base::Vector3d ppos2usbl = filter_config.usbl2world.inverse() * X.p_position;
@@ -317,7 +330,20 @@ double ParticleLocalization::perception(PoseParticle& X, const uw_localization::
   
 } 
 
+/**
+ * Visual marker measurement
+ */
+double ParticleLocalization::perception(PoseParticle& X, const base::samples::RigidBodyState& Z, NodeMap& M){
   
+  base::Matrix2d cov = Z.cov_position.block<2,2>(0,0);
+  base::Vector2d posZ = Z.position.block<2,1>(0,0);
+  base::Vector2d posX = X.p_position.block<2,1>(0,0);
+  
+  return machine_learning::calc_gaussian<2>(posZ, cov, posX );
+  
+}  
+
+
 void ParticleLocalization::addHistory(const uw_localization::PointInfo& info)
 {
     if(perception_history.size() >= filter_config.perception_history_number) {
